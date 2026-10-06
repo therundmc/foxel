@@ -2,7 +2,7 @@
   "name": "foxel",
   "displayName": "Foxel",
   "description": "A cute pixel-art fox cub that lives in your editor: it naps, hunts butterflies, plays fetch and reacts to your coding.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "anca",
   "author": "anca",
   "license": "MIT",
@@ -98,6 +98,12 @@
         "title": "Throw a Ball",
         "category": "Foxel",
         "icon": "$(circle-filled)"
+      },
+      {
+        "command": "foxel.giveTreat",
+        "title": "Give a Treat",
+        "category": "Foxel",
+        "icon": "$(heart)"
       }
     ],
     "menus": {
@@ -108,9 +114,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "foxel.wave",
+          "command": "foxel.giveTreat",
           "when": "view == foxel.panelView || view == foxel.explorerView",
           "group": "navigation@2"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@3"
         }
       ]
     },
@@ -148,6 +159,23 @@
           "minimum": 0.25,
           "maximum": 4,
           "description": "Animation speed multiplier."
+        },
+        "foxel.coat": {
+          "type": "string",
+          "enum": [
+            "red",
+            "arctic",
+            "silver",
+            "fennec"
+          ],
+          "enumDescriptions": [
+            "Classic red fox.",
+            "Snow-white arctic fox.",
+            "Silver fox with smoky grey fur.",
+            "Sandy desert fennec."
+          ],
+          "default": "red",
+          "description": "Colour of the fox's fur."
         },
         "foxel.reactToTyping": {
           "type": "boolean",

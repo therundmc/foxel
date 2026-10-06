@@ -10,3 +10,4 @@ dist/icon.cjs
 tsconfig.json
 .gitignore
 *.vsix
+ROADMAP.md

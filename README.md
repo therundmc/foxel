@@ -12,8 +12,11 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 | --- | --- |
 | Move the mouse back and forth over the fox | You pet it: it closes its eyes with little hearts, then curls up for a cuddle |
 | Click the fox | Hearts |
+| Click its head | Boop: it squints and sneezes |
+| Move the mouse quickly around the view | It chases the cursor like a laser dot and pounces on it |
+| Click the treat button in the view title | A treat falls; the fox runs to it and eats it |
 | Click the ball button in the view title, or double-click an empty spot | A ball appears and the fox runs after it |
-| Drag the ball, then let go while moving the mouse | You throw it; the fox fetches it, brings it back to you and waits for the next throw |
+| Drag the ball, then let go while moving the mouse | You throw it; the fox fetches it (catching it in mid-air when it can), brings it back to you and waits for the next throw |
 
 ## On its own
 
@@ -36,6 +39,7 @@ It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks
 
 - **Foxel: Show Companion** / **Hide Companion** / **Toggle Companion**
 - **Foxel: Throw a Ball**
+- **Foxel: Give a Treat**
 - **Foxel: Say Hello**
 
 ## Settings
@@ -46,6 +50,7 @@ It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks
 | `foxel.position` | `panel` | `panel` or `explorer` |
 | `foxel.scale` | `4` | Size of one sprite pixel, in screen pixels |
 | `foxel.speed` | `1` | Animation speed multiplier |
+| `foxel.coat` | `red` | Fur colour: `red`, `arctic`, `silver` or `fennec` |
 | `foxel.reactToTyping` | `true` | Tap along when you type |
 | `foxel.reactToErrors` | `true` | React to errors appearing and being fixed |
 | `foxel.sleepAfterSeconds` | `30` | Inactivity before it falls asleep |

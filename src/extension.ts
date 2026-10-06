@@ -14,8 +14,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const broadcast = (msg: HostMessage): void => providers.forEach((p) => p.post(msg));
   const react = (reaction: Reaction): void => broadcast({ type: 'reaction', reaction });
   const settingsMessage = (): HostMessage => {
-    const { scale, speed } = readConfig();
-    return { type: 'settings', settings: { scale, speed } };
+    const { scale, speed, coat } = readConfig();
+    return { type: 'settings', settings: { scale, speed, coat } };
   };
 
   const watcher = new ActivityWatcher(react, readConfig);
@@ -49,10 +49,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('foxel.toggle', () => setEnabled(!readConfig().enabled)),
     vscode.commands.registerCommand('foxel.wave', () => react('wave')),
     vscode.commands.registerCommand('foxel.throwBall', () => broadcast({ type: 'spawnBall' })),
+    vscode.commands.registerCommand('foxel.giveTreat', () => broadcast({ type: 'giveTreat' })),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         e.affectsConfiguration(`${SECTION}.scale`) ||
-        e.affectsConfiguration(`${SECTION}.speed`)
+        e.affectsConfiguration(`${SECTION}.speed`) ||
+        e.affectsConfiguration(`${SECTION}.coat`)
       ) {
         broadcast(settingsMessage());
       }

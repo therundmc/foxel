@@ -1,6 +1,7 @@
 import type { Reaction } from '../shared/protocol';
 import { Ball, clamp } from './ball';
 import { Bug } from './bug';
+import { Treat } from './treat';
 import {
   ANIMATIONS,
   BALL_SIZE,
@@ -45,6 +46,9 @@ export type BuddyState =
   | 'celebrate'
   | 'sad'
   | 'petted'
+  | 'boop'
+  | 'chase'
+  | 'snack'
   | 'panic';
 
 type HuntPhase = 'spot' | 'stalk' | 'wiggle' | 'leap' | 'catch' | 'miss';
@@ -70,12 +74,15 @@ const PRIORITY: Partial<Record<BuddyState, number>> = {
   fetch: 2,
   bring: 2,
   await: 2,
+  chase: 2,
   wave: 3,
   love: 3,
   happy: 3,
   celebrate: 3,
   sad: 3,
   petted: 3,
+  boop: 3,
+  snack: 3,
   panic: 4,
 };
 
@@ -109,6 +116,7 @@ const NEXT: Partial<Record<BuddyState, Weights>> = {
   hunt: [['sit', 40], ['idle', 30], ['walk', 30]],
   await: [['play', 40], ['lie', 30], ['sit', 30]],
   petted: [['lie', 60], ['sit', 40]],
+  chase: [['sit', 50], ['lie', 20], ['idle', 30]],
 };
 const DEFAULT_NEXT: Weights = [['idle', 40], ['sit', 40], ['walk', 20]];
 
@@ -122,6 +130,7 @@ const CALM_STATES: ReadonlySet<BuddyState> = new Set([
   'groom',
 ]);
 const FACE_TARGET_STATES: ReadonlySet<BuddyState> = new Set(['idle', 'sit', 'lie', 'await', 'watch']);
+const CHASE_FROM_STATES: ReadonlySet<BuddyState> = new Set([...CALM_STATES, 'walk']);
 const BALL_FOCUS_STATES: ReadonlySet<BuddyState> = new Set(['watch', 'fetch', 'play']);
 const OFFSCREEN_STATES: ReadonlySet<BuddyState> = new Set(['leave', 'away', 'arrive']);
 const RESTFUL_STATES: ReadonlySet<BuddyState> = new Set([
@@ -189,6 +198,17 @@ const NOSE_HEIGHT = 16;
 const PET_LINGER_MS = 1500;
 const CUDDLE_AFTER_MS = 2500;
 
+const CHASE_SPEED = 32;
+const CHASE_MAX_MS = 12_000;
+const CHASE_TRAIL_MS = 300;
+const CHASE_TRIGGER = 25;
+const CHASE_GIVE_UP_MS = 1500;
+const POUNCE_REACH = 20;
+const POUNCE_REARM = 4;
+
+const SNACK_MAX_MS = 15_000;
+const EAT_MS = 1400;
+
 const HUNT_ANIM: Record<HuntPhase, AnimName> = {
   spot: 'alert',
   stalk: 'stalk',
@@ -210,6 +230,7 @@ export class Behavior {
   elapsed = 0;
   readonly ball = new Ball();
   readonly bug = new Bug();
+  readonly treat = new Treat();
   private startDir: 1 | -1 = 1;
   private duration: number;
   private worldWidth = SPRITE_SIZE;
@@ -235,6 +256,12 @@ export class Behavior {
   private sinceTurnMs = 0;
   private airMs = 0;
   private airTotalMs = 0;
+  private clockMs = 0;
+  private trail: (WorldPoint & { t: number })[] = [];
+  private lastPointer: WorldPoint | undefined;
+  private pointerStillMs = 0;
+  private pouncedAt: WorldPoint | undefined;
+  private eatMs = 0;
 
   constructor(private readonly random: () => number = Math.random) {
     this.duration = this.ambientDuration('idle');
@@ -381,14 +408,37 @@ export class Behavior {
     }
   }
 
+  boop(): void {
+    this.tryEnter('boop', totalDuration(ANIMATIONS.boop));
+  }
+
+  giveTreat(x: number): void {
+    if (this.treat.active) {
+      return;
+    }
+    this.treat.drop(x, this.worldWidth, this.worldHeight);
+    if (!OFFSCREEN_STATES.has(this.state)) {
+      this.startSnack();
+    }
+  }
+
   update(dtMs: number): void {
     this.elapsed += dtMs;
+    this.clockMs += dtMs;
     const dt = dtMs / 1000;
 
     this.ball.update(dt, this.worldWidth, this.worldHeight);
     this.bumpBall();
     this.bug.update(dt, this.worldWidth, this.worldHeight, this.random);
+    this.treat.update(dt, this.worldWidth);
+    this.trackPointer(dtMs);
     this.sinceTurnMs += dtMs;
+
+    if (this.treat.landed && CALM_STATES.has(this.state)) {
+      this.startSnack();
+    } else if (CHASE_FROM_STATES.has(this.state) && this.laserSpotted()) {
+      this.startChase();
+    }
 
     const speed = SPEED[this.state];
     if (speed !== undefined) {
@@ -450,6 +500,12 @@ export class Behavior {
       case 'bring':
         this.updateBring(dt);
         break;
+      case 'chase':
+        this.updateChase(dt);
+        break;
+      case 'snack':
+        this.updateSnack(dt);
+        break;
       case 'petted':
         this.petMs += dtMs;
         this.petIdleMs += dtMs;
@@ -497,6 +553,16 @@ export class Behavior {
         return { anim: this.running ? 'run' : 'walk', elapsed: this.elapsed };
       case 'hunt':
         return { anim: HUNT_ANIM[this.huntPhase], elapsed: this.phaseMs };
+      case 'chase':
+        if (this.pounceMs > 0) {
+          return { anim: 'pounce', elapsed: POUNCE_MS - this.pounceMs };
+        }
+        return { anim: this.moving ? 'run' : 'ready', elapsed: this.elapsed };
+      case 'snack':
+        if (this.eatMs > 0) {
+          return { anim: 'eat', elapsed: this.eatMs };
+        }
+        return { anim: this.moving ? 'run' : 'ready', elapsed: this.elapsed };
       case 'petted':
         if (this.petMs >= CUDDLE_AFTER_MS) {
           return { anim: 'cuddle', elapsed: this.petMs - CUDDLE_AFTER_MS };
@@ -602,6 +668,103 @@ export class Behavior {
     this.pounceMs = 0;
     this.moving = false;
     this.enter('play', PLAY_MAX_MS);
+  }
+
+  private trackPointer(dtMs: number): void {
+    const p = this.pointer;
+    if (!p) {
+      this.trail = [];
+      this.lastPointer = undefined;
+      this.pointerStillMs = 0;
+      return;
+    }
+    const last = this.lastPointer;
+    if (last && last.x === p.x && last.y === p.y) {
+      this.pointerStillMs += dtMs;
+    } else {
+      this.trail.push({ ...p, t: this.clockMs });
+      this.pointerStillMs = 0;
+    }
+    this.lastPointer = { ...p };
+    this.trail = this.trail.filter((s) => this.clockMs - s.t <= CHASE_TRAIL_MS);
+  }
+
+  // A pointer darting around outside the body reads like a laser dot; moving over the body is petting.
+  private laserSpotted(): boolean {
+    const p = this.pointer;
+    if (!p || this.trail.length < 3) {
+      return false;
+    }
+    const overBody = p.x >= this.x && p.x <= this.x + SPRITE_SIZE && p.y <= this.y + SPRITE_SIZE;
+    if (overBody) {
+      return false;
+    }
+    let travel = 0;
+    for (let i = 1; i < this.trail.length; i++) {
+      travel += Math.hypot(this.trail[i].x - this.trail[i - 1].x, this.trail[i].y - this.trail[i - 1].y);
+    }
+    return travel >= CHASE_TRIGGER;
+  }
+
+  private startChase(): void {
+    this.pounceMs = 0;
+    this.pouncedAt = undefined;
+    this.moving = false;
+    this.tryEnter('chase', CHASE_MAX_MS);
+  }
+
+  private updateChase(dt: number): void {
+    this.moving = false;
+    this.fall(dt);
+    if (this.pounceMs > 0) {
+      this.pounceMs -= dt * 1000;
+      return;
+    }
+    const p = this.pointer;
+    if (!p) {
+      this.enter('lookAround', this.ambientDuration('lookAround'));
+      return;
+    }
+    if (this.approach(this.noseTargetFor(p.x), CHASE_SPEED * dt)) {
+      this.moving = true;
+      return;
+    }
+    const rearmed =
+      !this.pouncedAt || Math.hypot(p.x - this.pouncedAt.x, p.y - this.pouncedAt.y) > POUNCE_REARM;
+    if (rearmed && p.y <= POUNCE_REACH) {
+      this.pouncedAt = { ...p };
+      this.pounceMs = POUNCE_MS;
+    } else if (this.pointerStillMs >= CHASE_GIVE_UP_MS) {
+      this.enterNext('sit');
+    }
+  }
+
+  private startSnack(): void {
+    this.eatMs = 0;
+    this.moving = false;
+    this.tryEnter('snack', SNACK_MAX_MS);
+  }
+
+  private updateSnack(dt: number): void {
+    this.moving = false;
+    this.fall(dt);
+    const treat = this.treat;
+    if (!treat.active) {
+      this.enterNext('sit');
+      return;
+    }
+    if (this.approach(this.noseTargetFor(treat.centerX), FETCH_RUN_SPEED * dt)) {
+      this.moving = true;
+      return;
+    }
+    if (!treat.landed) {
+      return;
+    }
+    this.eatMs += dt * 1000;
+    if (this.eatMs >= EAT_MS) {
+      treat.eat();
+      this.enter('love', REACTION_MS.love);
+    }
   }
 
   private updatePlay(dt: number): void {

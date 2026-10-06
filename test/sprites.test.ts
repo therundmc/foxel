@@ -6,9 +6,13 @@ import {
   BUG_FRAMES,
   BUG_H,
   BUG_W,
+  COATS,
   PALETTE,
   SPRITE_SIZE,
   TRANSPARENT,
+  TREAT_GLYPH,
+  TREAT_H,
+  TREAT_W,
   frameAt,
   totalDuration,
 } from '../webview/sprites';
@@ -96,6 +100,21 @@ describe('sprites', () => {
       expect(glyph).toHaveLength(BUG_H);
       glyph.forEach((line) => expect(line).toHaveLength(BUG_W));
       expect(usesPalette(glyph)).toBe(true);
+    }
+  });
+
+  it('treat glyph matches the declared size', () => {
+    expect(TREAT_GLYPH).toHaveLength(TREAT_H);
+    TREAT_GLYPH.forEach((line) => expect(line).toHaveLength(TREAT_W));
+    expect(usesPalette(TREAT_GLYPH)).toBe(true);
+  });
+
+  it('coats only recolour existing palette letters', () => {
+    for (const coat of Object.values(COATS)) {
+      for (const [letter, color] of Object.entries(coat)) {
+        expect(letter in PALETTE).toBe(true);
+        expect(color).toMatch(/^#[0-9a-f]{6}$/);
+      }
     }
   });
 });

@@ -7,9 +7,13 @@ import {
   BUG_FRAMES,
   BUG_H,
   BUG_W,
+  COATS,
   PALETTE,
   SPRITE_SIZE,
   TRANSPARENT,
+  TREAT_GLYPH,
+  TREAT_H,
+  TREAT_W,
   frameAt,
   type Frame,
   type Glyph,
@@ -49,6 +53,8 @@ const MAX_THROW_SPEED = 180;
 const EXIT_THROW_SPEED = 90;
 const SPAWN_SPEED = 40;
 const SAVE_INTERVAL_MS = 1000;
+const HEAD_FRONT_X = 15;
+const HEAD_BOTTOM_Y = 21;
 
 const vscode = acquireVsCodeApi();
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -56,7 +62,7 @@ const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 const behavior = new Behavior();
 const bitmaps = new Map<Glyph, HTMLCanvasElement>();
 
-let settings: BuddySettings = { scale: DEFAULT_SCALE, speed: 1 };
+let settings: BuddySettings = { scale: DEFAULT_SCALE, speed: 1, coat: 'red' };
 let scale = DEFAULT_SCALE;
 let width = 0;
 let height = 0;
@@ -73,6 +79,10 @@ function blinkGap(): number {
   return BLINK_GAP_MIN_MS + Math.random() * (BLINK_GAP_MAX_MS - BLINK_GAP_MIN_MS);
 }
 
+function colorOf(letter: string): string {
+  return COATS[settings.coat]?.[letter] ?? PALETTE[letter];
+}
+
 function bitmap(pixels: Glyph): HTMLCanvasElement {
   let bmp = bitmaps.get(pixels);
   if (bmp) {
@@ -85,7 +95,7 @@ function bitmap(pixels: Glyph): HTMLCanvasElement {
   pixels.forEach((line, y) => {
     for (let x = 0; x < line.length; x++) {
       if (line[x] !== TRANSPARENT) {
-        g.fillStyle = PALETTE[line[x]];
+        g.fillStyle = colorOf(line[x]);
         g.fillRect(x, y, 1, 1);
       }
     }
@@ -144,12 +154,23 @@ function overBuddy(x: number, y: number): boolean {
   return behavior.visible && inside(buddyRect(), x, y);
 }
 
+function overBuddyHead(x: number, y: number): boolean {
+  const r = buddyRect();
+  if (!overBuddy(x, y)) {
+    return false;
+  }
+  const lx = (x - r.x) / scale;
+  const front = behavior.dir === 1 ? lx : SPRITE_SIZE - lx;
+  return front >= HEAD_FRONT_X && (y - r.y) / scale < HEAD_BOTTOM_Y;
+}
+
 function overBall(x: number, y: number): boolean {
   return behavior.ball.state === 'free' && inside(ballRect(), x, y, scale * 2);
 }
 
 function draw(now: number): void {
   ctx.clearRect(0, 0, width, height);
+  drawTreat();
   if (behavior.visible) {
     drawBuddy(buddyRect(), now);
   }
@@ -208,7 +229,7 @@ function drawBlink(frame: Frame, rect: Rect, flip: boolean, now: number): void {
     }
   };
   for (let y = ey - 1; y <= ey + 2; y++) {
-    paint(ex - 1, y, 4, PALETTE.O);
+    paint(ex - 1, y, 4, colorOf('O'));
   }
   paint(ex - 1, ey + 1, 1, PALETTE.E);
   paint(ex, ey + 2, 2, PALETTE.E);
@@ -226,6 +247,18 @@ function drawBall(): void {
   const step = (Math.PI * BALL_SIZE) / n;
   const spin = ((Math.floor(ball.spin / step) % n) + n) % n;
   ctx.drawImage(bitmap(BALL_FRAMES[spin]), r.x, r.y, r.w, r.h);
+}
+
+function drawTreat(): void {
+  const treat = behavior.treat;
+  if (!treat.active) {
+    return;
+  }
+  const s = scale;
+  const x = Math.round(treat.x * s);
+  drawShadow(x + (TREAT_W * s) / 2, TREAT_W - Math.min(treat.y / 6, 4));
+  const y = Math.round(screenY(treat.y + TREAT_H));
+  ctx.drawImage(bitmap(TREAT_GLYPH), x, y, TREAT_W * s, TREAT_H * s);
 }
 
 function drawBug(): void {
@@ -335,10 +368,15 @@ function tick(now: number): void {
 window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
   const msg = e.data;
   if (msg.type === 'settings') {
+    if (msg.settings.coat !== settings.coat) {
+      bitmaps.clear();
+    }
     settings = msg.settings;
     resize();
   } else if (msg.type === 'reaction') {
     behavior.react(msg.reaction);
+  } else if (msg.type === 'giveTreat') {
+    behavior.giveTreat((width / scale) * (0.2 + 0.6 * Math.random()));
   } else if (msg.type === 'spawnBall') {
     const x = (width / scale) * (0.2 + 0.6 * Math.random());
     const y = height / scale - BALL_SIZE - 2;
@@ -399,7 +437,12 @@ window.addEventListener('mouseout', (e) => {
 });
 
 canvas.addEventListener('click', (e) => {
-  if (!dragged && behavior.state !== 'petted' && overBuddy(e.clientX, e.clientY)) {
+  if (dragged || behavior.state === 'petted' || !overBuddy(e.clientX, e.clientY)) {
+    return;
+  }
+  if (overBuddyHead(e.clientX, e.clientY)) {
+    behavior.boop();
+  } else {
     behavior.react('love');
   }
 });

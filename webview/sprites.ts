@@ -1,3 +1,5 @@
+import type { Coat } from '../shared/protocol';
+
 export const SPRITE_SIZE = 32;
 export const TRANSPARENT = '.';
 export const NOSE_X = 29;
@@ -5,6 +7,8 @@ export const GROUND_ROW = 30;
 export const BALL_SIZE = 7;
 export const BUG_W = 5;
 export const BUG_H = 4;
+export const TREAT_W = 8;
+export const TREAT_H = 5;
 
 export const PALETTE: Readonly<Record<string, string>> = {
   K: '#3a2418',
@@ -29,6 +33,16 @@ export const PALETTE: Readonly<Record<string, string>> = {
   Y: '#f8f8ec',
   y: '#c8d0a4',
   g: '#efff9e',
+  T: '#ecc88e',
+  t: '#b8874c',
+};
+
+// Fur letters only; everything else keeps the base palette.
+export const COATS: Readonly<Record<Coat, Readonly<Record<string, string>>>> = {
+  red: {},
+  arctic: { O: '#f2f5fb', o: '#c3cde0', c: '#ffffff', d: '#8e9ab3' },
+  silver: { O: '#8f95a6', o: '#62687a', c: '#e6e8ef', d: '#2c2f3b' },
+  fennec: { O: '#e6c08a', o: '#c0955a', c: '#fff5e0', d: '#9c6a36' },
 };
 
 export type Glyph = readonly string[];
@@ -84,6 +98,8 @@ export type AnimName =
   | 'petted'
   | 'cuddle'
   | 'ready'
+  | 'boop'
+  | 'eat'
   | 'watch';
 
 type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie';
@@ -679,12 +695,24 @@ export const ANIMATIONS: Record<AnimName, Animation> = {
     [{ tail: 'wagL', mouth: 'tongue' }, 180],
     [{ tail: 'wagR', mouth: 'tongue' }, 180],
   ]),
+  boop: anim([
+    [{ eye: 'closed', ears: 'back', head: [-1, 0] }, 180],
+    [{ eye: 'closed', ears: 'back', mouth: 'open', head: [1, 1], extras: ['sniffB'] }, 240],
+    [{ eye: 'happy', tail: 'wagL' }, 300],
+    [{ eye: 'happy', tail: 'wagR' }, 300],
+  ]),
+  eat: anim([
+    [{ head: [1, 5], eye: 'happy', mouth: 'open', tail: 'wagL' }, 180],
+    [{ head: [1, 4], eye: 'happy', mouth: 'flat', tail: 'wagR', bob: 1 }, 180],
+  ]),
 };
 
 export const BUG_FRAMES: readonly Glyph[] = [
   ['VV.VV', 'VVKVV', '.VKV.', '..K..'],
   ['.....', '.VKV.', 'VVKVV', '..K..'],
 ];
+
+export const TREAT_GLYPH: Glyph = ['.KK..KK.', 'KTTKKTTK', 'KTTTTTTK', 'KttKKttK', '.KK..KK.'];
 
 // Seam rotated 45° clockwise per frame, so rolling right spins the right way.
 export const BALL_FRAMES: readonly Glyph[] = [

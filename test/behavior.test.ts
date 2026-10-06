@@ -263,6 +263,110 @@ describe('Behavior', () => {
     expect(b.state).toBe('lie');
   });
 
+  it('squints and sneezes when booped, then settles', () => {
+    const b = new Behavior(fixed(0.5));
+    b.setWorldSize(300, 60);
+    b.boop();
+    expect(b.state).toBe('boop');
+    expect(b.current().anim).toBe('boop');
+    simulate(b, 1100);
+    expect(b.state).not.toBe('boop');
+  });
+
+  describe('laser pointer', () => {
+    function wiggle(b: Behavior, ms: number, around: number): void {
+      let t = 0;
+      simulate(b, ms, () => {
+        t += 16;
+        b.setPointer({ x: around + 15 * Math.sin(t / 40), y: 4 });
+      });
+    }
+
+    it('chases a darting pointer, pounces on it, then gives up once it stops', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.restore(20, 1);
+      wiggle(b, 200, 220);
+      expect(b.state).toBe('chase');
+      b.setPointer({ x: 220, y: 4 });
+      const anims = new Set<AnimName>();
+      simulate(b, 8000, () => {
+        anims.add(b.current().anim);
+        return b.state !== 'chase';
+      });
+      expect([...anims]).toEqual(expect.arrayContaining(['run', 'pounce']));
+      expect(b.state).toBe('sit');
+    });
+
+    it('looks around when the pointer leaves', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.restore(20, 1);
+      wiggle(b, 200, 220);
+      b.setPointer(undefined);
+      b.update(16);
+      expect(b.state).toBe('lookAround');
+    });
+
+    it('ignores the pointer while asleep or fetching', () => {
+      const sleeper = new Behavior(fixed(0.5));
+      sleeper.setWorldSize(300, 60);
+      sleeper.react('sleep');
+      wiggle(sleeper, 500, 220);
+      expect(sleeper.state).toBe('sleep');
+
+      const fetcher = new Behavior(fixed(0.5));
+      fetcher.setWorldSize(300, 60);
+      fetcher.spawnBall(100, 30, 20);
+      wiggle(fetcher, 500, 220);
+      expect(fetcher.state).toBe('fetch');
+    });
+
+    it('does not mistake petting for a laser', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.restore(100, 1);
+      wiggle(b, 500, 116);
+      expect(b.state).not.toBe('chase');
+    });
+  });
+
+  describe('treat', () => {
+    it('watches it fall, runs to it, eats it and is delighted', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.restore(20, 1);
+      b.giveTreat(240);
+      expect(b.state).toBe('snack');
+      const anims = new Set<AnimName>();
+      simulate(b, 15_000, () => {
+        anims.add(b.current().anim);
+        return b.state !== 'snack';
+      });
+      expect([...anims]).toEqual(expect.arrayContaining(['run', 'eat']));
+      expect(b.state).toBe('love');
+      expect(b.treat.active).toBe(false);
+    });
+
+    it('wakes up for a treat', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.react('sleep');
+      b.giveTreat(150);
+      expect(b.state).toBe('snack');
+    });
+
+    it('eats a treat it missed once it calms down', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.react('panic');
+      b.giveTreat(150);
+      expect(b.state).toBe('panic');
+      simulate(b, 20_000, () => !b.treat.active);
+      expect(b.treat.active).toBe(false);
+    });
+  });
+
   describe('hunt', () => {
     function hunt(randomValue: number): { anims: Set<AnimName>; b: Behavior } {
       const b = new Behavior(fixed(randomValue));
