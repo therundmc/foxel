@@ -14,6 +14,7 @@ import {
   TREAT_H,
   TREAT_W,
   frameAt,
+  touchZone,
   totalDuration,
 } from '../webview/sprites';
 
@@ -107,6 +108,20 @@ describe('sprites', () => {
     expect(TREAT_GLYPH).toHaveLength(TREAT_H);
     TREAT_GLYPH.forEach((line) => expect(line).toHaveLength(TREAT_W));
     expect(usesPalette(TREAT_GLYPH)).toBe(true);
+  });
+
+  it('tells which part of the fox is touched', () => {
+    const stand = ANIMATIONS.idle.frames[0];
+    expect(touchZone(stand, 28.5, 15.5)).toBe('nose');
+    expect(touchZone(stand, 21.5, 9.5)).toBe('head');
+    expect(touchZone(stand, 24.5, 3.5)).toBe('head');
+    expect(touchZone(stand, 13.5, 21.5)).toBe('back');
+    expect(touchZone(stand, 19.5, 29.5)).toBe('paw');
+    expect(touchZone(stand, 4.5, 13.5)).toBe('tail');
+    expect(touchZone(stand, 0.5, 0.5)).toBeUndefined();
+    const lying = ANIMATIONS.lie.frames[0];
+    const [hx, hy] = lying.head;
+    expect(touchZone(lying, hx + 0.5, hy - 3.5)).toBe('head');
   });
 
   it('coats only recolour existing palette letters', () => {

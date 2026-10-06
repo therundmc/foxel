@@ -23,7 +23,8 @@ export type HostMessage =
   | { type: 'reaction'; reaction: Reaction }
   | { type: 'settings'; settings: BuddySettings }
   | { type: 'spawnBall' }
-  | { type: 'giveTreat' };
+  | { type: 'giveTreat' }
+  | { type: 'shown' };
 
 export interface WebviewMessage {
   type: 'ready';

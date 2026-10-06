@@ -22,6 +22,11 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider {
         this.onReady(this);
       }
     });
+    view.onDidChangeVisibility(() => {
+      if (view.visible) {
+        this.post({ type: 'shown' });
+      }
+    });
     view.onDidDispose(() => {
       this.view = undefined;
     });

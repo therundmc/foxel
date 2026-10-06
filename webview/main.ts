@@ -1,5 +1,5 @@
 import type { BuddySettings, HostMessage } from '../shared/protocol';
-import { Behavior, type WorldPoint } from './behavior';
+import { Behavior, type Gaze, type WorldPoint } from './behavior';
 import {
   ANIMATIONS,
   BALL_FRAMES,
@@ -8,27 +8,23 @@ import {
   BUG_H,
   BUG_W,
   COATS,
+  GROUND_ROW,
   PALETTE,
   SPRITE_SIZE,
   TRANSPARENT,
-  TREAT_GLYPH,
   TREAT_H,
+  TREAT_STAGES,
   TREAT_W,
   frameAt,
+  touchZone,
   type Frame,
   type Glyph,
+  type TouchZone,
 } from './sprites';
 
 declare function acquireVsCodeApi(): {
   postMessage(msg: unknown): void;
-  getState(): unknown;
-  setState(state: unknown): void;
 };
-
-interface SavedState {
-  x: number;
-  dir: 1 | -1;
-}
 
 interface Rect {
   x: number;
@@ -52,9 +48,10 @@ const THROW_SAMPLE_MS = 100;
 const MAX_THROW_SPEED = 180;
 const EXIT_THROW_SPEED = 90;
 const SPAWN_SPEED = 40;
-const SAVE_INTERVAL_MS = 1000;
-const HEAD_FRONT_X = 15;
-const HEAD_BOTTOM_Y = 21;
+const CLICK_SLOP = 2;
+const GAZE_DELAY_MS = 220;
+const GAZE_HOLD_MS = 350;
+const CENTER_GAZE: Gaze = { x: 0, y: 0 };
 
 const vscode = acquireVsCodeApi();
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -67,8 +64,15 @@ let scale = DEFAULT_SCALE;
 let width = 0;
 let height = 0;
 let pointer: { x: number; y: number; time: number } | undefined;
-let holding = false;
+let holding: 'ball' | 'treat' | undefined;
 let dragged = false;
+// Whenever the view appears, the fox peeks in from an edge instead of just being there.
+let introPending = true;
+let shownGaze: Gaze = CENTER_GAZE;
+let wantedGaze: Gaze = CENTER_GAZE;
+let wantedSince = 0;
+let shownSince = 0;
+let pressedOnBuddy: { x: number; y: number } | undefined;
 let throwSamples: (WorldPoint & { t: number })[] = [];
 let strokeDir = 0;
 let strokeTravel = 0;
@@ -114,6 +118,10 @@ function resize(): void {
   ctx.imageSmoothingEnabled = false;
   scale = Math.max(1, Math.round(settings.scale) || DEFAULT_SCALE);
   behavior.setWorldSize(Math.floor(width / scale), Math.floor(height / scale));
+  if (introPending && behavior.maxX > 0) {
+    introPending = false;
+    behavior.startIntro();
+  }
 }
 
 // World y is the height above the ground line, in sprite pixels.
@@ -151,28 +159,47 @@ function inside(r: Rect, x: number, y: number, pad = 0): boolean {
 }
 
 function overBuddy(x: number, y: number): boolean {
-  return behavior.visible && inside(buddyRect(), x, y);
+  return behavior.visible && !introPending && inside(buddyRect(), x, y);
 }
 
-function overBuddyHead(x: number, y: number): boolean {
-  const r = buddyRect();
+function currentFrame(): Frame {
+  const { anim, elapsed } = behavior.current();
+  return frameAt(ANIMATIONS[anim], elapsed);
+}
+
+function zoneAt(x: number, y: number): TouchZone | undefined {
   if (!overBuddy(x, y)) {
-    return false;
+    return undefined;
   }
+  const r = buddyRect();
   const lx = (x - r.x) / scale;
-  const front = behavior.dir === 1 ? lx : SPRITE_SIZE - lx;
-  return front >= HEAD_FRONT_X && (y - r.y) / scale < HEAD_BOTTOM_Y;
+  return touchZone(currentFrame(), behavior.dir === 1 ? lx : SPRITE_SIZE - lx, (y - r.y) / scale);
 }
 
 function overBall(x: number, y: number): boolean {
   return behavior.ball.state === 'free' && inside(ballRect(), x, y, scale * 2);
 }
 
+function treatRect(): Rect {
+  const treat = behavior.treat;
+  return {
+    x: Math.round(treat.x * scale),
+    y: Math.round(screenY(treat.y + TREAT_H)),
+    w: TREAT_W * scale,
+    h: TREAT_H * scale,
+  };
+}
+
+function overTreat(x: number, y: number): boolean {
+  return behavior.treat.state === 'free' && inside(treatRect(), x, y, scale * 2);
+}
+
 function draw(now: number): void {
   ctx.clearRect(0, 0, width, height);
-  drawTreat();
-  if (behavior.visible) {
-    drawBuddy(buddyRect(), now);
+  const frame = currentFrame();
+  drawTreat(frame);
+  if (behavior.visible && !introPending) {
+    drawBuddy(buddyRect(), frame, now);
   }
   drawBall();
   drawBug();
@@ -188,12 +215,10 @@ function drawShadow(centerX: number, widthPx: number): void {
   ctx.fillRect(x + s, height - s, w - 2 * s, s);
 }
 
-function drawBuddy(rect: Rect, now: number): void {
+function drawBuddy(rect: Rect, frame: Frame, now: number): void {
   const s = scale;
   drawShadow(rect.x + rect.w / 2, 16 - Math.min(behavior.y, 8));
 
-  const { anim, elapsed } = behavior.current();
-  const frame = frameAt(ANIMATIONS[anim], elapsed);
   const flip = behavior.dir === -1;
   const img = bitmap(frame.pixels);
   if (flip) {
@@ -205,7 +230,7 @@ function drawBuddy(rect: Rect, now: number): void {
   } else {
     ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
   }
-  drawBlink(frame, rect, flip, now);
+  drawEyes(frame, rect, flip, now);
 
   // Overlays (Zzz, ?, hearts) follow the facing side but must never be mirrored.
   for (const o of frame.overlays) {
@@ -215,8 +240,25 @@ function drawBuddy(rect: Rect, now: number): void {
   }
 }
 
-function drawBlink(frame: Frame, rect: Rect, flip: boolean, now: number): void {
-  if (!frame.eye || now < nextBlinkAt) {
+// The eye sits in a 4x4 patch of fur (see frame.eye), so it can be repainted blinking or looking around.
+// Eyes lag behind the target and step one pixel at a time, so they glance rather than twitch.
+function settleGaze(target: Gaze | undefined, now: number): Gaze {
+  const want = target ?? CENTER_GAZE;
+  if (want.x !== wantedGaze.x || want.y !== wantedGaze.y) {
+    wantedGaze = want;
+    wantedSince = now;
+  }
+  const settled = now - wantedSince >= GAZE_DELAY_MS && now - shownSince >= GAZE_HOLD_MS;
+  if (settled && (shownGaze.x !== wantedGaze.x || shownGaze.y !== wantedGaze.y)) {
+    const step = (from: -1 | 0 | 1, to: -1 | 0 | 1): -1 | 0 | 1 => (from === to ? from : from === 0 ? to : 0);
+    shownGaze = { x: step(shownGaze.x, wantedGaze.x), y: step(shownGaze.y, wantedGaze.y) };
+    shownSince = now;
+  }
+  return shownGaze;
+}
+
+function drawEyes(frame: Frame, rect: Rect, flip: boolean, now: number): void {
+  if (!frame.eye) {
     return;
   }
   const s = scale;
@@ -228,12 +270,36 @@ function drawBlink(frame: Frame, rect: Rect, flip: boolean, now: number): void {
       ctx.fillRect(rect.x + sx * s, rect.y + ly * s, s, s);
     }
   };
+  const blinking = now >= nextBlinkAt;
+  const eyeCenter = {
+    x: behavior.x + (flip ? SPRITE_SIZE - ex - 1 : ex + 1),
+    y: behavior.y + GROUND_ROW + 1 - (ey + 1.5),
+  };
+  const gaze = blinking ? undefined : settleGaze(behavior.gaze(eyeCenter), now);
+  if (!blinking && (!gaze || (gaze.x === 0 && gaze.y === 0))) {
+    return;
+  }
   for (let y = ey - 1; y <= ey + 2; y++) {
     paint(ex - 1, y, 4, colorOf('O'));
   }
-  paint(ex - 1, ey + 1, 1, PALETTE.E);
-  paint(ex, ey + 2, 2, PALETTE.E);
-  paint(ex + 2, ey + 1, 1, PALETTE.E);
+  if (blinking || !gaze) {
+    paint(ex - 1, ey + 1, 1, PALETTE.E);
+    paint(ex, ey + 2, 2, PALETTE.E);
+    paint(ex + 2, ey + 1, 1, PALETTE.E);
+    return;
+  }
+  const x = ex + gaze.x;
+  if (gaze.y === 1) {
+    paint(x, ey + 1, 2, PALETTE.E);
+    paint(x, ey + 2, 2, PALETTE.E);
+    paint(x + 1, ey + 1, 1, PALETTE.W);
+    return;
+  }
+  const top = ey + gaze.y;
+  for (let y = top; y < top + 3; y++) {
+    paint(x, y, 2, PALETTE.E);
+  }
+  paint(x + 1, top, 1, PALETTE.W);
 }
 
 function drawBall(): void {
@@ -249,16 +315,23 @@ function drawBall(): void {
   ctx.drawImage(bitmap(BALL_FRAMES[spin]), r.x, r.y, r.w, r.h);
 }
 
-function drawTreat(): void {
+const TREAT_STAGES_FACING_LEFT = TREAT_STAGES.map((g) => g.map((line) => [...line].reverse().join('')));
+
+// While eating, the frame says how much is left; the bitten end faces the fox.
+function drawTreat(frame: Frame): void {
   const treat = behavior.treat;
-  if (!treat.active) {
+  let glyph: Glyph | undefined;
+  if (treat.state === 'free' || treat.state === 'held') {
+    glyph = (treat.facing === 1 ? TREAT_STAGES : TREAT_STAGES_FACING_LEFT)[treat.stage];
+  } else if (treat.state === 'eating' && behavior.state === 'snack' && frame.treat !== undefined) {
+    glyph = (behavior.dir === 1 ? TREAT_STAGES : TREAT_STAGES_FACING_LEFT)[frame.treat];
+  }
+  if (!glyph) {
     return;
   }
-  const s = scale;
-  const x = Math.round(treat.x * s);
-  drawShadow(x + (TREAT_W * s) / 2, TREAT_W - Math.min(treat.y / 6, 4));
-  const y = Math.round(screenY(treat.y + TREAT_H));
-  ctx.drawImage(bitmap(TREAT_GLYPH), x, y, TREAT_W * s, TREAT_H * s);
+  const r = treatRect();
+  drawShadow(r.x + r.w / 2, TREAT_W - Math.min(treat.y / 6, 4));
+  ctx.drawImage(bitmap(glyph), r.x, r.y, r.w, r.h);
 }
 
 function drawBug(): void {
@@ -281,7 +354,7 @@ function sampleThrow(p: WorldPoint): void {
 }
 
 function releaseBall(cssX: number, cssY: number, minSpeed = 0): void {
-  holding = false;
+  holding = undefined;
   const now = performance.now();
   const recent = throwSamples.filter((p) => now - p.t <= THROW_SAMPLE_MS);
   let vx = 0;
@@ -309,6 +382,15 @@ function releaseBall(cssX: number, cssY: number, minSpeed = 0): void {
   behavior.throwBall(vx, vy, toWorld(cssX, cssY).x);
 }
 
+function releaseHeld(cssX: number, cssY: number, minSpeed = 0): void {
+  if (holding === 'ball') {
+    releaseBall(cssX, cssY, minSpeed);
+  } else if (holding === 'treat') {
+    holding = undefined;
+    behavior.releaseTreat();
+  }
+}
+
 // Petting = moving the pointer back and forth over the buddy.
 function trackStroke(movementX: number): void {
   if (movementX === 0) {
@@ -333,18 +415,17 @@ function trackStroke(movementX: number): void {
 
 function updateCursor(x: number, y: number): void {
   let cursor = 'default';
-  if (holding) {
+  if (holding || (pressedOnBuddy && dragged)) {
     cursor = 'grabbing';
-  } else if (overBall(x, y)) {
+  } else if (overBall(x, y) || overTreat(x, y)) {
     cursor = 'grab';
-  } else if (overBuddy(x, y)) {
+  } else if (zoneAt(x, y)) {
     cursor = 'pointer';
   }
   canvas.style.cursor = cursor;
 }
 
 let last = performance.now();
-let lastSave = 0;
 function tick(now: number): void {
   requestAnimationFrame(tick);
   if (behavior.restful && !holding && now - last < RESTFUL_FRAME_MS) {
@@ -357,10 +438,6 @@ function tick(now: number): void {
   behavior.update(dt * settings.speed);
   if (now >= nextBlinkAt + BLINK_MS) {
     nextBlinkAt = now + blinkGap();
-  }
-  if (now - lastSave >= SAVE_INTERVAL_MS && behavior.visible) {
-    lastSave = now;
-    vscode.setState({ x: behavior.x, dir: behavior.dir } satisfies SavedState);
   }
   draw(now);
 }
@@ -375,6 +452,11 @@ window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
     resize();
   } else if (msg.type === 'reaction') {
     behavior.react(msg.reaction);
+  } else if (msg.type === 'shown') {
+    if (!introPending && behavior.state !== 'intro') {
+      introPending = true;
+      resize();
+    }
   } else if (msg.type === 'giveTreat') {
     behavior.giveTreat((width / scale) * (0.2 + 0.6 * Math.random()));
   } else if (msg.type === 'spawnBall') {
@@ -387,16 +469,29 @@ window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
 canvas.addEventListener('mousedown', (e) => {
   pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
   dragged = false;
+  const p = toWorld(e.clientX, e.clientY);
   if (overBall(e.clientX, e.clientY)) {
-    holding = true;
-    dragged = true;
+    holding = 'ball';
     throwSamples = [];
-    const p = toWorld(e.clientX, e.clientY);
     behavior.grabBall(p.x, p.y);
     sampleThrow(p);
+  } else if (overTreat(e.clientX, e.clientY)) {
+    holding = 'treat';
+    behavior.grabTreat(p.x, p.y);
+  } else if (zoneAt(e.clientX, e.clientY)) {
+    pressedOnBuddy = { x: e.clientX, y: e.clientY };
+    strokeDir = 0;
+    strokeTravel = 0;
+    strokeReversals = [];
     updateCursor(e.clientX, e.clientY);
     e.preventDefault();
+    return;
+  } else {
+    return;
   }
+  dragged = true;
+  updateCursor(e.clientX, e.clientY);
+  e.preventDefault();
 });
 
 window.addEventListener('mousemove', (e) => {
@@ -404,46 +499,56 @@ window.addEventListener('mousemove', (e) => {
   if (holding) {
     dragged = true;
     const p = toWorld(e.clientX, e.clientY);
-    behavior.moveHeldBall(p.x, p.y);
-    sampleThrow(p);
-  } else if (e.buttons === 0 && overBuddy(e.clientX, e.clientY)) {
-    trackStroke(e.movementX);
+    if (holding === 'ball') {
+      behavior.moveHeldBall(p.x, p.y);
+      sampleThrow(p);
+    } else {
+      behavior.moveHeldTreat(p.x, p.y);
+    }
+  } else if (pressedOnBuddy && (e.buttons & 1) !== 0) {
+    if (Math.hypot(e.clientX - pressedOnBuddy.x, e.clientY - pressedOnBuddy.y) > CLICK_SLOP * scale) {
+      dragged = true;
+    }
+    if (overBuddy(e.clientX, e.clientY)) {
+      trackStroke(e.movementX);
+    }
   }
   updateCursor(e.clientX, e.clientY);
 });
 
 window.addEventListener('mouseup', (e) => {
+  pressedOnBuddy = undefined;
   if (holding) {
-    releaseBall(e.clientX, e.clientY);
-    updateCursor(e.clientX, e.clientY);
+    releaseHeld(e.clientX, e.clientY);
   }
+  updateCursor(e.clientX, e.clientY);
 });
 
 window.addEventListener('blur', () => {
   if (holding && pointer) {
-    releaseBall(pointer.x, pointer.y);
+    releaseHeld(pointer.x, pointer.y);
   }
 });
 
-// The webview stops receiving mouse events once the pointer leaves it, so let go of the ball there.
+// The webview stops receiving mouse events once the pointer leaves it, so let go of what is held there.
 window.addEventListener('mouseout', (e) => {
   if (e.relatedTarget) {
     return;
   }
+  pressedOnBuddy = undefined;
   if (holding) {
-    releaseBall(e.clientX, e.clientY, EXIT_THROW_SPEED);
+    releaseHeld(e.clientX, e.clientY, EXIT_THROW_SPEED);
   }
   pointer = undefined;
 });
 
 canvas.addEventListener('click', (e) => {
-  if (dragged || behavior.state === 'petted' || !overBuddy(e.clientX, e.clientY)) {
+  if (dragged || behavior.state === 'petted') {
     return;
   }
-  if (overBuddyHead(e.clientX, e.clientY)) {
-    behavior.boop();
-  } else {
-    behavior.react('love');
+  const zone = zoneAt(e.clientX, e.clientY);
+  if (zone) {
+    behavior.touch(zone);
   }
 });
 
@@ -454,10 +559,6 @@ canvas.addEventListener('dblclick', (e) => {
   }
 });
 
-const saved = vscode.getState() as SavedState | undefined;
-if (saved && Number.isFinite(saved.x)) {
-  behavior.restore(saved.x, saved.dir === -1 ? -1 : 1);
-}
 new ResizeObserver(resize).observe(canvas);
 resize();
 requestAnimationFrame(tick);

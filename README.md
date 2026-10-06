@@ -10,13 +10,19 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 | Action | What happens |
 | --- | --- |
-| Move the mouse back and forth over the fox | You pet it: it closes its eyes with little hearts, then curls up for a cuddle |
-| Click the fox | Hearts |
-| Click its head | Boop: it squints and sneezes |
-| Move the mouse quickly around the view | It chases the cursor like a laser dot and pounces on it |
-| Click the treat button in the view title | A treat falls; the fox runs to it and eats it |
+| Move the mouse around | It follows the cursor with its eyes, and turns around if you stay behind it |
+| Hold the button down and stroke the fox back and forth | You pet it: it closes its eyes with little hearts, then curls up for a cuddle |
+| Click its nose | Boop and sneeze, a little blep, or it licks your finger |
+| Click its head | Leans into a head pat, nuzzles your hand, or tilts its head curiously |
+| Click its back | Thumps a back paw, play-bows then gets the zoomies, or flops over happily |
+| Click a paw | Gives you its paw, a high five, or a little twirl in the air |
+| Click its tail | Spins after it, jumps in surprise with a puffed-up tail, or proudly fluffs it |
+| Keep clicking while it reacts | It gets so excited it runs zoomies, then flops down panting |
+| Click the treat button in the view title | A bone falls; the fox lies down and eats it bite by bite |
+| Drag the bone | The fox sits and begs; hold the bone to its mouth and it takes it from your hand |
 | Click the ball button in the view title, or double-click an empty spot | A ball appears and the fox runs after it |
 | Drag the ball, then let go while moving the mouse | You throw it; the fox fetches it (catching it in mid-air when it can), brings it back to you and waits for the next throw |
+| Once it brings the ball back | Sometimes it shows off: balances it on its nose like a seal, tosses it up and catches it, or rolls it between its paws |
 
 ## On its own
 
@@ -61,9 +67,9 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 
 ### 1.1 — Play with me
 
-- Laser pointer: move the mouse quickly in the view and the fox runs after the cursor, pounces on it, then gives up once it stops
-- Boop: click its head and it squints and sneezes; clicking the body still gives hearts
-- Treats: **Give a Treat** command and view title button; a treat falls, the fox runs to eat it, then hearts
+- Touch: different reactions for the nose, head, back, paws and tail; petting needs the button held down
+- Eyes that follow the cursor
+- Treats: **Give a Treat** command and view title button; the fox eats the bone bite by bite, or takes it from your hand while begging
 - Coat: `foxel.coat` setting with red, arctic, silver or fennec
 
 ### 1.2 — Living with you
