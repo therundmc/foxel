@@ -46,6 +46,7 @@ const STROKE_REVERSALS = 2;
 const STROKE_MIN_TRAVEL = 3;
 const THROW_SAMPLE_MS = 100;
 const MAX_THROW_SPEED = 180;
+const EXIT_THROW_SPEED = 90;
 const SPAWN_SPEED = 40;
 const SAVE_INTERVAL_MS = 1000;
 
@@ -222,7 +223,8 @@ function drawBall(): void {
   const r = ballRect();
   drawShadow(r.x + r.w / 2, BALL_SIZE - Math.min(ball.y / 6, 4));
   const n = BALL_FRAMES.length;
-  const spin = ((Math.floor(ball.spin / 3) % n) + n) % n;
+  const step = (Math.PI * BALL_SIZE) / n;
+  const spin = ((Math.floor(ball.spin / step) % n) + n) % n;
   ctx.drawImage(bitmap(BALL_FRAMES[spin]), r.x, r.y, r.w, r.h);
 }
 
@@ -245,7 +247,7 @@ function sampleThrow(p: WorldPoint): void {
   }
 }
 
-function releaseBall(cssX: number, cssY: number): void {
+function releaseBall(cssX: number, cssY: number, minSpeed = 0): void {
   holding = false;
   const now = performance.now();
   const recent = throwSamples.filter((p) => now - p.t <= THROW_SAMPLE_MS);
@@ -264,6 +266,12 @@ function releaseBall(cssX: number, cssY: number): void {
   if (speed > MAX_THROW_SPEED) {
     vx *= MAX_THROW_SPEED / speed;
     vy *= MAX_THROW_SPEED / speed;
+  } else if (speed < minSpeed) {
+    const out = toWorld(cssX, cssY);
+    const [dx, dy] = speed > 0 ? [vx, vy] : [out.x - width / scale / 2, 1];
+    const len = Math.hypot(dx, dy);
+    vx = (dx / len) * minSpeed;
+    vy = (dy / len) * minSpeed;
   }
   behavior.throwBall(vx, vy, toWorld(cssX, cssY).x);
 }
@@ -379,10 +387,15 @@ window.addEventListener('blur', () => {
   }
 });
 
-document.addEventListener('mouseleave', () => {
-  if (!holding) {
-    pointer = undefined;
+// The webview stops receiving mouse events once the pointer leaves it, so let go of the ball there.
+window.addEventListener('mouseout', (e) => {
+  if (e.relatedTarget) {
+    return;
   }
+  if (holding) {
+    releaseBall(e.clientX, e.clientY, EXIT_THROW_SPEED);
+  }
+  pointer = undefined;
 });
 
 canvas.addEventListener('click', (e) => {

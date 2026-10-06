@@ -72,7 +72,7 @@ describe('sprites', () => {
 
   it('draws the ball in the mouth while carrying', () => {
     for (const frame of ANIMATIONS.carry.frames) {
-      expect(frame.pixels.join('')).toContain('R');
+      expect(frame.pixels.join('')).toContain('B');
     }
   });
 

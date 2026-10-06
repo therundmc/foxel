@@ -23,9 +23,12 @@ export const PALETTE: Readonly<Record<string, string>> = {
   L: '#ff4f7a',
   S: '#ffd84a',
   Q: '#e8e8e8',
-  R: '#e8413c',
-  U: '#3b82f6',
   V: '#b07cf0',
+  B: '#cde83a',
+  b: '#93ad24',
+  Y: '#f8f8ec',
+  y: '#c8d0a4',
+  g: '#efff9e',
 };
 
 export type Glyph = readonly string[];
@@ -74,11 +77,13 @@ export type AnimName =
   | 'stalk'
   | 'wiggle'
   | 'leap'
+  | 'snatch'
   | 'proud'
   | 'puzzled'
   | 'sad'
   | 'petted'
   | 'cuddle'
+  | 'ready'
   | 'watch';
 
 type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie';
@@ -505,9 +510,11 @@ function frame(p: Pose): Frame {
 
 function drawCarriedBall(g: Grid, cx: number, cy: number): void {
   const r = 2.6;
-  ellipse(g, cx, cy, r, r, 'R');
-  ellipse(g, cx, cy, r, r, 'W', (x) => x === Math.floor(cx));
-  ellipse(g, cx, cy, r, r, 'U', (x) => x > Math.floor(cx));
+  const mx = Math.floor(cx);
+  const my = Math.floor(cy);
+  ellipse(g, cx, cy, r, r, 'B');
+  ellipse(g, cx, cy, r, r, 'b', (x, y) => x - mx + y - my >= 2);
+  ellipse(g, cx, cy, r, r, 'Y', (x, y) => x === mx - 1 || (x === mx && Math.abs(y - my) === 2));
 }
 
 function anim(steps: readonly (readonly [Pose, number])[]): Animation {
@@ -643,6 +650,7 @@ export const ANIMATIONS: Record<AnimName, Animation> = {
     [{ legs: RUN_REACH, head: [1, -1], tail: 'flat', mouth: 'open' }, 200],
     [{ legs: TUCK, head: [1, -1], tail: 'flat', mouth: 'open' }, 400],
   ]),
+  snatch: anim([[{ legs: TUCK, head: [1, -1], tail: 'wagR', eye: 'happy', ball: true }, 600]]),
   proud: anim([
     [{ ...SIT, eye: 'happy', tail: 'sitA', extras: ['sparkleA'] }, 350],
     [{ ...SIT, eye: 'happy', tail: 'sitB', extras: ['sparkleB'] }, 350],
@@ -667,6 +675,10 @@ export const ANIMATIONS: Record<AnimName, Animation> = {
     [{ ...SIT, tail: 'sitA', mouth: 'tongue' }, 160],
     [{ ...SIT, tail: 'sitB', mouth: 'tongue', bob: 1 }, 160],
   ]),
+  ready: anim([
+    [{ tail: 'wagL', mouth: 'tongue' }, 180],
+    [{ tail: 'wagR', mouth: 'tongue' }, 180],
+  ]),
 };
 
 export const BUG_FRAMES: readonly Glyph[] = [
@@ -674,12 +686,17 @@ export const BUG_FRAMES: readonly Glyph[] = [
   ['.....', '.VKV.', 'VVKVV', '..K..'],
 ];
 
-const BALL_BASE = ['..KKK..', '.K123K.', 'K11233K', 'K11233K', 'K11233K', '.K123K.', '..KKK..'];
-const BALL_COLORS = ['RWU', 'URW', 'WUR'] as const;
-
-export const BALL_FRAMES: readonly Glyph[] = BALL_COLORS.map((colors) =>
-  BALL_BASE.map((line) => line.replace(/[123]/g, (d) => colors[Number(d) - 1])),
-);
+// Seam rotated 45° clockwise per frame, so rolling right spins the right way.
+export const BALL_FRAMES: readonly Glyph[] = [
+  ['..KKK..', '.KBYYK.', 'KBgYBBK', 'KBBYBbK', 'KBBYbbK', '.KByyK.', '..KKK..'],
+  ['..KKK..', '.KBBBK.', 'KBgBYYK', 'KBBYBbK', 'KBYBbbK', '.KYbbK.', '..KKK..'],
+  ['..KKK..', '.KBBBK.', 'KBgBBBK', 'KYYYYyK', 'KYBBbyK', '.KBbbK.', '..KKK..'],
+  ['..KKK..', '.KBBBK.', 'KYYBBBK', 'KBBYBbK', 'KBBBybK', '.KBbyK.', '..KKK..'],
+  ['..KKK..', '.KYYBK.', 'KBgYBBK', 'KBBYBbK', 'KBBYbbK', '.KYybK.', '..KKK..'],
+  ['..KKK..', '.KBBYK.', 'KBgBYBK', 'KBBYBbK', 'KYYBbbK', '.KBbbK.', '..KKK..'],
+  ['..KKK..', '.KBBBK.', 'KYgBBYK', 'KYYYYyK', 'KBBBbbK', '.KBbbK.', '..KKK..'],
+  ['..KKK..', '.KYBBK.', 'KBYBBBK', 'KBBYBbK', 'KBBByyK', '.KBbbK.', '..KKK..'],
+];
 
 export function totalDuration(animation: Animation): number {
   return animation.durations.reduce((sum, d) => sum + d, 0);

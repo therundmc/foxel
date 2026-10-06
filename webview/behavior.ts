@@ -55,6 +55,13 @@ export interface WorldPoint {
   y: number;
 }
 
+interface Intercept {
+  x: number;
+  dir: 1 | -1;
+  t: number;
+  lift: number;
+}
+
 const PRIORITY: Partial<Record<BuddyState, number>> = {
   sleep: 1,
   typing: 2,
@@ -158,6 +165,16 @@ const BODY_RIGHT = 26;
 const BODY_HEIGHT = 22;
 const BUMP_DAMPING = 0.5;
 
+const MOUTH_X = 28;
+const MOUTH_HEIGHT = 13;
+const CATCH_RADIUS = 4;
+const NOSE_REACH = 3;
+const STAND_LIFT = 1.5;
+const CATCH_LEAP_MAX = 16;
+const LEAP_GRAVITY = 300;
+const PREDICT_S = 3;
+const PREDICT_STEP = 1 / 60;
+
 const HUNT_MAX_MS = 30_000;
 const SPOT_MS = 900;
 const STALK_MAX_MS = 8000;
@@ -180,6 +197,10 @@ const HUNT_ANIM: Record<HuntPhase, AnimName> = {
   catch: 'proud',
   miss: 'puzzled',
 };
+
+function riseTime(lift: number): number {
+  return Math.sqrt((2 * Math.max(lift, 0)) / LEAP_GRAVITY);
+}
 
 export class Behavior {
   x = 0;
@@ -212,6 +233,8 @@ export class Behavior {
   private petMs = 0;
   private petIdleMs = 0;
   private sinceTurnMs = 0;
+  private airMs = 0;
+  private airTotalMs = 0;
 
   constructor(private readonly random: () => number = Math.random) {
     this.duration = this.ambientDuration('idle');
@@ -457,14 +480,19 @@ export class Behavior {
         return { anim: 'idle', elapsed: this.elapsed };
       case 'await':
         return { anim: 'watch', elapsed: this.elapsed };
+      case 'watch':
+        return { anim: 'ready', elapsed: this.elapsed };
       case 'play':
         if (this.pounceMs > 0) {
           return { anim: 'pounce', elapsed: POUNCE_MS - this.pounceMs };
         }
         return { anim: this.moving ? 'run' : 'idle', elapsed: this.elapsed };
       case 'fetch':
+        if (this.airTotalMs > 0) {
+          return { anim: this.ball.state === 'mouth' ? 'snatch' : 'leap', elapsed: this.airMs };
+        }
         if (!this.moving) {
-          return { anim: 'watch', elapsed: this.elapsed };
+          return { anim: this.ball.y > 0 ? 'idle' : 'watch', elapsed: this.elapsed };
         }
         return { anim: this.running ? 'run' : 'walk', elapsed: this.elapsed };
       case 'hunt':
@@ -586,7 +614,16 @@ export class Behavior {
       this.enterNext('sit');
       return;
     }
-    if (this.approach(this.noseTargetFor(this.ball.center), PLAY_SPEED * dt)) {
+    const target = this.noseTargetFor(this.ball.center);
+    const toNose = this.x + this.noseOffset() - this.ball.center;
+    if (this.ball.y < 1 && Math.abs(toNose) <= NOSE_REACH) {
+      this.touchBall();
+      return;
+    }
+    if (this.ball.vx !== 0 && Math.sign(this.ball.vx) === Math.sign(toNose)) {
+      return;
+    }
+    if (this.approach(target, PLAY_SPEED * dt)) {
       this.moving = true;
       return;
     }
@@ -609,22 +646,97 @@ export class Behavior {
 
   private updateFetch(dt: number): void {
     this.moving = false;
+    if (this.airTotalMs > 0) {
+      this.updateCatchLeap(dt);
+      return;
+    }
+    this.fall(dt);
     if (this.ball.state !== 'free') {
       this.enterNext('sit');
       return;
     }
-    const target = this.noseTargetFor(this.ball.center);
-    this.running = Math.abs(target - this.x) > FETCH_FAR || Math.abs(this.ball.vx) > FETCH_FAR;
-    const speed = this.running ? FETCH_RUN_SPEED : FETCH_WALK_SPEED;
-    if (this.approach(target, speed * dt)) {
-      this.moving = true;
+    if (this.tryCatch()) {
+      this.enter('bring', BRING_MAX_MS);
       return;
     }
-    if (this.ball.resting) {
-      this.ball.state = 'mouth';
-      this.playerX ??= this.pointer?.x ?? this.worldWidth / 2;
+    const plan = this.planIntercept();
+    if (!plan) {
+      this.running = true;
+      this.moving = this.approach(this.noseTargetFor(this.ball.center), FETCH_RUN_SPEED * dt);
+      return;
+    }
+    this.dir = plan.dir;
+    if (plan.lift > STAND_LIFT && plan.t - riseTime(plan.lift) <= dt) {
+      this.leapFrom = this.x;
+      this.leapTo = plan.x;
+      this.leapHeight = plan.lift;
+      this.airMs = 0;
+      this.airTotalMs = 2000 * riseTime(plan.lift);
+      return;
+    }
+    this.running = Math.abs(plan.x - this.x) > FETCH_FAR || !this.ball.resting;
+    const speed = this.running ? FETCH_RUN_SPEED : FETCH_WALK_SPEED;
+    this.moving = this.approach(plan.x, speed * dt);
+  }
+
+  private updateCatchLeap(dt: number): void {
+    this.airMs += dt * 1000;
+    const p = Math.min(this.airMs / this.airTotalMs, 1);
+    this.x = this.leapFrom + (this.leapTo - this.leapFrom) * Math.min(1, 2 * p);
+    this.y = 4 * this.leapHeight * p * (1 - p);
+    if (this.ball.state === 'free') {
+      this.tryCatch();
+    }
+    if (p < 1) {
+      return;
+    }
+    this.y = 0;
+    this.airTotalMs = 0;
+    if (this.ball.state === 'mouth') {
       this.enter('bring', BRING_MAX_MS);
     }
+  }
+
+  private tryCatch(): boolean {
+    const ball = this.ball;
+    const mouthGap = Math.hypot(
+      ball.center - (this.x + this.mouthOffset()),
+      ball.y + BALL_SIZE / 2 - (this.y + MOUTH_HEIGHT),
+    );
+    const atNose = this.y === 0 && ball.y < 1 && Math.abs(ball.center - (this.x + this.noseOffset())) <= NOSE_REACH;
+    if (mouthGap > CATCH_RADIUS && !atNose) {
+      return false;
+    }
+    ball.state = 'mouth';
+    ball.vx = 0;
+    ball.vy = 0;
+    this.playerX ??= this.pointer?.x ?? this.worldWidth / 2;
+    return true;
+  }
+
+  // Earliest point on the ball's predicted path the buddy can reach in time, by nose on the ground or mouth in the air.
+  private planIntercept(): Intercept | undefined {
+    const sim = Object.assign(new Ball(), this.ball);
+    const body = this.x + SPRITE_SIZE / 2;
+    const maxLift = Math.min(CATCH_LEAP_MAX, this.maxY);
+    for (let t = 0; t <= PREDICT_S; t += PREDICT_STEP) {
+      const cx = sim.center;
+      const lift = sim.y + BALL_SIZE / 2 - MOUTH_HEIGHT;
+      const grounded = sim.y < 1;
+      if (grounded || (lift >= -CATCH_RADIUS && lift <= maxLift)) {
+        const dir = cx > body + 2 ? 1 : cx < body - 2 ? -1 : this.dir;
+        const offset = grounded ? this.noseOffset(dir) : this.mouthOffset(dir);
+        const x = clamp(cx - offset, 0, this.maxX);
+        const inTime = grounded || lift <= STAND_LIFT || t >= riseTime(lift) - PREDICT_STEP;
+        const reachable =
+          Math.abs(x + offset - cx) <= CATCH_RADIUS && Math.abs(x - this.x) <= FETCH_RUN_SPEED * t + 1;
+        if (inTime && reachable) {
+          return { x, dir, t, lift: grounded ? 0 : lift };
+        }
+      }
+      sim.update(PREDICT_STEP, this.worldWidth, this.worldHeight);
+    }
+    return undefined;
   }
 
   private updateBring(dt: number): void {
@@ -706,8 +818,12 @@ export class Behavior {
     this.phaseMs = 0;
   }
 
-  private noseOffset(): number {
-    return this.dir === 1 ? NOSE_X : SPRITE_SIZE - 1 - NOSE_X;
+  private noseOffset(dir = this.dir): number {
+    return dir === 1 ? NOSE_X : SPRITE_SIZE - 1 - NOSE_X;
+  }
+
+  private mouthOffset(dir = this.dir): number {
+    return dir === 1 ? MOUTH_X : SPRITE_SIZE - MOUTH_X;
   }
 
   /** Faces `targetX` and returns the buddy x that puts its nose on it. */
@@ -798,6 +914,7 @@ export class Behavior {
     this.state = state;
     this.elapsed = 0;
     this.duration = duration;
+    this.airTotalMs = 0;
   }
 
   private clampX(): void {

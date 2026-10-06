@@ -218,6 +218,37 @@ describe('Behavior', () => {
       expect(b.state).toBe('fetch');
       expect(b.ball.state).toBe('free');
     });
+
+    it('leaps to catch a ball thrown its way', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 80);
+      b.restore(120, 1);
+      b.grabBall(190, 40);
+      b.throwBall(-50, 20, 250);
+      let caughtInAir = false;
+      simulate(b, 5000, () => {
+        caughtInAir ||= b.ball.state === 'mouth' && b.y > 0;
+        return b.state === 'bring';
+      });
+      expect(caughtInAir).toBe(true);
+      expect(b.state).toBe('bring');
+      expect(b.y).toBe(0);
+    });
+
+    it('meets a ball rolling toward it instead of backing away', () => {
+      const b = new Behavior(fixed(0.5));
+      b.setWorldSize(300, 60);
+      b.restore(100, 1);
+      b.spawnBall(250, 0, 0);
+      b.ball.vx = -40;
+      let lastX = b.x;
+      simulate(b, 5000, () => {
+        expect(b.x).toBeGreaterThanOrEqual(lastX);
+        lastX = b.x;
+        return b.state === 'bring';
+      });
+      expect(b.state).toBe('bring');
+    });
   });
 
   it('melts into a cuddle when petted long enough, then lies down', () => {
