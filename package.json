@@ -7,6 +7,14 @@
   "author": "anca",
   "license": "MIT",
   "pricing": "Free",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/therundmc/foxel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/therundmc/foxel/issues"
+  },
+  "homepage": "https://github.com/therundmc/foxel#readme",
   "icon": "media/icon.png",
   "galleryBanner": {
     "color": "#2b1d16",
@@ -169,8 +177,8 @@
     "test": "vitest run",
     "icon": "esbuild scripts/icon.ts --bundle --platform=node --log-level=warning --outfile=dist/icon.cjs && node dist/icon.cjs",
     "vscode:prepublish": "npm run typecheck && npm test && npm run build:ext -- --minify && npm run build:web -- --minify",
-    "package": "vsce package --allow-missing-repository",
-    "publish": "vsce publish --allow-missing-repository"
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "^18.19.0",

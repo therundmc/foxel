@@ -1,0 +1,12 @@
+.vscode/**
+src/**
+webview/**
+shared/**
+test/**
+scripts/**
+node_modules/**
+dist/**/*.map
+dist/icon.cjs
+tsconfig.json
+.gitignore
+*.vsix
