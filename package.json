@@ -1,0 +1,186 @@
+{
+  "name": "foxel",
+  "displayName": "Foxel",
+  "description": "A cute pixel-art fox cub that lives in your editor: it naps, hunts butterflies, plays fetch and reacts to your coding.",
+  "version": "1.0.0",
+  "publisher": "anca",
+  "author": "anca",
+  "license": "MIT",
+  "pricing": "Free",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#2b1d16",
+    "theme": "dark"
+  },
+  "keywords": [
+    "pet",
+    "virtual pet",
+    "companion",
+    "fox",
+    "pixel art",
+    "cute",
+    "fun"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "foxel",
+          "title": "Foxel",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "foxel": [
+        {
+          "type": "webview",
+          "id": "foxel.panelView",
+          "name": "Foxel",
+          "when": "config.foxel.enabled && config.foxel.position == 'panel'"
+        }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "foxel.explorerView",
+          "name": "Foxel",
+          "when": "config.foxel.enabled && config.foxel.position == 'explorer'"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "foxel.enable",
+        "title": "Show Companion",
+        "category": "Foxel"
+      },
+      {
+        "command": "foxel.disable",
+        "title": "Hide Companion",
+        "category": "Foxel"
+      },
+      {
+        "command": "foxel.toggle",
+        "title": "Toggle Companion",
+        "category": "Foxel"
+      },
+      {
+        "command": "foxel.wave",
+        "title": "Say Hello",
+        "category": "Foxel",
+        "icon": "$(smiley)"
+      },
+      {
+        "command": "foxel.throwBall",
+        "title": "Throw a Ball",
+        "category": "Foxel",
+        "icon": "$(circle-filled)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "foxel.throwBall",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Foxel",
+      "properties": {
+        "foxel.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Foxel companion."
+        },
+        "foxel.position": {
+          "type": "string",
+          "enum": [
+            "panel",
+            "explorer"
+          ],
+          "enumDescriptions": [
+            "In its own tab of the bottom panel, with plenty of room to run.",
+            "In the Explorer side bar."
+          ],
+          "default": "panel",
+          "description": "Where the companion lives."
+        },
+        "foxel.scale": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "Size of one sprite pixel, in screen pixels. The companion keeps this size whatever the view size."
+        },
+        "foxel.speed": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.25,
+          "maximum": 4,
+          "description": "Animation speed multiplier."
+        },
+        "foxel.reactToTyping": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tap along when you type while the companion is resting."
+        },
+        "foxel.reactToErrors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Panic when new errors appear, cheer when they are all fixed."
+        },
+        "foxel.sleepAfterSeconds": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 5,
+          "description": "Inactivity delay, in seconds, before the companion falls asleep."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:ext": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --log-level=warning --outfile=dist/extension.js",
+    "build:web": "esbuild webview/main.ts --bundle --platform=browser --format=iife --target=es2020 --log-level=warning --outfile=dist/webview.js",
+    "build": "npm run build:ext -- --sourcemap && npm run build:web -- --sourcemap",
+    "watch": "npm run build:ext -- --sourcemap --watch & npm run build:web -- --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "icon": "esbuild scripts/icon.ts --bundle --platform=node --log-level=warning --outfile=dist/icon.cjs && node dist/icon.cjs",
+    "vscode:prepublish": "npm run typecheck && npm test && npm run build:ext -- --minify && npm run build:web -- --minify",
+    "package": "vsce package --allow-missing-repository",
+    "publish": "vsce publish --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "~1.85.0",
+    "@vscode/vsce": "^2.31.1",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  },
+  "overrides": {
+    "cheerio": "1.0.0-rc.12"
+  }
+}
