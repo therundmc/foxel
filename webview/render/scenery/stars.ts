@@ -12,7 +12,7 @@ import { drawMilky, milkyFor } from './stars-milky';
 //  the great moment: a shooting star from above the fox, its sparks, then a ripple of light through the stars
 //  +10 s and +16 s after it: two more, small and far
 //  31 s   fireflies wake up near the ground, one after the other
-//  all along: banks of mist slide through the valley, between the far mountains and the pines
+//  all along: the valley glides past below the hilltop, each plane at its own pace, banks of mist among them
 
 /** The stars stop three rows above the bottom edge: lower down there is only ground. */
 const FOOT = 3;

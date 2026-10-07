@@ -1,20 +1,33 @@
-import { clamp01, prerender, seeded, type VistaView } from './paint';
+import { clamp01, parallax, prerender, seeded, type VistaView } from './paint';
 import { MOON_REACH, type Spot } from './stars-field';
 
-// What the night sky rests on: far hills, a line of pines, the hilltop the fox sits on, and the moon that rises behind them.
+// What the night sky rests on. Close to us, the hilltop the fox looks out from; far below and beyond it, a valley full of
+// mist, a treeline, hills and mountains that glide past, each at its own pace. The moon rises behind them all.
 
 const clamp = (v: number, low: number, high: number): number => Math.min(high, Math.max(low, v));
 
-/** Three planes, each darker and nearer than the last; mist pools pale at the foot of the far ones. */
+/** The far planes are pale and close in value, a little darker as they near; mist pools at the foot of the mountains. */
 const FAR = '#272a66';
-const FAR_LIT = '#3c4487';
 const FAR_MIST = '#34367a';
-const PINES = '#1b1d4a';
-const PINES_MIST = '#25275a';
-const HILL = '#0f112b';
-const BLADE = '#171a3e';
+const HILLS = '#232660';
+const TREES = '#1c1f52';
 /** The moon catches the far slopes turned to it, and the edge of the hilltop. */
+const FAR_LIT = '#3c4487';
 const RIM = '#4a62a6';
+/** How deep each plane lies: the nearer, the faster it slides. */
+const FAR_DEPTH = 0.55;
+const HILLS_DEPTH = 0.3;
+const TREES_DEPTH = 0;
+/** The far planes are painted this much wider than the view on each side, so that sliding never bares an edge. */
+const MARGIN = 24;
+/** The mist that fills the valley right behind the hilltop: the step from here to far away. */
+const VALLEY = '#383e86';
+/** The hilltop is the darkest thing in the picture; it falls to a few pixels at the edges of the view. */
+const HILL = '#0c0e24';
+const BLADE = '#181c46';
+const HILL_EDGE = 2.4;
+/** The fox sits in the grass, not on the edge of the picture: a row of ground and a few blades pass in front of it. */
+const GRASS_ROWS = 4;
 
 const MOON_LIGHT = '#fffbe6';
 const MOON_BODY = '#fff0b8';
@@ -27,10 +40,13 @@ const MOON_CLIMB_S = 66;
 const MOON_SLIDE = 9;
 
 export interface Land {
-  /** The far mountains, then the pines and the hilltop: mist drifts between the two. */
+  /** The far planes, from the farthest: mountains, bare hills, then a treeline. Mist drifts in front of the hills. */
   readonly far: HTMLCanvasElement;
-  readonly near: HTMLCanvasElement;
-  /** How high above the bottom edge the mist rests. */
+  readonly hills: HTMLCanvasElement;
+  readonly trees: HTMLCanvasElement;
+  /** The valley mist and, in front of it, the hilltop: they do not move. */
+  readonly lookout: HTMLCanvasElement;
+  /** How high above the bottom edge the drifting mist rests. */
   readonly mistFoot: number;
   /** The moonlit edges, on their own so that they brighten as the moon climbs. */
   readonly rim: HTMLCanvasElement;
@@ -44,115 +60,133 @@ export interface Moon extends Spot {
   readonly rise: number;
 }
 
-/** How tall the far mountains, the pines and the hilltop may stand in a view `h` high. */
-const sizes = (h: number) => ({
-  far: clamp(Math.round(h * 0.26), 8, 21),
-  pines: clamp(Math.round(h * 0.13), 4, 9),
-  hill: h < 44 ? 4 : 5,
-});
+/** In a view `h` high: how high the hilltop and the valley mist stand, and how far each plane may rise out of that mist. */
+function sizes(h: number) {
+  const hill = h < 44 ? 5 : clamp(Math.round(h * 0.13), 7, 10);
+  return {
+    hill,
+    mist: hill - 2,
+    blade: h < 44 ? 3 : 4,
+    pines: h < 44 ? 3 : 5,
+    hills: clamp(Math.round(h * 0.05), 2, 8),
+    far: clamp(Math.round(h * 0.2), 7, 20),
+  };
+}
+type Sizes = ReturnType<typeof sizes>;
 
 /** A wave folded into straight slopes, from 0 to 1. */
 const fold = (v: number): number => 1 - Math.abs(((v % 2) + 2) % 2 - 1);
 
-/** The far range is the same whatever the view: mountains of straight slopes, some tall, some small, overlapping. */
-function farAt(x: number, tallest: number): number {
+/** How high the far range stands at `x`: mountains of straight slopes, some tall, some small, overlapping. */
+function farAt(x: number, size: Sizes): number {
   const range = Math.max(fold(x / 61 + 0.25), 0.72 * fold(x / 37 + 1.1), 0.5 * fold(x / 19.5 + 0.7));
-  return Math.round(tallest * (0.22 + 0.78 * range));
+  return size.mist + 3 + Math.round(size.far * (0.22 + 0.78 * range));
 }
+
+/** Long soft swells, from 0 to 1, for the hills and the ground the pines stand on. */
+const swell = (x: number, long: number, short: number, phase: number): number =>
+  0.5 + 0.3 * Math.sin(x / long + phase) + 0.2 * Math.sin(x / short + phase * 3);
 
 function build(w: number, h: number, foxX: number, dir: 1 | -1): Land {
   const size = sizes(h);
-  const rows = size.far + 1;
   const random = seeded(0x9111);
-  // Pines in small stands, each of its own height, with clearings between them.
-  const pineTops = new Float32Array(w + 16);
-  for (let x = -6; x < w + 6; ) {
-    const stand = 1 + Math.floor(random() * 5);
-    for (let n = 0; n < stand; n++) {
-      const tall = 2.5 + random() * (size.pines - 2.5);
-      for (let dx = -2; dx <= 2; dx++) {
-        const at = x + dx + 8;
-        if (at >= 0 && at < pineTops.length) {
-          pineTops[at] = Math.max(pineTops[at], tall - Math.abs(dx) * 2);
-        }
+  const pick = (from: number, to: number): number => from + Math.floor(random() * (to - from + 1));
+  const wide = w + 2 * MARGIN;
+  const rows = size.mist + 3 + size.far + 1;
+  // A few stands of small pines, with long clearings between them.
+  const pineTops = new Float32Array(wide);
+  for (let x = pick(0, 20); x < wide; x += pick(16, 44)) {
+    for (let n = pick(2, 5), at = x; n > 0 && at < wide - 1; n--, at += pick(2, 3)) {
+      const tall = 2 + random() * (size.pines - 2);
+      for (let dx = -1; dx <= 1; dx++) {
+        pineTops[at + dx] = Math.max(pineTops[at + dx], tall - Math.abs(dx) * 2);
       }
-      x += 2 + Math.floor(random() * 3);
     }
-    x += 3 + Math.floor(random() * 9);
   }
-  const pinesAt = (x: number): number => {
-    const swell = 0.5 + 0.3 * Math.sin(x / 29 + 2.7) + 0.2 * Math.sin(x / 13 + 0.4);
-    return Math.round(size.pines * (0.22 + 0.2 * swell) + pineTops[x + 8]);
-  };
-  // The hilltop is highest under the fox and falls away gently on both sides.
-  const tufts = Array.from({ length: w }, () => random());
-  const hillAt = (x: number): number => {
-    const away = (x - foxX) / 40;
-    return Math.max(1, Math.round(size.hill - 3.2 * (1 - 1 / (1 + away * away))));
-  };
-  const column = (ctx: CanvasRenderingContext2D, x: number, tall: number, body: string, mist: string): void => {
-    ctx.fillStyle = body;
-    ctx.fillRect(x, rows - tall, 1, tall);
-    ctx.fillStyle = mist;
+  /** One far plane, a plain silhouette from the height of its crest; `more` adds what only that plane has. */
+  const plane = (crestAt: (x: number) => number, body: string, more?: (ctx: CanvasRenderingContext2D, at: number, tall: number) => void): HTMLCanvasElement =>
+    prerender(wide, rows, (ctx) => {
+      for (let at = 0; at < wide; at++) {
+        const tall = crestAt(at - MARGIN);
+        ctx.fillStyle = body;
+        ctx.fillRect(at, rows - tall, 1, tall);
+        more?.(ctx, at, tall);
+      }
+    });
+  const far = plane((x) => farAt(x, size), FAR, (ctx, at, tall) => {
+    // A slope that falls toward the moon is lit along its crest.
+    const facing = tall - farAt(at - MARGIN + dir * 2, size);
+    if (facing > 0) {
+      ctx.fillStyle = FAR_LIT;
+      ctx.fillRect(at, rows - tall, 1, Math.min(4, facing + 1));
+    }
     // Mist lies at the foot, its edge broken into a line of dots.
-    const thick = Math.round(tall * 0.3);
-    ctx.fillRect(x, rows - thick, 1, thick);
-    if (x % 2 === 0) {
-      ctx.fillRect(x, rows - thick - 1, 1, 1);
-    }
+    const thick = size.mist + Math.round((tall - size.mist) * 0.3);
+    ctx.fillStyle = FAR_MIST;
+    ctx.fillRect(at, rows - thick - (at % 2), 1, thick + 1);
+  });
+  const hills = plane((x) => size.mist + 2 + Math.round(size.hills * swell(x, 43, 19, 1.3)), HILLS);
+  // The ground the pines stand on barely clears the mist of the valley.
+  const trees = plane((x) => Math.round(size.mist + 2 * swell(x, 29, 13, 2.7) + pineTops[x + MARGIN]), TREES);
+
+  // The hilltop is highest under the fox and falls away gently on both sides.
+  const spread = clamp(w * 0.24, 18, 60);
+  const hillAt = (x: number): number => {
+    const away = (x - foxX) / spread;
+    return Math.round(size.hill - (size.hill - HILL_EDGE) * (1 - 1 / (1 + away * away)));
   };
-  const far = prerender(w, rows, (ctx) => {
+  // Grass grows in a few tufts: a tall blade with a short one at its foot, and sometimes a third a pixel away.
+  const tuft = (blades: Uint8Array, x: number, tallest: number): void => {
+    blades[x] = pick(1, 2);
+    blades[x + 1] = pick(3, tallest);
+    blades[x + 3] = random() < 0.5 ? pick(2, tallest - 1) : 0;
+  };
+  const crest = new Uint8Array(w + 4);
+  const paws = new Uint8Array(w + 4);
+  for (let x = pick(0, 20); x < w; x += pick(14, 36)) {
+    tuft(crest, x, size.blade);
+  }
+  // Two tufts stand in front of the fox, either side of its paws.
+  tuft(paws, Math.max(0, foxX - 13), 3);
+  tuft(paws, Math.max(0, foxX + 8), 3);
+  const stray = Array.from({ length: w }, () => random());
+  const top = size.hill + size.blade;
+  const lookout = prerender(w, top, (ctx) => {
     for (let x = 0; x < w; x++) {
-      const far = farAt(x, size.far);
-      column(ctx, x, far, FAR, FAR_MIST);
-      // A slope that falls toward the moon is lit along its crest.
-      const facing = far - farAt(x + dir * 2, size.far);
-      if (facing > 0) {
-        ctx.fillStyle = FAR_LIT;
-        ctx.fillRect(x, rows - far, 1, Math.min(4, facing + 1));
-      }
-    }
-  });
-  const near = prerender(w, rows, (ctx) => {
-    for (let x = 0; x < w; x++) {
-      column(ctx, x, pinesAt(x), PINES, PINES_MIST);
-      const top = hillAt(x);
+      ctx.fillStyle = VALLEY;
+      ctx.fillRect(x, top - size.mist + (x % 2), 1, size.mist);
+      const tall = hillAt(x) + crest[x];
       ctx.fillStyle = HILL;
-      ctx.fillRect(x, rows - top, 1, top);
-      if (tufts[x] < 0.22) {
+      ctx.fillRect(x, top - tall, 1, tall);
+      if (crest[x] > 2) {
         ctx.fillStyle = BLADE;
-        ctx.fillRect(x, rows - top - 1, 1, 1);
+        ctx.fillRect(x, top - tall, 1, 1);
       }
     }
   });
-  const rim = prerender(w, rows, (ctx) => {
+  const rim = prerender(w, top, (ctx) => {
     ctx.fillStyle = RIM;
     for (let x = 0; x < w; x++) {
       // Only the side turned to the moon is lit, and the light breaks up as the ground turns away.
       const turned = clamp01(((x - foxX) * dir + 30) / 36) * clamp01((foxX + dir * 150 - x) * dir / 60);
-      if (turned > 0 && tufts[(x * 7 + 3) % w] < turned) {
-        const blade = tufts[x] < 0.22;
-        ctx.globalAlpha = blade ? 0.85 : 0.45;
-        ctx.fillRect(x, rows - hillAt(x) - (blade ? 1 : 0), 1, 1);
+      if (stray[x] < turned) {
+        ctx.globalAlpha = crest[x] > 0 ? 0.85 : 0.45;
+        ctx.fillRect(x, top - hillAt(x) - crest[x], 1, 1);
       }
     }
   });
   const grass = prerender(w, GRASS_ROWS, (ctx) => {
     for (let x = 0; x < w; x++) {
-      const tall = tufts[(x * 5 + 1) % w] < 0.3 ? 2 : tufts[(x * 3 + 2) % w] < 0.55 ? 1 : 0;
       ctx.fillStyle = HILL;
-      ctx.fillRect(x, GRASS_ROWS - 1 - tall, 1, tall + 1);
-      if (tall === 2) {
+      ctx.fillRect(x, GRASS_ROWS - 1 - paws[x], 1, paws[x] + 1);
+      if (paws[x] > 1) {
         ctx.fillStyle = BLADE;
-        ctx.fillRect(x, 0, 1, 1);
+        ctx.fillRect(x, GRASS_ROWS - 1 - paws[x], 1, 1);
       }
     }
   });
-  return { far, near, rim, grass, mistFoot: Math.round(size.pines * 0.45) + 1 };
+  return { far, hills, trees, lookout, rim, grass, mistFoot: size.mist + 1 };
 }
-
-/** The fox sits in the grass, not on the edge of the picture: a row of ground and a few blades pass in front of it. */
-const GRASS_ROWS = 3;
 
 let kept: { key: string; land: Land } | undefined;
 
@@ -164,13 +198,21 @@ export function landFor(w: number, h: number, foxX: number, dir: 1 | -1): Land {
   return kept.land;
 }
 
-export function drawFar({ ctx, h }: VistaView, land: Land): void {
-  ctx.drawImage(land.far, 0, h - land.far.height);
+/** A far plane where the parallax has brought it by now. */
+function slid(view: VistaView, plane: HTMLCanvasElement, depth: number): void {
+  view.ctx.drawImage(plane, clamp(parallax(view, depth), -MARGIN, MARGIN) - MARGIN, view.h - plane.height);
 }
 
-export function drawNear({ ctx, h }: VistaView, land: Land, moonlight: number): void {
-  const top = h - land.near.height;
-  ctx.drawImage(land.near, 0, top);
+export function drawFar(view: VistaView, land: Land): void {
+  slid(view, land.far, FAR_DEPTH);
+  slid(view, land.hills, HILLS_DEPTH);
+}
+
+export function drawNear(view: VistaView, land: Land, moonlight: number): void {
+  const { ctx, h } = view;
+  slid(view, land.trees, TREES_DEPTH);
+  const top = h - land.lookout.height;
+  ctx.drawImage(land.lookout, 0, top);
   ctx.globalAlpha = 0.25 + 0.75 * moonlight;
   ctx.drawImage(land.rim, 0, top);
   ctx.globalAlpha = 1;
@@ -187,7 +229,7 @@ export function moonOf({ w, h, t, foxX, dir }: VistaView): Moon {
   const rise = 1 - (1 - clamp01(t / MOON_CLIMB_S)) ** 2;
   const reach = clamp(room * 0.5, 22, 104);
   const home = clamp(foxX + dir * reach, r + 3, w - r - 3);
-  const low = farAt(Math.round(home), sizes(h).far) - r * 0.2;
+  const low = farAt(Math.round(home), sizes(h)) - r * 0.2;
   const high = 4 + clamp((h - 4) * 0.5, 13, 42);
   const x = clamp(home + dir * MOON_SLIDE * (t / 60 - 0.5), r + 2, w - r - 2);
   return { x: Math.round(x), y: Math.round(h - (low + (high - low) * rise)), r, rise, reach2: (r * MOON_REACH) ** 2 };

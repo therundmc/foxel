@@ -21,9 +21,8 @@ export interface Puff {
   readonly out?: readonly [number, number];
 }
 
-/** The few tones of a cloud, from the edge the sun warms to the hollow under a lobe. */
+/** The few tones of a cloud, from where the sun falls to the hollow under a lobe. */
 export interface Tones {
-  readonly warm: Rgb;
   readonly lit: Rgb;
   readonly soft: Rgb;
   readonly shade: Rgb;
@@ -31,37 +30,36 @@ export interface Tones {
 }
 
 export const CLOUD_TONES: Tones = {
-  warm: rgb('#fff8e6'),
   lit: rgb('#ffffff'),
-  soft: rgb('#dfe9f9'),
-  shade: rgb('#bccdf0'),
-  deep: rgb('#a3b5e4'),
+  soft: rgb('#dde5fa'),
+  shade: rgb('#b3bfec'),
+  deep: rgb('#97a3da'),
 };
 
 /** The same tones seen through `amount` of air of colour `air`: far clouds melt into the sky. */
 export function hazed(tones: Tones, air: Rgb, amount: number): Tones {
   const far = (c: Rgb): Rgb => blend(c, air, amount);
-  return { warm: far(tones.warm), lit: far(tones.lit), soft: far(tones.soft), shade: far(tones.shade), deep: far(tones.deep) };
+  return { lit: far(tones.lit), soft: far(tones.soft), shade: far(tones.shade), deep: far(tones.deep) };
 }
 
 /** Each tone `amount` of the way from one cloud's to another's. */
 export function between(from: Tones, to: Tones, amount: number): Tones {
   const at = (key: keyof Tones): Rgb => blend(from[key], to[key], amount);
-  return { warm: at('warm'), lit: at('lit'), soft: at('soft'), shade: at('shade'), deep: at('deep') };
+  return { lit: at('lit'), soft: at('soft'), shade: at('shade'), deep: at('deep') };
 }
 
 /** The sun is high, on the side the fox looks to, and a little in front of the clouds. */
 const LIGHT = { x: 0.6, y: -0.72, z: 0.34 };
 /**
  * Flat tones, the way a cel is painted: a lobe is one tone where it faces the sun and the next one down where
- * it turns away, with a thin darker crescent underneath. A lobe in the cloud's shadow starts further down.
+ * it turns away, with a thin darker crescent underneath. A lobe in the cloud's shadow starts further down and
+ * only keeps the crescent, so that the shadow side stays one calm mass.
  */
-const WARM_ABOVE = 0.93;
 const LIT_ABOVE = 0.04;
 const CREASE_BELOW = -0.66;
 const DARKEST = 3;
 /** A lobe takes this long to swell out, starting this small and sunk this deep into the cloud. */
-const SWELL_S = 11;
+const SWELL_S = 12;
 const SWELL_FROM = 0.3;
 const SWELL_SUNK = 1.3;
 /** Lobes breathe a little for ever, so that the cloud never freezes. */
@@ -74,7 +72,7 @@ export class CloudSheet {
   key = '';
   private readonly pixels: Pixels;
   private readonly near: Float32Array;
-  /** For each pixel, which tone it takes: 0 for the warm edge, then from lit to deep. */
+  /** For each pixel, which tone it takes, from lit to deep. */
   private readonly tone: Uint8Array;
 
   constructor(
@@ -99,21 +97,19 @@ export class CloudSheet {
     const { w, h, near, tone } = this;
     const r2 = r * r;
     const lx = LIGHT.x * dir;
-    for (let py = Math.max(0, Math.floor(y - r)); py <= Math.min(h - 1, Math.ceil(y + r)); py++) {
+    for (let py = Math.max(0, Math.ceil(y - r - 0.5)); py <= Math.min(h - 1, Math.floor(y + r - 0.5)); py++) {
       const dy = py + 0.5 - y;
-      for (let px = Math.max(0, Math.floor(x - r)); px <= Math.min(w - 1, Math.ceil(x + r)); px++) {
+      // Only the pixels of this row that the ball covers.
+      const half = Math.sqrt(r2 - dy * dy);
+      for (let px = Math.max(0, Math.ceil(x - half - 0.5)); px <= Math.min(w - 1, Math.floor(x + half - 0.5)); px++) {
         const dx = px + 0.5 - x;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= r2) {
-          continue;
-        }
-        const rise = Math.sqrt(r2 - d2);
+        const rise = Math.sqrt(Math.max(0, r2 - dx * dx - dy * dy));
         const i = py * w + px;
         if (z + rise > near[i]) {
           near[i] = z + rise;
           const facing = (dx * lx + dy * LIGHT.y + rise * LIGHT.z) / r;
           const turned = facing > LIT_ABOVE ? 0 : facing > CREASE_BELOW ? 1 : 2;
-          tone[i] = facing > WARM_ABOVE && level === 0 ? 0 : 1 + Math.min(DARKEST, level + turned);
+          tone[i] = Math.min(DARKEST, level + (level > 0 ? turned >> 1 : turned));
         }
       }
     }
@@ -122,7 +118,7 @@ export class CloudSheet {
   /** Turns the balls into flat tones. Rows from `floor` down are cut off: the flat base of a fair-weather cloud. */
   develop(tones: Tones, floor = this.h): void {
     const { w, h, near, tone, pixels } = this;
-    const ramp = [tones.warm, tones.lit, tones.soft, tones.shade, tones.deep];
+    const ramp = [tones.lit, tones.soft, tones.shade, tones.deep];
     pixels.clear();
     for (let y = 0; y < Math.min(h, floor); y++) {
       for (let x = 0; x < w; x++) {
@@ -151,20 +147,31 @@ export function sunk(p: Puff, t: number): readonly [number, number] {
   return p.out ? [-p.out[0] * deep, -p.out[1] * deep] : [0, -deep];
 }
 
-/** The first lobes of a tower are there before the sky appears; its crown is born this long after. */
-const TOWER_OLDEST = -12;
-const TOWER_YOUNGEST = 27;
+/** The first lobes of a heap are there before the sky appears; its crown is born this long after. */
+const HEAP_OLDEST = -16;
+const HEAP_YOUNGEST = 12;
 
-/**
- * A towering cumulus, `width` by `height`, leaning to the side of `lean`: rows of lobes inside a dome,
- * with smaller ones budding on its outline. It builds itself from the base up over half a minute.
- */
-export function tower(seed: number, width: number, height: number, lean: number): Puff[] {
-  const random = seeded(seed);
-  const puffs: Puff[] = [];
+/** One of the heaps a thunderhead is piled from, in parts of its width and height, the sun on the right. */
+interface Heap {
+  readonly at: number;
+  readonly wide: number;
+  readonly high: number;
+  /** How much deeper in shadow than the great tower it lies, and how long before it it was built. */
+  readonly shadow: number;
+  readonly early: number;
+}
+
+/** From the farthest: a shoulder in the shade of the great tower, the tower itself, a young heap in full sun. */
+const HEAPS: readonly Heap[] = [
+  { at: -0.27, wide: 0.5, high: 0.6, shadow: 0.4, early: 12 },
+  { at: 0.05, wide: 0.6, high: 1, shadow: 0, early: 0 },
+  { at: 0.32, wide: 0.38, high: 0.42, shadow: -0.2, early: 7 },
+];
+
+/** Piles one heap of lobes into `puffs`: rows of them inside a dome, with smaller ones budding on its outline. */
+function pile(puffs: Puff[], random: () => number, heap: Heap, width: number, height: number, lean: number, depth: number): void {
   const big = Math.min(13, Math.max(3.5, Math.min(width, height) * 0.27));
   const bulge = random() * 6;
-  const birth = (u: number): number => TOWER_OLDEST + (TOWER_YOUNGEST - TOWER_OLDEST) * u ** 1.3 + random() * 3;
   const bud = (parent: Puff, angle: number): void => {
     const r = parent.r * (0.34 + random() * 0.24);
     const reach = parent.r * (0.72 + random() * 0.22);
@@ -185,21 +192,21 @@ export function tower(seed: number, width: number, height: number, lean: number)
     const u = row / (rows - 1);
     const r0 = big * (1 - 0.22 * u);
     const y = big * 0.5 + u * (height - big * 0.5 - r0);
-    // A dome that bulges here and there, like a real tower of cloud.
-    const half = Math.max(0, (width / 2) * (1 - u) ** 0.55 * (1 + 0.22 * Math.sin(u * 7 + bulge)) - r0 * 0.8);
-    const middle = lean * u * width * 0.2;
+    // A column with a round head, bulging here and there like a real tower of cloud.
+    const half = Math.max(0, (width / 2) * Math.sqrt(1 - 0.88 * u * u) * (1 + 0.2 * Math.sin(u * 7 + bulge)) - r0 * 0.8);
+    const middle = lean * (heap.at * (width / heap.wide) + u * width * 0.2);
     const count = Math.max(1, Math.round((half * 2) / (r0 * 1.15)) + 1);
     for (let n = 0; n < count; n++) {
       const across = count === 1 ? 0 : (n / (count - 1)) * 2 - 1;
       // The flank away from the sun and the low parts lie in the cloud's own shadow, in ragged patches.
-      const shadow = (1 - u) * 0.8 - across * Math.sign(lean) * 0.55 + (random() - 0.5) * 0.35;
+      const shadow = heap.shadow + (1 - u) * 0.8 - across * Math.sign(lean) * 0.55 + (random() - 0.5) * 0.35;
       const lobe: Puff = {
         level: shadow > 0.95 ? 2 : shadow > 0.45 ? 1 : 0,
         x: middle + across * half + (random() - 0.5) * r0 * 0.5,
         y: y + (random() - 0.5) * r0 * 0.5 - Math.abs(across) * r0 * 0.3,
         r: r0 * (0.8 + random() * 0.4),
-        z: random() * big * 0.7 + (1 - Math.abs(across)) * big * 0.4,
-        born: birth(u),
+        z: depth + random() * big * 0.7 + (1 - Math.abs(across)) * big * 0.4,
+        born: HEAP_OLDEST - heap.early + (HEAP_YOUNGEST - HEAP_OLDEST) * u ** 1.3 + random() * 3,
         phase: random() * 6.28,
       };
       puffs.push(lobe);
@@ -215,6 +222,16 @@ export function tower(seed: number, width: number, height: number, lean: number)
       }
     }
   }
+}
+
+/**
+ * A thunderhead `width` by `height`, its sunny side toward `lean`: a mountain of cloud piled from a few heaps,
+ * each nearer than the last. It builds itself from the base up over half a minute, the great tower last.
+ */
+export function thunderhead(seed: number, width: number, height: number, lean: number): Puff[] {
+  const random = seeded(seed);
+  const puffs: Puff[] = [];
+  HEAPS.forEach((heap, n) => pile(puffs, random, heap, heap.wide * width, heap.high * height, lean, n * 9));
   return puffs;
 }
 
@@ -258,7 +275,7 @@ const HEART: readonly Ball[] = [
   [0, -6.2, 1.7, 2.4],
 ];
 /** How far the middle of the heart sits above the flat base of the plain cloud. */
-export const HEART_MIDDLE = 6;
+const HEART_MIDDLE = 6;
 export const HEART_HALF = 12;
 
 /** The lobes of the cloud that turns into a heart, `shaped` of the way there, from the heart's middle (`y` up). */

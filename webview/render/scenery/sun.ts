@@ -1,12 +1,14 @@
-import { clamp01, gradient, px, ramp, seeded, type VistaPainter, type VistaView } from './paint';
-import { drawMist, drawRidge, drawRim, layLand, layMist, type Land } from './sun-land';
+import { clamp01, gradient, parallax, px, ramp, seeded, type VistaPainter, type VistaView } from './paint';
+import { drawMist, drawRidge, drawRim, layLand, layMist, MARGIN, type Land } from './sun-land';
 import { blend, css, curve, tonesAt, type Mood, type Rgb, type Tones } from './sun-palette';
-import { drawBeacon, drawFlecks, drawGlints, drawWater, laySea, type Sea } from './sun-sea';
-import { drawBirds, drawBrightStar, drawClouds, drawStars, layClouds, layStars, type Cloud, type Flight } from './sun-sky';
+import { drawReflection, drawWater } from './sun-sea';
+import { drawBirds, drawBrightStar, drawClouds, drawStars, layClouds, layStars, type Cloud } from './sun-sky';
 
 // The sunrise and the sunset: two moods of one painter. Morning is fresh, misty and pale, over mountains;
-// evening is rich and deep, over the sea. In both, the colours turn all through the minute, and the best
-// comes with the great moment: the sun clears the ridge, or slips under the water and the afterglow flares.
+// evening is rich and deep, over the sea. The fox watches from a grassy lookout close to us while the far
+// landscape glides slowly by. The sun is a big plain ball; the subject is the light: the colours turn all
+// through the minute, and the best comes with the great moment, when the ball clears the ridge and the
+// morning blooms, or slips under the water and the afterglow flares.
 
 /** The moment comes somewhere in this window: until then the sun waits, barely moving. */
 const WAIT_FROM_S = 22.5;
@@ -15,8 +17,8 @@ const WAIT_TO_S = 27.5;
 const TURN_S = 5;
 const SETTLE_FROM_S = 6.5;
 const SETTLE_TO_S = 21;
-/** The birds leave as the fox looks up. */
-const TAKE_OFF_S = 0.3;
+/** The birds come in sight as the fox looks up. */
+const BIRDS_S = 0.3;
 
 interface Scene {
   readonly key: string;
@@ -25,10 +27,8 @@ interface Scene {
   readonly stars: Float32Array;
   readonly star: { readonly x: number; readonly y: number };
   readonly mist: Float32Array;
-  readonly sea: Sea;
-  /** Dew on the grass: x, phase, rate. */
-  readonly dew: Float32Array;
-  readonly flight: Flight;
+  /** Where the birds come in sight. */
+  readonly birds: { readonly x: number; readonly y: number };
 }
 
 // Laid out once per size and place, then only read: one scene kept per mood.
@@ -43,27 +43,15 @@ function sceneFor({ w, h, foxX, dir }: VistaView, mood: Mood): Scene {
   const morning = mood === 'sunrise';
   const land = layLand(mood, w, h, Math.round(foxX), dir);
   const { horizon, sunX, sunLine, radius } = land;
-  const random = seeded(morning ? 0xd3a1 : 0xe7e2);
-  const reach = Math.max(90, w * 0.6);
-  // Morning clouds catch fire from the sun outward; evening ones go out from the horizon up.
-  const clouds = layClouds(w, morning ? Math.round((land.far.crest + sunLine) / 2) : horizon - 1, morning ? 0xc10d : 0xc1e4, (x, y, level) =>
-    morning ? Math.hypot(x - sunX, 2 * (y - sunLine)) / reach : level,
-  );
-  const dew = new Float32Array(Math.round(w / 11) * 3);
-  for (let i = 0; i < dew.length; i += 3) {
-    dew.set([Math.floor(random() * w), random() * Math.PI * 2, 0.5 + random() * 0.9], i);
-  }
-  const perchRoom = Math.max(4, land.perch.y - 4);
   const scene: Scene = {
     key,
     land,
-    clouds,
+    clouds: layClouds(w, morning ? Math.round((land.far.crest + sunLine) / 2) : horizon - 1, morning ? 0xc10d : 0xc1e4),
     stars: layStars(w, 1, Math.round(horizon * 0.62), morning ? 0x57a2 : 0x57a3),
     star: { x: Math.min(w - 4, Math.max(3, sunX + dir * radius * 2)), y: Math.max(3, Math.round(sunLine - Math.max(radius * 3.2, horizon * 0.55))) },
-    mist: morning ? layMist(w, [horizon, land.near.crest + Math.round((h - land.near.crest) * 0.45)], random) : new Float32Array(0),
-    sea: laySea(w, h - horizon, radius, 0x5ea5),
-    dew,
-    flight: { x: land.perch.x, y: land.perch.y, dir, lift: Math.min(30, perchRoom * 0.55), formation: !morning, small: h < 40 },
+    mist: morning ? layMist(w, horizon, seeded(0xd3a1)) : new Float32Array(0),
+    // Toward the side the fox looks to, and over its head when the view is tall enough.
+    birds: { x: foxX + dir * 18, y: Math.max(5, Math.min(horizon - 8, h - 40)) },
   };
   scenes[mood] = scene;
   return scene;
@@ -131,100 +119,47 @@ function glow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: numbe
   ctx.restore();
 }
 
-/** A disc of pixels, row by row, cut off at `clip` (the sea line). `colorOf` is given 0 at its top, 1 at its bottom. */
-function disc(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, clip: number, alpha: number, colorOf: (k: number) => string): void {
+/** A disc of pixels in one colour, row by row, cut off at `clip` (the sea line). */
+function disc(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, clip: number, alpha: number, color: string): void {
   ctx.globalAlpha = alpha;
-  for (let dy = -r; dy <= r; dy++) {
-    if (cy + dy < clip) {
-      const half = Math.floor(Math.sqrt((r + 0.5) ** 2 - dy * dy));
-      ctx.fillStyle = colorOf((dy + r) / (2 * r));
-      ctx.fillRect(cx - half, cy + dy, half * 2 + 1, 1);
-    }
+  ctx.fillStyle = color;
+  for (let dy = -r; dy <= r && cy + dy < clip; dy++) {
+    const half = Math.floor(Math.sqrt((r + 0.5) ** 2 - dy * dy));
+    ctx.fillRect(cx - half, cy + dy, half * 2 + 1, 1);
   }
   ctx.globalAlpha = 1;
 }
 
-// Sixteen rays, as pixel steps: the eight straight and diagonal ones, and the eight in between.
-const RAYS: readonly (readonly [number, number])[] = [
-  [1, 0], [1, 0.5], [1, 1], [0.5, 1], [0, 1], [-0.5, 1], [-1, 1], [-1, 0.5],
-  [-1, 0], [-1, -0.5], [-1, -1], [-0.5, -1], [0, -1], [0.5, -1], [1, -1], [1, -0.5],
-];
-
-/** The burst of the morning sun. The long rays and the short ones breathe in turn, slowly. */
-function rays(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, t: number, burst: number, color: string): void {
-  if (burst <= 0.02) {
-    return;
-  }
-  RAYS.forEach(([vx, vy], i) => {
-    const step = Math.hypot(vx, vy);
-    const breath = 1 + 0.25 * Math.sin(t * 0.7 + (i % 2) * Math.PI);
-    const count = Math.round((burst * breath * r * (i % 2 === 0 ? 1.5 : 0.85)) / step);
-    const first = Math.ceil((r + 2.5) / step);
-    for (let n = 0; n < count; n++) {
-      px(ctx, cx + Math.floor(vx * (first + n) + 0.5), cy + Math.floor(vy * (first + n) + 0.5), color, 0.62 * (1 - n / (count + 1)) ** 0.8);
-    }
-  });
-}
-
-function paintSun(view: VistaView, land: Land, tones: Tones, sunY: number, clip: number, flare: number, burst: number): void {
-  const { ctx, t } = view;
+/** The sun: a big plain ball with a softer edge, in a wide glow that tints the sky. `up` is how much of it shows. */
+function paintSun(ctx: CanvasRenderingContext2D, land: Land, tones: Tones, sunY: number, clip: number, up: number, flare: number): void {
   const { sunX, radius } = land;
-  const cy = Math.round(sunY);
-  const up = clamp01((clip - (sunY - radius)) / (2 * radius));
-  glow(ctx, sunX, Math.min(sunY, clip), radius * (3 + flare), 1, tones.sunCore, 0.55 * (0.35 + 0.65 * up) + 0.2 * flare);
-  rays(ctx, sunX, cy, radius, t, burst, css(tones.sunCore));
-  const halo = css(tones.sunCore);
-  disc(ctx, sunX, cy, radius + 3, clip, 0.13 + 0.1 * flare, () => halo);
-  disc(ctx, sunX, cy, radius + 1, clip, 0.25, () => halo);
-  disc(ctx, sunX, cy, radius, clip, 1, (k) => css(blend(tones.sunCore, tones.sun, k * k * 1.3)));
+  glow(ctx, sunX, Math.min(sunY, clip), radius * (3 + 1.5 * flare), 1, tones.sunCore, 0.5 * (0.35 + 0.65 * up) + 0.15 * flare);
+  disc(ctx, sunX, Math.round(sunY), radius + 1, clip, 0.4, css(tones.sun));
+  disc(ctx, sunX, Math.round(sunY), radius, clip, 1, css(tones.sunCore));
 }
+
+type PlaneName = 'far' | 'mid' | 'near';
+
+// How deep each far plane lies, from 0 (just behind the lookout) to 1 (the sky): the nearer, the faster it slides.
+const DEPTH: Record<Mood, Record<PlaneName, number>> = {
+  sunrise: { far: 0.6, mid: 0.3, near: 0 },
+  sunset: { far: 0.75, mid: 0.45, near: 0.1 },
+};
+/** How much of the haze each plane takes, at its crest and at its foot. */
+const HAZE: Record<Mood, Record<PlaneName, readonly [number, number]>> = {
+  sunrise: { far: [0.2, 0.95], mid: [0.25, 0.92], near: [0.3, 0.85] },
+  sunset: { far: [0.4, 0.55], mid: [0.2, 0.4], near: [0.12, 0.4] },
+};
+/** How much of the light each skyline catches. */
+const RIM: Record<PlaneName, number> = { far: 0.9, mid: 0.6, near: 0.45 };
+/** The band of haze behind the lookout, the step between what is near and what is far. */
+const VEIL: Record<Mood, number> = { sunrise: 0.9, sunset: 0.35 };
 
 // Numbers keyed on the same stages as the palette.
 const DOME = { sunrise: [0.3, 0.45, 0.62, 0.8, 0.75, 0.42], sunset: [0.55, 0.62, 0.75, 0.85, 0.85, 0.28] } as const;
-const FAR_HAZE = [0.95, 0.95, 0.9, 0.85, 0.75, 0.6] as const;
-const MID_HAZE = [0.9, 0.9, 0.85, 0.75, 0.6, 0.4] as const;
-const NEAR_HAZE = [0.5, 0.5, 0.45, 0.35, 0.25, 0.12] as const;
-const MIST = [0.75, 0.75, 0.7, 0.6, 0.45, 0.22] as const;
-const RIM_FAR = [0, 0.15, 0.5, 0.9, 1, 0.5] as const;
-const RIM_NEAR = { sunrise: [0, 0, 0.1, 0.6, 0.9, 0.7], sunset: [0.8, 0.8, 0.7, 0.4, 0.25, 0] } as const;
-
-function paintMorning(view: VistaView, scene: Scene, tones: Tones, stage: number): void {
-  const { ctx, w, t, moment, dir } = view;
-  const { land } = scene;
-  const haze = tones.haze;
-  const rim = css(tones.rim);
-  const reach = 50 + w * 0.12;
-  drawRidge(ctx, land.far, tones.far, haze, 0.18, curve(FAR_HAZE, stage));
-  drawRim(ctx, land.far, rim, curve(RIM_FAR, stage), land.sunX, reach);
-  const mist = curve(MIST, stage);
-  drawMist(ctx, scene.mist.subarray(0, scene.mist.length >> 1), w, t, dir, css(haze), mist);
-  if (land.mid) {
-    drawRidge(ctx, land.mid, tones.mid, haze, 0.05, curve(MID_HAZE, stage));
-    drawRim(ctx, land.mid, rim, curve(RIM_FAR, stage) * 0.6, land.sunX, reach * 0.8);
-  }
-  if (moment !== undefined && moment > TAKE_OFF_S) {
-    drawBirds(ctx, scene.flight, moment - TAKE_OFF_S, css(tones.bird));
-  }
-  drawMist(ctx, scene.mist.subarray(scene.mist.length >> 1), w, t, dir, css(haze), mist * 0.8);
-}
-
-function paintEvening(view: VistaView, scene: Scene, tones: Tones, stage: number, stops: Stops, sunY: number): void {
-  const { ctx, t, moment } = view;
-  const { land, sea } = scene;
-  const up = clamp01((land.horizon - (sunY - land.radius)) / (2 * land.radius));
-  // The path of light dims as the sun sinks, but the afterglow keeps a little of it.
-  const path = Math.max(up, 0.45 * (1 - ramp(stage, 2, 3)));
-  drawFlecks(ctx, sea, land.horizon, t, css(blend(tones.skyLow, tones.skyRim, 0.5)), 0.4);
-  drawGlints(ctx, sea, land.sunX, land.horizon, t, css(blend(tones.sunCore, tones.skyRim, 1 - up)), 0.9 * path);
-  drawRidge(ctx, land.far, tones.far, tones.haze, 0.1, 0.4);
-  if (land.beacon && moment !== undefined) {
-    drawBeacon(ctx, land.beacon.x, land.beacon.y, land.horizon, t, ramp(moment, 8.5, 10.5));
-  }
-  if (moment !== undefined && moment > TAKE_OFF_S) {
-    drawBirds(ctx, scene.flight, moment - TAKE_OFF_S, css(tones.bird));
-  }
-  void stops;
-}
+const LIT = { sunrise: [0, 0.1, 0.4, 0.85, 1, 0.6], sunset: [0.8, 0.8, 0.7, 0.4, 0.25, 0] } as const;
+/** The morning mist thins as the day comes; the evening haze stays. */
+const MIST = { sunrise: [1, 1, 0.95, 0.88, 0.76, 0.55], sunset: [1, 1, 1, 1, 1, 1] } as const;
 
 function paint(view: VistaView, mood: Mood): void {
   const { ctx, w, h, t, moment, dir } = view;
@@ -235,9 +170,9 @@ function paint(view: VistaView, mood: Mood): void {
   const tones = tonesAt(mood, stage);
   const since = moment ?? 0;
   const sunY = land.sunLine - altitudeAt(mood, t, moment) * land.radius;
-  // Morning: the burst as the sun clears the ridge. Evening: the afterglow that swells once it is gone.
-  const flare = moment === undefined ? 0 : morning ? Math.sin(Math.PI * clamp01(since / 4)) ** 2 : ramp(since, 1.5, 6) * (1 - ramp(since, 9, 20));
-  const burst = morning && moment !== undefined ? ramp(since, 0.4, 2.6) * (1 - 0.4 * ramp(since, 5, 15)) : 0;
+  const up = clamp01((land.sunLine - (sunY - land.radius)) / (2 * land.radius));
+  // The moment is the light itself. Morning: the glow widens and stays. Evening: the afterglow swells once the sun is gone.
+  const flare = moment === undefined ? 0 : morning ? ramp(since, 0.4, 4.5) * (1 - 0.5 * ramp(since, 9, 20)) : ramp(since, 1.5, 6) * (1 - ramp(since, 9, 20));
 
   const stops = skyStops(tones, land.horizon);
   gradient(view, 0, land.horizon, stops.map(([at, color]) => [at, css(color)] as const));
@@ -245,7 +180,7 @@ function paint(view: VistaView, mood: Mood): void {
     drawWater(ctx, w, land.horizon, h, (depth) => css(blend(skyAt(stops, 1 - 0.5 * depth), tones.sea, 0.3 + 0.45 * depth)));
   }
   const dome = Math.min(90, Math.max(26, land.horizon * 0.95));
-  glow(ctx, land.sunX, land.sunLine, dome, 2.1, tones.glow, curve(DOME[mood], stage));
+  glow(ctx, land.sunX, land.sunLine, dome * (morning ? 1 + 0.25 * flare : 1), 2.1, tones.glow, curve(DOME[mood], stage));
   if (!morning) {
     glow(ctx, land.sunX, land.sunLine, dome * 1.25, 1.5, tones.skyLow, 0.5 * flare);
   }
@@ -254,34 +189,60 @@ function paint(view: VistaView, mood: Mood): void {
   drawStars(ctx, scene.stars, t, '#fff6dc', starry);
   drawBrightStar(ctx, scene.star.x, scene.star.y, t, morning ? 1 - ramp(t, 15, 21) : moment === undefined ? 0 : ramp(since, 4, 6.5));
 
-  paintSun(view, land, tones, sunY, morning ? h : land.horizon, flare, burst);
+  paintSun(ctx, land, tones, sunY, morning ? h : land.horizon, up, flare);
+  // Morning clouds catch fire from the horizon up; evening ones go out the same way.
   const fire = ramp(stage, 0.3, 1.9);
   const dusk = Math.max(0, stage - 2);
-  drawClouds(ctx, scene.clouds, dir * t, tones, morning ? (rank) => clamp01((fire * 1.6 - rank) / 0.6) : (rank) => 1 - clamp01((dusk * 1.7 - rank) / 0.7));
-
-  if (morning) {
-    paintMorning(view, scene, tones, stage);
-  } else {
-    paintEvening(view, scene, tones, stage, stops, sunY);
+  drawClouds(ctx, scene.clouds, parallax(view, 0.85), -dir * t, tones, morning ? (level) => clamp01((fire * 1.6 - level) / 0.6) : (level) => 1 - clamp01((dusk * 1.7 - level) / 0.7));
+  if (moment !== undefined && moment > BIRDS_S) {
+    drawBirds(ctx, scene.birds.x, scene.birds.y, dir, moment - BIRDS_S, css(tones.bird));
   }
 
   const rim = css(tones.rim);
-  const lit = curve(RIM_NEAR[mood], stage);
-  drawRidge(ctx, land.near, tones.near, tones.haze, 0, morning ? curve(NEAR_HAZE, stage) : 0.12);
-  drawRim(ctx, land.near, rim, lit * 0.8, land.sunX, 40 + w * 0.15);
-  drawRidge(ctx, land.ground, tones.ground, tones.haze, 0, 0);
-  drawRim(ctx, land.ground, rim, lit * 0.55, land.sunX, 60 + w * 0.2);
-  if (morning && moment !== undefined) {
-    // Dew: brief glints on the grass once the light reaches it.
-    const dew = ramp(since, 2.5, 6);
-    for (let i = 0; i < scene.dew.length; i += 3) {
-      const x = scene.dew[i];
-      px(ctx, x, land.ground.tops[x], '#ffffff', dew * Math.max(0, Math.sin(t * scene.dew[i + 2] + scene.dew[i + 1])) ** 8);
+  const lit = curve(LIT[mood], stage);
+  const mist = curve(MIST[mood], stage);
+  const reach = 50 + w * 0.12;
+  // A far plane, slid by its depth: it is laid out wider than the view, so nothing shows at its ends.
+  const plane = (name: PlaneName): void => {
+    const ridge = land[name];
+    if (ridge) {
+      const shift = parallax(view, DEPTH[mood][name]) - MARGIN;
+      const [crest, foot] = HAZE[mood][name];
+      ctx.save();
+      ctx.translate(shift, 0);
+      drawRidge(ctx, ridge, tones[name], tones.haze, crest, foot * mist);
+      drawRim(ctx, ridge, rim, lit * RIM[name], land.sunX - shift, reach);
+      ctx.restore();
     }
-    // The light floods everything for a breath.
-    px(ctx, 0, 0, rim, 0.12 * flare, w, h);
+  };
+  if (!morning) {
+    // The path of light dims as the sun sinks, but the afterglow keeps a little of it.
+    drawReflection(ctx, land.sunX, land.horizon, h, land.radius, t, css(blend(tones.sunCore, tones.skyRim, 1 - up)), 0.9 * Math.max(up, 0.45 * (1 - ramp(stage, 2, 3))));
+  }
+  plane('far');
+  drawMist(ctx, scene.mist, w, -dir * t, t, css(tones.haze), 0.75 * mist);
+  plane('mid');
+  plane('near');
+
+  // The step in depth, then the lookout: the darkest thing in the picture, and the only one that stays put.
+  const veil = Math.round(Math.min(14, Math.max(5, h * 0.14)));
+  gradient(view, land.lookout.crest - veil, h, [[0, css(tones.haze, 0)], [1, css(tones.haze)]], VEIL[mood] * mist);
+  drawRidge(ctx, land.lookout, tones.ground, tones.haze, 0, 0);
+  drawRim(ctx, land.lookout, rim, lit * 0.5, land.sunX, 60 + w * 0.2);
+}
+
+// A few blades of the lookout's grass stand in front of the fox, over its paws: how far from its middle, how tall,
+// and which way the tip leans.
+const BLADES: readonly (readonly [number, number, number])[] = [[-12, 3, 0], [-7, 2, 0], [-2, 4, 1], [5, 2, 0], [10, 3, -1]];
+
+function paintGrass({ ctx, h, t, moment, foxX }: VistaView, mood: Mood): void {
+  const color = css(tonesAt(mood, stageAt(t, moment)).ground);
+  for (const [away, tall, lean] of BLADES) {
+    const x = Math.round(foxX) + away;
+    px(ctx, x, h - tall + 1, color, 1, 1, tall - 1);
+    px(ctx, x + lean, h - tall, color);
   }
 }
 
-export const sunrise: VistaPainter = { back: (view) => paint(view, 'sunrise') };
-export const sunset: VistaPainter = { back: (view) => paint(view, 'sunset') };
+export const sunrise: VistaPainter = { back: (view) => paint(view, 'sunrise'), front: (view) => paintGrass(view, 'sunrise') };
+export const sunset: VistaPainter = { back: (view) => paint(view, 'sunset'), front: (view) => paintGrass(view, 'sunset') };

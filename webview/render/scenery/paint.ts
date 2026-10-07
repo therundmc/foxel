@@ -29,6 +29,19 @@ export function ramp(t: number, from: number, to: number): number {
   return p * p * (3 - 2 * p);
 }
 
+/** The plane just behind the fox's lookout slides this many pixels a second; farther ones slide slower. */
+const PAN_SPEED = 0.3;
+
+/**
+ * How far a plane of the landscape has slid sideways by now, in whole pixels. The fox and the lookout it sits on
+ * stay put, close to us; everything behind glides slowly past, the nearer the faster, as if we drifted the way it looks.
+ * `depth` runs from 0 (just behind the lookout) to 1 (the sky: sun, moon and stars do not move).
+ */
+export function parallax({ t, dir }: VistaView, depth: number): number {
+  const near = 1 - clamp01(depth);
+  return Math.round(-dir * t * PAN_SPEED * near * near);
+}
+
 /** A repeatable stream of numbers from 0 to 1: the same seed always paints the same sky. */
 export function seeded(seed: number): () => number {
   let s = seed | 0;

@@ -1,4 +1,4 @@
-import { prerender, px, ramp, seeded, type VistaView } from './paint';
+import { parallax, prerender, px, ramp, seeded, type VistaView } from './paint';
 
 // The small life of the night: banks of mist drifting in the valley, and fireflies waking near the ground.
 
@@ -7,7 +7,9 @@ const MIST = '#6066ad';
 const MIST_EVERY = 101;
 const MIST_LENGTHS = [74, 52, 90, 60];
 const MIST_ROWS = 4;
-const MIST_SPEED = 0.5;
+/** They lie among the nearer hills and slide with them; a light wind pushes them a little faster. */
+const MIST_DEPTH = 0.15;
+const MIST_WIND = 0.2;
 /** The mist gathers as the night settles, and never thickens to more than a veil. */
 const MIST_GATHER_S = 26;
 const MIST_ALPHA = 0.42;
@@ -35,13 +37,14 @@ function bank(length: number, seed: number): HTMLCanvasElement {
 
 let banks: HTMLCanvasElement[] | undefined;
 
-/** Banks of mist between the far mountains and the pines, sliding toward `dir`; `footY` is the row they rest on. */
-export function drawMist({ ctx, w, t, dir }: VistaView, footY: number): void {
+/** Banks of mist between the far hills and the treeline; `footY` is the row they rest on. */
+export function drawMist(view: VistaView, footY: number): void {
+  const { ctx, w, t, dir } = view;
   banks ??= MIST_LENGTHS.map((length, i) => bank(length, 0x3157 + i));
   ctx.globalAlpha = MIST_ALPHA * (0.4 + 0.6 * ramp(t, 0, MIST_GATHER_S));
-  for (let k = -1; k * MIST_EVERY < w + MIST_EVERY; k++) {
+  for (let k = -2; k * MIST_EVERY < w + MIST_EVERY; k++) {
     const kind = ((k % banks.length) + banks.length) % banks.length;
-    const x = Math.round(k * MIST_EVERY + 17 * kind + t * MIST_SPEED * (0.75 + 0.2 * kind) * dir);
+    const x = k * MIST_EVERY + 17 * kind + parallax(view, MIST_DEPTH) - Math.round(t * MIST_WIND * (0.75 + 0.2 * kind) * dir);
     ctx.drawImage(banks[kind], x, footY - MIST_ROWS + 1 - (kind % 2) * 2);
   }
   ctx.globalAlpha = 1;
