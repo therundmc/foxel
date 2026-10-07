@@ -110,7 +110,8 @@ export function activate(context: vscode.ExtensionContext): void {
     const provider = new BuddyViewProvider(context.extensionUri, onMessage);
     provider.setTitle(title());
     providers.push(provider);
-    context.subscriptions.push(vscode.window.registerWebviewViewProvider(id, provider));
+    // Its view is kept alive while another tab hides it: the fox is still where it was when you come back to it.
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(id, provider, { webviewOptions: { retainContextWhenHidden: true } }));
   }
 
   // A command that does something with the fox: the user is there for it.

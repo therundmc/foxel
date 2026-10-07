@@ -27,6 +27,8 @@ declare function acquireVsCodeApi(): {
 
 const MAX_FRAME_DT_MS = 100;
 const RESTFUL_FRAME_MS = 80;
+/** Hidden for longer than this, the fox has been away: it comes back in from the edge. */
+const AWAY_LONG_MS = 10 * 60_000;
 const SPAWN_SPEED = 40;
 const INTERACTION_EVERY_MS = 1000;
 
@@ -145,7 +147,8 @@ function onMessage(msg: HostMessage): void {
       showcase.play(msg.scenes);
       break;
     case 'shown':
-      if (!session.introPending && buddy.state !== 'intro') {
+      // Back after a moment, it is simply where you left it; after a long while, it makes its entrance again.
+      if (performance.now() - last >= AWAY_LONG_MS && !session.introPending && buddy.state !== 'intro') {
         session.introPending = true;
         resize();
       }

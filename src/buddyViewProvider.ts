@@ -34,7 +34,7 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider {
       }
       this.onMessage(msg, this);
     });
-    // Its webview is normally thrown away when hidden; either way it says 'ready' again once it is back.
+    // Hidden, its webview is kept but hears nothing from us; it says 'ready' again once it is back.
     view.onDidChangeVisibility(() => {
       this.live = false;
       if (view.visible) {
