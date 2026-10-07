@@ -111,6 +111,24 @@ describe('contemplating the sky', () => {
   });
 });
 
+describe('contemplating the dunes', () => {
+  it('is dressed for the desert while its back is to us, its neck cloth flapping in the wind', () => {
+    const b = fox(20, at(7));
+    startContemplate(b, 'dunes');
+    expect(b.hat()).toBeUndefined();
+    simulate(b, 12_000);
+    expect(b.current().anim).toBe('gaze');
+    const worn = new Set<string | undefined>();
+    simulate(b, 2000, () => {
+      worn.add(b.hat());
+      return false;
+    });
+    expect([...worn].sort()).toEqual(['cloak', 'cloakWind']);
+    simulate(b, 120_000, () => b.current().anim === 'gazeReturn');
+    expect(b.hat()).toBeUndefined();
+  });
+});
+
 describe('contemplating the snow', () => {
   it('wears a scarf while its back is to us, gets snow on its head, and shakes it off as it gets up', () => {
     const b = fox(20, at(23));

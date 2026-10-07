@@ -18,7 +18,7 @@ const SKY_MORNING = ['#5f9fdc', '#9cc9e8', '#dfe3cf', '#fbe7b4'] as const;
 const SKY_AT = [0, 0.45, 0.82, 1] as const;
 /** When the dawn starts to warm, and when the morning is golden. */
 const WARMS = [6, 40] as const;
-/** The glow of the sun to come, low on the side the fox looks to. */
+/** The glow of the sun to come, low behind the fox's shoulder, behind the great dune. */
 const GLOW_RGB = '255,226,170';
 const GLOW = [0.5, 0.75] as const;
 
@@ -57,14 +57,14 @@ function lookoutTones(light: number): LookoutTones {
 }
 
 function paintGlow({ ctx, w, foxX, dir }: VistaView, land: DunesLand, light: number): void {
-  const room = dir > 0 ? w - foxX : foxX;
+  const room = dir > 0 ? foxX : w - foxX;
   const rx = Math.max(40, w * 0.4);
   const alpha = GLOW[0] + (GLOW[1] - GLOW[0]) * light;
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, w, land.skyFoot);
   ctx.clip();
-  ctx.translate(Math.round(foxX + dir * room * 0.6), land.skyFoot);
+  ctx.translate(Math.round(foxX - dir * room * 0.6), land.skyFoot);
   ctx.scale(1, Math.max(14, land.skyFoot * 0.9) / rx);
   const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
   glow.addColorStop(0, `rgba(${GLOW_RGB},${alpha})`);
@@ -114,7 +114,7 @@ function paintSand({ ctx, t, dir }: VistaView, land: DunesLand, light: number): 
   land.crests.forEach((crest, c) => {
     // The wind comes and goes, at each crest in its own time.
     const blows = 0.5 + 0.5 * Math.sin(t * 0.45 + c * 1.9) * Math.sin(t * 0.17 + c);
-    const far = 0.5 + 0.25 * crest.plane;
+    const far = 0.5 + 0.5 * crest.near;
     for (let i = 0; i < STREAKS; i++) {
       const at = t / STREAK_S + hash(c, i);
       const age = at - Math.floor(at);

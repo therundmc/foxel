@@ -156,7 +156,7 @@ export const EMOTES: Record<Emote, Glyph> = {
   bowl: emoteBubble(EMOTE_ICONS.bowl),
 };
 
-export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf' | 'scarfSnow' | 'snowcap';
+export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf' | 'scarfSnow' | 'snowcap' | 'cloak' | 'cloakWind';
 
 // A red scarf round its neck, seen from behind, one end hanging down its back; and the snow that piles up on its head.
 const SCARF: Glyph = outlined(['AAAAAAAAAAAA', 'aAaAaAaAaAaA', '.........AA.', '.........Aa.', '.........aA.']);
@@ -164,6 +164,29 @@ const SNOW_PILE: Glyph = outlined(['.WWW.', 'WWWWW']);
 /** Rows between the top of the pile on its head and the top of the scarf, and how far in from the scarf's edge the pile sits. */
 const PILE_ABOVE_SCARF = 14;
 const PILE_INSET = 3;
+
+// What the people of the deep desert wear, seen from behind: a dusty cloak down its back and a cloth wound round its
+// neck, the loose end of it streaming in the wind. The second picture is the same a moment later.
+const CLOAK_STILL: Glyph = outlined([
+  '..DDDDDDDDDDDD........',
+  '..DeDDeDDeDDeDDD......',
+  '.NNNNNNNNNNNNNN.DDDD..',
+  '.NNNNnNNNNNNNNN...eDD.',
+  'NNNNNnNNNNNnNNNN....D.',
+  'NNNNnNNNNNNNnNNN......',
+  'NNNNnNNNNNNNnNNN......',
+  '.NNnNN.NNNN.NnN.......',
+]);
+const CLOAK_WIND: Glyph = outlined([
+  '..DDDDDDDDDDDD....DDD.',
+  '..DeDDeDDeDDeDDDeDD...',
+  '.NNNNNNNNNNNNNN.......',
+  '.NNNNnNNNNNNNNN.......',
+  'NNNNNnNNNNNnNNNN......',
+  'NNNNnNNNNNNNnNNNN.....',
+  'NNNNnNNNNNNNnNNNN.....',
+  '.NNnNNN.NNNN.NNnN.....',
+]);
 
 /** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
 export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
@@ -200,5 +223,7 @@ export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
     x: -7,
     y: 4 - PILE_ABOVE_SCARF,
   },
+  cloak: { glyph: CLOAK_STILL, x: -9, y: 4 },
+  cloakWind: { glyph: CLOAK_WIND, x: -9, y: 4 },
   snowcap: { glyph: SNOW_PILE, x: -7 + PILE_INSET, y: 4 - PILE_ABOVE_SCARF },
 };

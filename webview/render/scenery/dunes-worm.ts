@@ -115,7 +115,7 @@ function burst({ ctx, dir }: VistaView, x: number, y: number, since: number, cou
 
 // The dust that hangs where it broke the sand: a low pale mound that spreads and thins.
 function dust({ ctx }: VistaView, x: number, y: number, since: number, thick: number): void {
-  const strength = 0.4 * ramp(since, 0, 1.2) * (1 - ramp(since, 3, DUST_S));
+  const strength = 0.28 * ramp(since, 0, 1.2) * (1 - ramp(since, 3, DUST_S));
   if (since <= 0 || strength < 0.02) {
     return;
   }
