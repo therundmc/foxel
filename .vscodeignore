@@ -11,3 +11,4 @@ tsconfig*.json
 CLAUDE.md
 .gitignore
 *.vsix
+.github/**
