@@ -39,11 +39,11 @@ A few times a day at most, the fox stops for the sky. It sits, pricks its ears, 
 | --- | --- |
 | Early morning | The sunrise: the night pales, the great peak catches the first light and the sun comes up big and slow beside it |
 | Daytime | The great peak of its valley and an enormous summer cloud piling up behind the mountains |
-| Some days | A soft autumn rain over the valley: mist between the russet hills, leaves coming down, rain on the big leaf it holds over its head, then the mist lifting off the peak |
+| Some days | A soft rain in an autumn forest: maples red and gold in the mist, leaves coming down one after the other, rain on the big leaf it holds over its head, then a gust that sets the leaves flying and a warm light through the trees |
 | Evening | The sunset over the water, and the colours that come once the sun is gone |
 | Night | The stars lighting up one by one over the peak, the moon climbing, the Milky Way drawing itself, a shooting star |
 
-It is always the same place: its lookout over its valley, at different hours. Hours go by between two of these moments, and they need `foxel.dayNight` (on by default).
+The mountain views are always the same place: its lookout over its valley, at different hours. Hours go by between two of these moments, and they need `foxel.dayNight` (on by default).
 
 ## Its day
 
