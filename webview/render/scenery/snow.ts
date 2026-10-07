@@ -1,11 +1,9 @@
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
 import { gradient, mix, px, ramp, seeded, type VistaPainter, type VistaView } from './paint';
-import { paintBear } from './snow-bear';
 import { winterLand, type WinterLand } from './snow-land';
 
-// A winter night in the far north. Snow falls softly on a white valley, a frozen lake where a white bear wanders, and a
-// red cabin with lit windows. At the great
-// moment the snow thins, the sky clears, and the northern lights unfold over the mountains, from the fox's shoulder
+// A winter night in the far north. Snow falls softly on a white valley, a frozen lake, and a red cabin with lit
+// windows. At the great moment the snow thins, the sky clears, and the northern lights unfold over the mountains, from the fox's shoulder
 // toward the side it looks to; they go on dancing to the end, the lake giving them back.
 //   0 s   the night, the snow already falling, thicker until 10 s; smoke from the cabin
 //  18 s   a faint green glow behind the mountains
@@ -190,7 +188,6 @@ export const snow: VistaPainter = {
     ctx.drawImage(land.image, 0, 0);
     paintReflection(view, land);
     paintCabin(view, land);
-    paintBear(view, land);
     paintSnow(view, FAR_SNOW);
     paintLookout(view, lookoutTones(view));
   },
