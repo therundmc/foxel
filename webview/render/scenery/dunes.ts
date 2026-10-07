@@ -1,17 +1,18 @@
 import { dunesLand, type DunesLand } from './dunes-land';
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
-import { FAR_FLIGHT, NEAR_FLIGHT, paintGrains, paintRibbons, paintVeil } from './dunes-wind';
+import { paintDrift, paintVeil, paintWave } from './dunes-wind';
 import { paintWorm } from './dunes-worm';
 import { gradient, mix, ramp, seeded, type VistaPainter, type VistaView } from './paint';
 
 // Early morning over a sea of sand, on a world with two moons. Great dunes one behind the other, each with one
 // face in the light and one in shade; the wind lifts a little sand off the crests, the last stars go out and the
-// dawn slowly turns into a golden morning. The wind comes in gusts, carrying sand across the whole view (see
-// dunes-wind.ts). Something travels under the sand, far away. At the great moment it
+// dawn slowly turns into a golden morning. A few grains of sand drift by, and once a whole wave of it sweeps
+// through (see dunes-wind.ts). Something travels under the sand, far away. At the great moment it
 // comes out: an enormous worm leaps from behind a dune, arches across the sky and dives back in.
 //   0 s   dawn: rose and mauve, two pale moons, a few stars left (gone by 18 s)
 //   6 s   the light starts to warm, and is golden by 40 s
 //   8 s   the sign: a swell of sand moving along a far crest
+//  11 s   the wave of sand comes through, and has passed by 17 s
 //  moment the worm (6 s, see dunes-worm.ts), the sand it throws, the dust it leaves; then its sign moves away
 
 /** The sky from the top down to the horizon, at dawn and in the golden morning, and where each tone sits. */
@@ -33,6 +34,8 @@ const MOON_ALPHA = [0.9, 0.55] as const;
 /** Sand blown off a crest, as puffs of single grains: how many puffs at a time and grains in each, how far they fly, for how long. */
 const STREAKS = 3;
 const GRAINS = 6;
+/** How much of the wave of sand passes behind the fox; the rest passes in front of it. */
+const WAVE_BEHIND = 0.6;
 const FLIES = 16;
 const STREAK_S = 3.2;
 const SAND = ['#fbd3b3', '#fde6b6'] as const;
@@ -160,13 +163,13 @@ export const dunes: VistaPainter = {
     paintWorm(view, land, light);
     paintLand(view, land.near, light);
     paintSand(view, land, light);
-    paintGrains(view, FAR_FLIGHT, light);
+    paintWave(view, light, WAVE_BEHIND, 3);
     paintLookout(view, lookoutTones(light));
   },
   front(view) {
     const light = lightAt(view);
     paintLookoutFront(view, lookoutTones(light));
-    paintGrains(view, NEAR_FLIGHT, light);
-    paintRibbons(view, light);
+    paintDrift(view, light);
+    paintWave(view, light, 1 - WAVE_BEHIND, 7);
   },
 };
