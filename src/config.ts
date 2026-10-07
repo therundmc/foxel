@@ -42,7 +42,7 @@ export function readConfig(): BuddyConfig {
   return {
     enabled: c.get('enabled', true),
     position: c.get<Position>('position', 'panel'),
-    scale: c.get('scale', 4),
+    scale: c.get('scale', 3),
     speed: c.get('speed', 1),
     coat: c.get<Coat>('coat', 'red'),
     reactToTyping: c.get('reactToTyping', true),

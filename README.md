@@ -37,7 +37,7 @@ That is all this page will tell you. The rest is yours to find: it has more habi
 | --- | --- | --- |
 | `foxel.enabled` | `true` | Show the companion |
 | `foxel.position` | `panel` | `panel`, `explorer`, or `editor` for a strip of its own under your files |
-| `foxel.scale` | `4` | Size of one sprite pixel, in screen pixels |
+| `foxel.scale` | `3` | Size of one sprite pixel, in screen pixels |
 | `foxel.speed` | `1` | Animation speed multiplier |
 | `foxel.coat` | `red` | Fur colour: `red`, `arctic`, `silver` or `fennec` |
 | `foxel.reactToTyping` | `true` | Tap along when you type |

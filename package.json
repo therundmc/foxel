@@ -200,7 +200,7 @@
         },
         "foxel.scale": {
           "type": "integer",
-          "default": 4,
+          "default": 3,
           "minimum": 1,
           "maximum": 16,
           "description": "Size of one sprite pixel, in screen pixels. The companion keeps this size whatever the view size, unless the view is too small to show all of it."

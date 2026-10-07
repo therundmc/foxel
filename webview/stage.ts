@@ -3,7 +3,7 @@ import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { SPRITE_SIZE } from './sprites/frames';
 
-export const DEFAULT_SCALE = 4;
+export const DEFAULT_SCALE = 3;
 /** The room the fox needs, in sprite pixels: itself, a little air to hop in, and a few steps to take. */
 const ROOM_HIGH = SPRITE_SIZE + 8;
 const ROOM_WIDE = SPRITE_SIZE + 16;
