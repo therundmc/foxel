@@ -44,7 +44,7 @@ export function lightTint(date: Date): LightTint {
 /** A sky the fox may sit down and contemplate. */
 export type Vista =
   | 'sunrise'
-  | 'cloudsea'
+  | 'dunes'
   | 'clouds'
   | 'blossom'
   | 'wheat'
@@ -60,7 +60,7 @@ export type VistaOdds = readonly (readonly [Vista, number])[];
 const NIGHT_SKIES: VistaOdds = [['stars', 1], ['fireflies', 1], ['snow', 0.6]];
 const VISTAS: readonly (readonly [number, VistaOdds])[] = [
   [at(6), NIGHT_SKIES],
-  [at(9), [['sunrise', 1], ['cloudsea', 1]]],
+  [at(9), [['sunrise', 1], ['dunes', 1]]],
   [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['rain', 0.6]]],
   [at(21), [['sunset', 1], ['train', 1]]],
 ];

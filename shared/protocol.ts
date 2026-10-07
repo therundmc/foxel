@@ -70,7 +70,7 @@ export const SCENES = [
   'typing',
   'drowsy',
   'sunrise',
-  'cloudsea',
+  'dunes',
   'rain',
   'blossom',
   'daydream',

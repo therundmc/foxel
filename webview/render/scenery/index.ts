@@ -3,7 +3,7 @@ import type { Scenery } from '../../sim/props/scenery';
 import type { Stage } from '../../stage';
 import { blossom } from './blossom';
 import { clouds } from './clouds';
-import { cloudsea } from './cloudsea';
+import { dunes } from './dunes';
 import { fireflies } from './fireflies';
 import type { VistaPainter, VistaView } from './paint';
 import { rain } from './rain';
@@ -14,7 +14,7 @@ import { train } from './train';
 import { wheat } from './wheat';
 
 /** One painter per sky. The compiler asks for an entry here when a `Vista` is added. */
-const VISTAS: Record<Vista, VistaPainter> = { sunrise, cloudsea, clouds, blossom, wheat, rain, sunset, train, stars, fireflies, snow };
+const VISTAS: Record<Vista, VistaPainter> = { sunrise, dunes, clouds, blossom, wheat, rain, sunset, train, stars, fireflies, snow };
 
 type Layer = 'back' | 'front';
 
@@ -55,6 +55,7 @@ export class SceneryLayers {
       moment: scenery.momentMs === undefined ? undefined : scenery.momentMs / 1000,
       foxX: scenery.x,
       dir: scenery.dir,
+      watched: scenery.watched,
     };
     ctx.save();
     paint.call(VISTAS[scenery.vista as Vista], view);

@@ -17,7 +17,7 @@ describe('day', () => {
   it('knows which skies there are to look at, weather being the less likely', () => {
     const skies = (hours: number, minutes = 0): string[] => vistasAt(at(hours, minutes)).map(([vista]) => vista);
     expect(skies(3)).toEqual(['stars', 'fireflies', 'snow']);
-    expect(skies(6, 30)).toEqual(['sunrise', 'cloudsea']);
+    expect(skies(6, 30)).toEqual(['sunrise', 'dunes']);
     expect(skies(9)).toEqual(['clouds', 'blossom', 'wheat', 'rain']);
     expect(skies(17)).toEqual(['clouds', 'blossom', 'wheat', 'rain']);
     expect(skies(19)).toEqual(['sunset', 'train']);

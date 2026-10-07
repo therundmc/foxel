@@ -68,15 +68,26 @@ describe('contemplating the sky', () => {
     expect(scenery.ageMs).toBeGreaterThan(5900);
   });
 
-  it('lets the sky fade once it looks away', () => {
+  it('lets the sky go on to its end when the fox is drawn away from it', () => {
     const b = fox(20, at(23));
     startContemplate(b, 'stars');
+    const { scenery } = b.world;
     simulate(b, 10_000);
+    expect(scenery.watched).toBe(true);
     react(b, 'celebrate');
     expect(b.state).toBe('celebrate');
     simulate(b, 7000);
-    expect(b.world.scenery.glow).toBe(0);
-    expect(b.world.scenery.vista).toBeUndefined();
+    // Still out, though nobody is sitting in front of it.
+    expect(scenery.vista).toBe('stars');
+    expect(scenery.glow).toBe(1);
+    expect(scenery.watched).toBe(false);
+    // Its great moment comes all the same, and then it goes by itself.
+    simulate(b, 60_000, () => scenery.momentMs !== undefined);
+    expect(scenery.momentMs).toBeDefined();
+    expect(b.contemplate.dream).toBeUndefined();
+    simulate(b, 60_000, () => !scenery.active);
+    expect(scenery.active).toBe(false);
+    expect(scenery.ageMs).toBeGreaterThan(45_000);
   });
 
   it('is not drawn out of it by your typing', () => {
@@ -207,7 +218,7 @@ describe('when it contemplates', () => {
   it('waits a good while after its view opens, then stops for one of the skies of the hour', () => {
     expect(skyAfter(at(14), 40 * MINUTE)).toBeUndefined();
     expect(['clouds', 'blossom', 'wheat', 'rain']).toContain(skyAfter(at(14), 50 * MINUTE));
-    expect(['sunrise', 'cloudsea']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
+    expect(['sunrise', 'dunes']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
     expect(['sunset', 'train']).toContain(skyAfter(at(19, 30), 50 * MINUTE));
     expect(['stars', 'fireflies', 'snow']).toContain(skyAfter(at(23), 50 * MINUTE));
   });

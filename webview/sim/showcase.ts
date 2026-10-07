@@ -31,7 +31,7 @@ type Act =
   | 'sunset'
   | 'rain'
   | 'snow'
-  | 'cloudsea'
+  | 'dunes'
   | 'blossom'
   | 'wheat'
   | 'train'
@@ -90,7 +90,7 @@ export function act(b: Buddy, name: Act): void {
     case 'sunset':
     case 'rain':
     case 'snow':
-    case 'cloudsea':
+    case 'dunes':
     case 'blossom':
     case 'wheat':
     case 'train':
@@ -155,7 +155,7 @@ const SCRIPTS: Record<Scene, Script> = {
   },
   drowsy: { hour: 22.75, ms: 7000, cues: [[0, (b) => act(b, 'drowsy')]] },
   stargaze: { hour: 22.9, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'stargaze')]] },
-  cloudsea: { hour: 7.2, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'cloudsea')]] },
+  dunes: { hour: 7.2, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'dunes')]] },
   blossom: { hour: 11, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'blossom')]] },
   wheat: { hour: 16.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'wheat')]] },
   train: { hour: 20, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'train')]] },

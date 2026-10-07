@@ -36,7 +36,7 @@ const SCENE_LABELS: Record<Scene, string> = {
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',
   snow: 'Contemplating the snow and the northern lights',
-  cloudsea: 'Contemplating the sea of clouds',
+  dunes: 'Contemplating the dunes, where a great worm leaps',
   blossom: 'Contemplating the cherry blossoms',
   wheat: 'Contemplating the wheat in the wind',
   train: 'Contemplating the train on the water',

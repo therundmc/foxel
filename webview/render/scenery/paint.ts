@@ -10,9 +10,11 @@ export interface VistaView {
   readonly t: number;
   /** Seconds since its great moment began, or undefined before it. */
   readonly moment: number | undefined;
-  /** Where the fox sits (the middle of it), and the side it leans its look to. */
+  /** Where the fox sat down (the middle of it), and the side it leans its look to. */
   readonly foxX: number;
   readonly dir: 1 | -1;
+  /** Whether it is still sitting there: it may have been drawn away to play while the sky goes on. */
+  readonly watched: boolean;
 }
 
 /** One sky: what is behind the fox and, if need be, what passes in front of it. */

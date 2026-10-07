@@ -18,7 +18,7 @@ export type Extra =
   | 'dreamStars'
   | 'dreamLeaf'
   | 'dreamLights'
-  | 'dreamWhale'
+  | 'dreamWorm'
   | 'dreamBlossom'
   | 'dreamWheat'
   | 'dreamTrain'
@@ -114,8 +114,8 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   dreamStars: dream(['S...S', '..S..', '.SSS.', '..S..']),
   dreamLeaf: dream(['A.A.A', '.AAA.', 'AAAAA', '..k..']),
   dreamLights: dream(['.F..F..', 'FFwFFwF', '.wV.wV.']),
-  // And: a whale made of cloud, a cherry blossom, an ear of wheat, a little train with lit windows, a firefly.
-  dreamWhale: dream(['.ZZZZ.Z', 'ZZEZZZZ', '.ZZZZ..']),
+  // And: a great worm leaping out of the sand, a cherry blossom, an ear of wheat, a little train with lit windows, a firefly.
+  dreamWorm: dream(['..TTT..', '.TT.TE.', '.T...T.', 'hhhhhhh']),
   dreamBlossom: dream(['.p.p.', 'ppSpp', '.p.p.']),
   dreamWheat: dream(['.X.', 'XxX', 'XxX', '.k.', '.k.']),
   dreamTrain: dream(['.AAAAAA', '.AXAXAA', 'KK.KK.K']),

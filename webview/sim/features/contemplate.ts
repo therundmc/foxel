@@ -32,7 +32,7 @@ const SHAKES: Partial<Record<Vista, TouchReaction>> = {
   snow: { anim: 'shakeSnow', then: 'sit' },
 };
 /** On a fine day a bird sometimes comes and sits beside it, a few seconds after it has turned to the sky. */
-const COMPANY: readonly Vista[] = ['sunrise', 'cloudsea', 'clouds', 'blossom', 'wheat', 'sunset', 'train'];
+const COMPANY: readonly Vista[] = ['sunrise', 'dunes', 'clouds', 'blossom', 'wheat', 'sunset', 'train'];
 const COMPANY_CHANCE = 0.45;
 const COMPANY_AFTER_MS = 5000;
 const COMPANY_ASIDE = 21;
@@ -40,7 +40,7 @@ const COMPANY_MIN_WIDTH = 100;
 /** The sleep in which it dreams of a sky it watched, and how long it has to sleep for the dream to be had. */
 const DREAMS: Record<Vista, AnimName> = {
   sunrise: 'sleepSunrise',
-  cloudsea: 'sleepCloudsea',
+  dunes: 'sleepDunes',
   clouds: 'sleepClouds',
   blossom: 'sleepBlossom',
   wheat: 'sleepWheat',
@@ -120,7 +120,6 @@ export const contemplateFeature = {
       update(b, dt) {
         b.fall(dt);
         const m = b.contemplate;
-        const { scenery } = b.world;
         const { bird, width, height, random } = b.world;
         if (!m.companySettled && b.elapsed >= FACING_MS + COMPANY_AFTER_MS) {
           m.companySettled = true;
@@ -133,10 +132,8 @@ export const contemplateFeature = {
           // It has seen what there was to see: it will dream of it.
           m.dream = m.vista;
           m.asleepMs = 0;
-          scenery.highlight();
         }
         if (b.duration - b.elapsed < LEAVE_MS) {
-          scenery.fade();
           sendCompanyOff(b);
         }
       },
@@ -195,13 +192,13 @@ export const contemplateFeature = {
       m.asleepMs = 0;
     }
   },
-  // The sky is only out while it is looking at it.
+  // The sky comes out as it sits down, and goes on to its end even if the fox is drawn away from it.
   entered(b, state) {
     const { scenery } = b.world;
     if (state === 'contemplate') {
-      scenery.appear(b.contemplate.vista, b.x + SPRITE_SIZE / 2, b.dir);
+      scenery.appear(b.contemplate.vista, b.x + SPRITE_SIZE / 2, b.dir, b.contemplate.momentAt, b.duration - LEAVE_MS);
     } else {
-      scenery.fade();
+      scenery.watched = false;
       sendCompanyOff(b);
     }
   },

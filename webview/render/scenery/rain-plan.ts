@@ -53,8 +53,8 @@ export function gustAt(t: number): number {
   return Math.min(1, Math.max(0, blow - 0.25)) ** 1.5;
 }
 
-export function planOf({ t, moment }: VistaView): Plan {
-  const leafUp = t >= LEAF_FROM && (moment === undefined || moment < LEAF_AFTER);
+export function planOf({ t, moment, watched }: VistaView): Plan {
+  const leafUp = watched && t >= LEAF_FROM && (moment === undefined || moment < LEAF_AFTER);
   // The wind rises with the rain and drops with it once the air clears.
   const gust = gustAt(t) * ramp(t, 4, 12) * (moment === undefined ? 1 : 1 - 0.8 * ramp(moment, 3, 9));
   return {

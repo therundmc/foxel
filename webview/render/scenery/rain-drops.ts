@@ -30,8 +30,8 @@ const FOX_HALF = 11;
 const FOX_HALF_BARE = 17;
 const FOX_TALL = 30;
 
-/** One depth of rain. Drops stop on the fox's leaf, and none ever falls on the fox. */
-export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, depth: Depth): void {
+/** One depth of rain. Drops stop on the fox's leaf, and none falls on the fox while it sits there. */
+export function paintRain({ ctx, w, h, t, foxX, dir, watched }: VistaView, plan: Plan, depth: Depth): void {
   const wind = dir * plan.slant;
   // Room on the windward side for the drops the wind brings in from outside the view.
   const slack = h * SLANT_MOST;
@@ -53,7 +53,7 @@ export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, de
     const over = top + wind * (h - LEAF_TOP) - foxX;
     if (plan.leafUp && Math.abs(over) <= LEAF_HALF) {
       lands = h - LEAF_TOP + Math.round((LEAF_DROOP * over * over) / (LEAF_HALF * LEAF_HALF));
-    } else if (Math.abs(top + wind * (h - FOX_TALL / 2) - foxX) < (plan.leafUp ? FOX_HALF : FOX_HALF_BARE)) {
+    } else if (watched && Math.abs(top + wind * (h - FOX_TALL / 2) - foxX) < (plan.leafUp ? FOX_HALF : FOX_HALF_BARE)) {
       continue;
     }
     // The streak leans with the wind: it is a few short upright strokes, each a step aside from the one above.

@@ -115,7 +115,7 @@ export const ANIMATIONS = {
   sleepStars: sleepAnimation('dreamStars'),
   sleepRain: sleepAnimation('dreamLeaf'),
   sleepSnow: sleepAnimation('dreamLights'),
-  sleepCloudsea: sleepAnimation('dreamWhale'),
+  sleepDunes: sleepAnimation('dreamWorm'),
   sleepBlossom: sleepAnimation('dreamBlossom'),
   sleepWheat: sleepAnimation('dreamWheat'),
   sleepTrain: sleepAnimation('dreamTrain'),
