@@ -9,6 +9,7 @@
 - Breaks (`foxel.breakReminderMinutes`): after 50 minutes of work without a pause, it brings its ball and waits with a little cup bubble; ignored, it flops down and sighs.
 - Party days: a party hat and confetti on Friday afternoons, plus a cake on the anniversary of the install.
 - Name: `foxel.name` becomes the title of its view.
+- Its needs last: closing the view no longer makes it forget that it is hungry, thirsty or waiting for a break, and reminders that come up while the view is closed wait for you to open it.
 - No text and no gauges: it shows what it feels with its face, its pose and small picture bubbles.
 
 ## 1.1.0

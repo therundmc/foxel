@@ -24,7 +24,7 @@ Every feature is judged against these three, before any technical consideration:
 | --- | --- |
 | `shared/protocol.ts` | Messages and settings exchanged by host and view |
 | `shared/day.ts` | Pure time-of-day logic (phases, meals, light, party days) |
-| `src/extension.ts` | Composition root: commands, providers, config changes |
+| `src/extension.ts` | Composition root: commands, providers, config changes; keeps the fox's memory between views |
 | `src/events.ts` | Editor events → `Reaction`s, with cooldowns; idle and work tracking |
 | `src/routine.ts` | Timed needs: meals, break and drink reminders |
 | `src/config.ts` | Reading settings; `SENT` lists those forwarded to the view |
@@ -38,10 +38,12 @@ Every feature is judged against these three, before any technical consideration:
 | `webview/sim/registry.ts` | `FEATURES` and `STATES`, gathered from the features |
 | `webview/sim/features/*.ts` | One file per group of states: their definitions, logic, memory and commands |
 | `webview/sim/props/` | Ball, butterfly, treat, bowl: physics only |
+| `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
 | `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
 | `webview/sprites/` | `palette.ts`, `frames.ts` (types, `frameAt`), `props.ts` (glyphs), `grid.ts` (pixel drawing) |
 | `test/sim/<feature>.test.ts` | Simulation tests; `helpers.ts` has `spawn`, `fixed`, `simulate` |
+| `test/host/` | Host tests, with fake timers and a fake `vscode` |
 
 ## Where to change what
 
@@ -50,6 +52,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New reaction to the editor**: add it to `Reaction` (`shared/protocol.ts`); the compiler asks for its handler in `features/reactions.ts`. Emit it from `src/events.ts` or `src/routine.ts`.
 - **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry.
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
+- **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameNeeds` and `recall` in `sim/memory.ts`. The host needs no change.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Document it in the README.
 - **New toy**: still several places: class in `sim/props/`, field and update in `World`, glyph in `sprites/props.ts`, rect in `stage.ts`, drawing in `render/renderer.ts`, hit test in `input.ts`.
 

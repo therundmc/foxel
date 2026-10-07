@@ -10,6 +10,7 @@ import { spawnBall } from './sim/features/fetch';
 import { startIntro } from './sim/features/intro';
 import { fillBowl } from './sim/features/meals';
 import { react } from './sim/features/reactions';
+import { recall, remember, sameNeeds } from './sim/memory';
 import { giveTreat } from './sim/features/treat';
 import { Showcase } from './sim/showcase';
 import { World, type Effect } from './sim/world';
@@ -80,6 +81,16 @@ function onEffect(effect: Effect): void {
   }
 }
 
+// The extension keeps what the fox still needs, for the next time the view is opened.
+let saved = remember(buddy, Date.now());
+function saveMemory(): void {
+  const memory = remember(buddy, Date.now());
+  if (!sameNeeds(saved, memory)) {
+    saved = memory;
+    vscode.postMessage({ type: 'memory', memory });
+  }
+}
+
 let last = performance.now();
 function tick(now: number): void {
   requestAnimationFrame(tick);
@@ -93,6 +104,7 @@ function tick(now: number): void {
   showcase.update(dt * session.settings.speed, buddy);
   world.update(dt * session.settings.speed);
   world.effects.splice(0).forEach(onEffect);
+  saveMemory();
   renderer.blink(now);
   renderer.draw(now, dt);
 }
@@ -104,6 +116,9 @@ function onMessage(msg: HostMessage): void {
       bitmaps.setCoat(msg.settings.coat);
       session.settings = msg.settings;
       resize();
+      break;
+    case 'memory':
+      recall(buddy, msg.memory, Date.now());
       break;
     case 'reaction':
       if (!showcase.active) {
@@ -118,6 +133,8 @@ function onMessage(msg: HostMessage): void {
         session.introPending = true;
         resize();
       }
+      // The extension stops talking to a hidden view until it hears this again.
+      vscode.postMessage({ type: 'ready' });
       break;
     case 'giveTreat':
       giveTreat(buddy, worldWidth * (0.2 + 0.6 * Math.random()));

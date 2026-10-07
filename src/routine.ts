@@ -21,11 +21,12 @@ export class Routine implements vscode.Disposable {
   private lastDrink = Date.now();
 
   constructor(
-    private readonly watcher: ActivityWatcher,
+    private readonly watcher: Pick<ActivityWatcher, 'asleep' | 'workingSince'>,
     private readonly state: vscode.Memento,
     private readonly config: () => BuddyConfig,
     private readonly clock: () => Date,
     private readonly react: (reaction: Reaction) => void,
+    private readonly viewLive: () => boolean,
   ) {
     this.timer = setInterval(() => this.check(), CHECK_MS);
   }
@@ -48,8 +49,9 @@ export class Routine implements vscode.Disposable {
     }
   }
 
+  // With no view to show them in, its needs wait: they come up as soon as one is opened.
   private check(): void {
-    if (this.watcher.asleep) {
+    if (this.watcher.asleep || !this.viewLive()) {
       return;
     }
     const config = this.config();

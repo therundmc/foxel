@@ -3,13 +3,14 @@ import { randomBytes } from 'crypto';
 import type { HostMessage, WebviewMessage } from '../shared/protocol';
 
 export class BuddyViewProvider implements vscode.WebviewViewProvider {
+  /** True while its webview is loaded and listening. */
+  live = false;
   private view?: vscode.WebviewView;
   private title: string | undefined;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly onReady: (provider: BuddyViewProvider) => void,
-    private readonly onFed: () => void,
+    private readonly onMessage: (msg: WebviewMessage, provider: BuddyViewProvider) => void,
   ) {}
 
   setTitle(title: string | undefined): void {
@@ -28,25 +29,21 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider {
     };
     view.webview.html = this.html(view.webview);
     view.webview.onDidReceiveMessage((msg: WebviewMessage) => {
-      switch (msg?.type) {
-        case 'ready':
-          this.onReady(this);
-          break;
-        case 'fed':
-          this.onFed();
-          break;
-        default:
-          // Anything else is ignored; the compiler flags a message of ours left unhandled.
-          msg satisfies never;
+      if (msg?.type === 'ready') {
+        this.live = true;
       }
+      this.onMessage(msg, this);
     });
+    // Its webview is normally thrown away when hidden; either way it says 'ready' again once it is back.
     view.onDidChangeVisibility(() => {
+      this.live = false;
       if (view.visible) {
         this.post({ type: 'shown' });
       }
     });
     view.onDidDispose(() => {
       this.view = undefined;
+      this.live = false;
     });
   }
 

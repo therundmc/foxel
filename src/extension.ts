@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
-import { SCENES, type HostMessage, type Reaction, type Scene } from '../shared/protocol';
+import {
+  SCENES,
+  type BuddyMemory,
+  type HostMessage,
+  type Reaction,
+  type Scene,
+  type WebviewMessage,
+} from '../shared/protocol';
 import { BuddyViewProvider } from './buddyViewProvider';
 import { readConfig, SECTION, WEBVIEW_SETTINGS, webviewSettings, type Position } from './config';
 import { ActivityWatcher } from './events';
@@ -46,18 +53,40 @@ export function activate(context: vscode.ExtensionContext): void {
   void setDebugContext();
 
   const watcher = new ActivityWatcher(react, readConfig, clock);
-  const routine = new Routine(watcher, context.globalState, readConfig, clock, react);
+  const viewLive = (): boolean => providers.some((p) => p.live);
+  const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
+  // A view forgets everything when it is closed, so the fox's needs are kept here for the next one.
+  let memory: BuddyMemory | undefined;
 
   const onReady = (provider: BuddyViewProvider): void => {
     provider.post(settingsMessage());
+    if (memory) {
+      provider.post({ type: 'memory', memory });
+    }
     if (watcher.asleep) {
       provider.post({ type: 'reaction', reaction: 'sleep' });
     }
     routine.viewReady();
   };
+  const onMessage = (msg: WebviewMessage, provider: BuddyViewProvider): void => {
+    switch (msg?.type) {
+      case 'ready':
+        onReady(provider);
+        break;
+      case 'fed':
+        routine.fed();
+        break;
+      case 'memory':
+        memory = msg.memory;
+        break;
+      default:
+        // Anything else is ignored; the compiler flags a message of ours left unhandled.
+        msg satisfies never;
+    }
+  };
 
   for (const id of Object.values(VIEW_IDS)) {
-    const provider = new BuddyViewProvider(context.extensionUri, onReady, () => routine.fed());
+    const provider = new BuddyViewProvider(context.extensionUri, onMessage);
     provider.setTitle(title());
     providers.push(provider);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(id, provider));
