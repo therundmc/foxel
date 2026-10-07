@@ -12,6 +12,9 @@ import {
   GRASS,
   GRASS_H,
   GRASS_W,
+  MOON,
+  MOON_H,
+  MOON_W,
   MOUSE_FACE,
   MOUSE_FRAMES,
   TREAT_GLYPH,
@@ -113,6 +116,20 @@ describe('sprites', () => {
       expect(glyph).toHaveLength(GRASS_H);
       glyph.forEach((line) => expect(line).toHaveLength(GRASS_W));
     }
+  });
+
+  it('moon uses the palette and matches the declared size', () => {
+    expect(usesPalette(MOON)).toBe(true);
+    expect(MOON).toHaveLength(MOON_H);
+    MOON.forEach((line) => expect(line).toHaveLength(MOON_W));
+  });
+
+  it('tips the head back without moving it, and keeps a level head as it was', () => {
+    const level = ANIMATIONS.sit.frames[0];
+    const tipped = ANIMATIONS.stargaze.frames[0];
+    expect(tipped.head).toEqual(level.head);
+    const noseRow = (pixels: readonly string[]): number => pixels.findIndex((line) => line.lastIndexOf('E') >= level.head[0] + 6);
+    expect(noseRow(tipped.pixels)).toBeLessThan(noseRow(level.pixels));
   });
 
   it('treat glyph matches the declared size', () => {

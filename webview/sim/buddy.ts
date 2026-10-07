@@ -10,6 +10,7 @@ import { MealsMemory } from './features/meals';
 import { MousingMemory } from './features/mousing';
 import { PlayMemory } from './features/play';
 import { RestMemory } from './features/rest';
+import { StargazeMemory } from './features/stargaze';
 import { TouchMemory } from './features/touch';
 import { SnackMemory } from './features/treat';
 import { TricksMemory } from './features/tricks';
@@ -57,6 +58,7 @@ export class Buddy {
   readonly snack = new SnackMemory();
   readonly meals = new MealsMemory();
   readonly rest = new RestMemory();
+  readonly stargaze = new StargazeMemory();
   readonly intro = new IntroMemory();
   private sinceTurnMs = 0;
   private behindMs = 0;

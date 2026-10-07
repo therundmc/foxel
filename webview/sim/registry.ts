@@ -7,6 +7,7 @@ import { mousingFeature } from './features/mousing';
 import { playFeature } from './features/play';
 import { reactionsFeature } from './features/reactions';
 import { restFeature } from './features/rest';
+import { stargazeFeature } from './features/stargaze';
 import { touchFeature } from './features/touch';
 import { treatFeature } from './features/treat';
 import { tricksFeature } from './features/tricks';
@@ -25,6 +26,7 @@ export const FEATURES: readonly Feature[] = [
   treatFeature,
   mealsFeature,
   restFeature,
+  stargazeFeature,
   introFeature,
 ];
 
@@ -41,6 +43,7 @@ export const STATES: StateDefs = {
   ...treatFeature.states,
   ...mealsFeature.states,
   ...restFeature.states,
+  ...stargazeFeature.states,
   ...introFeature.states,
 };
 

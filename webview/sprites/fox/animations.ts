@@ -410,15 +410,19 @@ export const ANIMATIONS = {
     [{ ...SIT, paw: 'tapNear', eye: 'sleepy', mouth: 'flat' }, 320],
     [{ ...SIT, paw: 'tapFar', eye: 'sleepy', mouth: 'flat' }, 320],
   ]),
-  // You ignored the break: it flops down and sighs.
-  // Rolls onto its back and wriggles, paws in the air.
+  // Flops onto its back, wriggles with its feet in the air, melts for a moment, then rolls back over.
   roll: anim([
-    [{ body: 'lie', eye: 'happy', tail: 'sitA' }, 260],
-    ...Array.from({ length: 4 }, (_, i): [Pose, number][] => [
-      [{ body: 'back', legs: KICK_A, eye: 'happy', mouth: 'open', tail: 'sitA', extras: i === 2 ? ['smallHeartA'] : [] }, 190],
-      [{ body: 'back', legs: KICK_B, head: [0, 1], eye: 'happy', mouth: 'tongue', tail: 'sitB', extras: i === 2 ? ['smallHeartB'] : [] }, 190],
+    [{ body: 'lie', eye: 'happy', tail: 'sitA' }, 240],
+    [{ body: 'lie', tilt: 0.3, eye: 'closed', tail: 'sitB' }, 160],
+    [{ body: 'back', tilt: 0.2, eye: 'wide', tail: 'backA' }, 200],
+    ...Array.from({ length: 5 }, (_, i): [Pose, number][] => [
+      [{ body: 'back', legs: KICK_A, tilt: 0.3, eye: 'happy', mouth: 'open', tail: 'backA', extras: i >= 3 ? ['smallHeartA'] : [] }, 180],
+      [{ body: 'back', legs: KICK_B, tilt: 0.45, eye: 'happy', mouth: 'tongue', tail: 'backB', extras: i >= 3 ? ['smallHeartB'] : [] }, 180],
     ]).flat(),
-    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 420],
+    [{ body: 'back', tilt: 0.5, eye: 'closed', mouth: 'tongue', tail: 'backA' }, 650],
+    [{ body: 'back', bob: 1, tilt: 0.5, eye: 'closed', mouth: 'tongue', tail: 'backB' }, 650],
+    [{ body: 'back', tilt: 0.3, eye: 'happy', tail: 'backA' }, 300],
+    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 450],
   ]),
   // Digs with its front paws, stops to look at the hole, digs some more and is rather pleased.
   dig: anim([
@@ -434,12 +438,46 @@ export const ANIMATIONS = {
     [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['sparkleA'] }, 450],
     [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitB', extras: ['sparkleB'] }, 450],
   ]),
-  // Sits and looks up at the night sky.
+  // Slowly lifts its nose to the sky.
+  gazeUp: anim([
+    [{ ...SIT, tail: 'sitA' }, 500],
+    [{ ...SIT, tilt: 0.2, eye: 'up', tail: 'sitA' }, 350],
+    [{ ...SIT, tilt: 0.35, eye: 'up', tail: 'sitB' }, 450],
+  ]),
+  // Lost in the stars: it breathes slowly, its tail sweeps the ground and the sky shines in its eye.
   stargaze: anim([
-    [{ ...SIT, snoutUp: 2, eye: 'up', tail: 'sitA' }, 1400],
-    [{ ...SIT, snoutUp: 2, eye: 'up', tail: 'sitB', extras: ['twinkleA'] }, 1400],
-    [{ ...SIT, snoutUp: 3, eye: 'up', mouth: 'open', tail: 'sitA', extras: ['twinkleB'] }, 1400],
-    [{ ...SIT, snoutUp: 2, eye: 'happy', tail: 'sitB' }, 900],
+    [{ ...SIT, tilt: 0.45, eye: 'starry', tail: 'sitA' }, 1700],
+    [{ ...SIT, tilt: 0.45, eye: 'wide', tail: 'sitA', bob: 1 }, 1700],
+    [{ ...SIT, tilt: 0.45, eye: 'starry', tail: 'sitB' }, 1500],
+    [{ ...SIT, tilt: 0.45, eye: 'closed', tail: 'sitB' }, 260],
+    [{ ...SIT, tilt: 0.35, head: [1, 0], eye: 'starry', tail: 'sitB', bob: 1 }, 1900],
+    [{ ...SIT, tilt: 0.35, head: [1, 0], eye: 'wide', tail: 'sitA' }, 1500],
+  ]),
+  // A shooting star: it gasps, follows it down, shuts its eyes to make a wish, and it is a happy one.
+  starWish: anim([
+    [{ ...SIT, tilt: 0.45, eye: 'wide', mouth: 'open', tail: 'sitB' }, 600],
+    [{ ...SIT, tilt: 0.3, head: [1, 0], eye: 'wide', mouth: 'open', tail: 'sitB' }, 500],
+    [{ ...SIT, tilt: 0.2, head: [1, 1], eye: 'wide', tail: 'sitA' }, 500],
+    [{ ...SIT, tilt: 0.3, eye: 'closed', tail: 'sitA' }, 900],
+    [{ ...SIT, tilt: 0.3, eye: 'closed', tail: 'sitB', bob: 1 }, 900],
+    [{ ...SIT, tilt: 0.35, eye: 'happy', tail: 'sitA', extras: ['smallHeartA'] }, 600],
+    [{ ...SIT, tilt: 0.35, eye: 'happy', tail: 'sitB', extras: ['smallHeartB'] }, 600],
+  ]),
+  // Lying down now, nose still in the air.
+  stargazeLie: anim([
+    [{ body: 'lie', tilt: 0.35, eye: 'starry', tail: 'sitA' }, 1900],
+    [{ body: 'lie', tilt: 0.35, eye: 'wide', tail: 'sitB' }, 1700],
+    [{ body: 'lie', tilt: 0.35, eye: 'closed', tail: 'sitB' }, 280],
+    [{ body: 'lie', tilt: 0.45, eye: 'starry', tail: 'sitA', bob: 1 }, 1900],
+    [{ body: 'lie', tilt: 0.45, eye: 'wide', tail: 'sitA' }, 1700],
+  ]),
+  // Its eyes grow heavy and its head comes down.
+  stargazeDrowsy: anim([
+    [{ body: 'lie', tilt: 0.35, eye: 'sleepy', tail: 'sitA' }, 1300],
+    [{ body: 'lie', tilt: 0.2, eye: 'closed', tail: 'sitA' }, 700],
+    [{ body: 'lie', tilt: 0.35, eye: 'sleepy', tail: 'sitB' }, 1100],
+    [{ body: 'lie', tilt: 0.2, eye: 'closed', tail: 'sitB', bob: 1 }, 900],
+    [{ body: 'lie', eye: 'closed', tail: 'sitA' }, 900],
   ]),
   // Flat in the tall grass, watching.
   lurk: anim([
@@ -459,6 +497,7 @@ export const ANIMATIONS = {
     [{ ...SIT, head: [0, 3], eye: 'happy', tail: 'sitB', extras: ['mouseA', 'smallHeartA'] }, 450],
     [{ ...SIT, head: [0, 3], eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['mouseB', 'smallHeartB'] }, 450],
   ]),
+  // You ignored the break: it flops down and sighs.
   sigh: anim([
     [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitA' }, 900],
     [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],

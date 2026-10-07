@@ -14,7 +14,8 @@
 - A game of fetch is a break: throw the ball and it stops asking for one, and starts counting your work again from there.
 - The big good morning, good night and party welcome are kept for the first time it sees you; when the view comes back a moment later, it just waves.
 - Mouse hunt: a tuft of tall grass comes up, the fox slips in and lies flat with only its head showing, a mouse scurries by, it wiggles and pounces. The mouse is always quicker: either it is gone and the fox lands nose first, puzzled, or it ends up sitting on the fox's head, to be waved goodbye.
-- More to watch: it digs, rolls onto its back and kicks its paws in the air (also when you rub its back), and sits looking up at the stars in the evening and at night.
+- More to watch: it digs, and rolls onto its back to wriggle with its feet in the air (also when you rub its back).
+- Stargazing: in the evening and at night it sometimes sits and lifts its nose to the sky. Night comes down over the view, the moon and the stars come out one after the other, a shooting star crosses and it makes a wish, then it lies down and gazes on until its eyes close.
 - No text and no gauges: it shows what it feels with its face, its pose and small picture bubbles.
 
 ## 1.1.0

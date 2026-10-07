@@ -31,8 +31,6 @@ export type Extra =
   | 'rumbleB'
   | 'dirtA'
   | 'dirtB'
-  | 'twinkleA'
-  | 'twinkleB'
   | 'mouseA'
   | 'mouseB';
 
@@ -112,8 +110,6 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   rumbleB: [{ x: 22, y: 22, glyph: ['.Q.', 'Q.Q'] }],
   dirtA: [{ x: 3, y: 26, glyph: ['tk', 'kt'] }, { x: 0, y: 23, glyph: ['t'] }, { x: 5, y: 29, glyph: ['kt'] }],
   dirtB: [{ x: 1, y: 24, glyph: ['kt', 'tk'] }, { x: 4, y: 22, glyph: ['t'] }, { x: 0, y: 28, glyph: ['tk'] }],
-  twinkleA: [{ x: 27, y: 0, glyph: GLYPHS.spark }],
-  twinkleB: [{ x: 24, y: 2, glyph: GLYPHS.spark }, { x: 30, y: 1, glyph: ['H'] }],
   // A mouse sitting on its head, between the ears.
   mouseA: [{ x: 18, y: 1, glyph: MOUSE_FACE }],
   mouseB: [{ x: 18, y: 0, glyph: MOUSE_FACE }],

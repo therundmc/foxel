@@ -82,6 +82,21 @@ function grass(sway: number): Glyph {
 /** The same tuft swaying one way, then the other. */
 export const GRASS: readonly Glyph[] = [grass(-0.5), grass(0.5)];
 
+export const MOON_W = 8;
+export const MOON_H = 9;
+// A crescent, its lit side soft at the edge.
+export const MOON: Glyph = [
+  '...GJJG.',
+  '..GJJG..',
+  '.GJJG...',
+  '.JJJq...',
+  '.JJJq...',
+  '.JJJG...',
+  '.GJJJG.G',
+  '..GJJJJG',
+  '...GJJG.',
+];
+
 export const BOWL_W = 12;
 export const BOWL_H = 6;
 export const BOWL_CAPACITY = 5;

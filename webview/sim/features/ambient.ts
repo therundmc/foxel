@@ -133,10 +133,5 @@ export const ambientFeature = {
       duration: () => totalDuration(ANIMATIONS.dig),
       next: [['sniff', 40], ['sit', 30], ['idle', 30]],
     },
-    stargaze: {
-      restful: true,
-      duration: () => totalDuration(ANIMATIONS.stargaze) * 2,
-      next: [['sit', 40], ['lie', 40], ['yawn', 20]],
-    },
   },
 } satisfies Feature;

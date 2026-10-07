@@ -37,10 +37,10 @@ Every feature is judged against these three, before any technical consideration:
 | `webview/sim/state.ts` | `BuddyState`, `StateDef`, `Feature` types |
 | `webview/sim/registry.ts` | `FEATURES` and `STATES`, gathered from the features |
 | `webview/sim/features/*.ts` | One file per group of states: their definitions, logic, memory and commands |
-| `webview/sim/props/` | Ball, butterfly, treat, bowl: physics only |
+| `webview/sim/props/` | Ball, butterfly, treat, bowl, grass, mouse, night sky: physics only |
 | `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
-| `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
+| `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
 | `webview/sprites/` | `palette.ts`, `frames.ts` (types, `frameAt`), `props.ts` (glyphs), `grid.ts` (pixel drawing) |
 | `test/sim/<feature>.test.ts` | Simulation tests; `helpers.ts` has `spawn`, `fixed`, `simulate` |
 | `test/host/` | Host tests, with fake timers and a fake `vscode` |
@@ -70,3 +70,4 @@ Not checked, just as important:
 - A feature may call another feature's functions, but only from inside a function, never while the module loads (they import each other). Constants shared by features go in `sim/tuning.ts`.
 - Units: positions in sprite pixels, `y` is the height above the ground, durations in ms (`...Ms`), `dt` in seconds.
 - A state machine change needs a test in `test/sim/`.
+- commits message, please do not add more than one line per commit message, keep it trimmed !

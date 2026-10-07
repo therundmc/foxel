@@ -27,7 +27,7 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 ## On its own
 
-It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, rolls onto its back with its paws in the air, and looks up at the stars at night. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, and rolls onto its back to wriggle with its feet in the air. In the evening and at night it sometimes sits down and lifts its nose: the sky darkens, the moon and the stars come out one after the other, and it gazes for a long while, makes a wish on a shooting star, then lies down until its eyes close. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
 
 ## Its day
 

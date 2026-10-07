@@ -1,13 +1,11 @@
 import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
-import { ellipse, inEllipse, lerp, limb, outline, poly, rect, set, type Grid } from '../grid';
+import { ellipse, inEllipse, limb, outline, rect, set, type Grid } from '../grid';
 import { TRANSPARENT } from '../palette';
-import { GROUND_ROW, HEAD_RX, HEAD_RY } from './anchors';
+import { GROUND_ROW } from './anchors';
+import { drawHead, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
 type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back';
-type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy';
-type Mouth = 'smile' | 'open' | 'flat' | 'tongue' | 'blep';
-type Ears = 'up' | 'back';
 type Tail =
   | 'up'
   | 'wagL'
@@ -22,19 +20,18 @@ type Tail =
   | 'high'
   | 'highL'
   | 'highR'
-  | 'poof';
+  | 'poof'
+  | 'backA'
+  | 'backB';
 type Paw = 'none' | 'wave1' | 'wave2' | 'lick' | 'tapNear' | 'tapFar' | 'beg';
 
 // [foot x offset, foot lift] for back-far, back-near, front-far, front-near legs.
 type Legs = readonly [Point, Point, Point, Point];
 
-export interface Pose {
+export interface Pose extends HeadPose {
   body?: Body;
   bob?: number;
   head?: Point;
-  eye?: Eye;
-  mouth?: Mouth;
-  ears?: Ears;
   tail?: Tail;
   paw?: Paw;
   legs?: Legs;
@@ -45,8 +42,6 @@ export interface Pose {
   ballAt?: Point;
   /** Ball lying on the ground at this sprite column. */
   ballGround?: number;
-  /** Tilts the head back: muzzle, nose and mouth move up by this many pixels, ears lean back. */
-  snoutUp?: number;
   treat?: number;
   extras?: readonly Extra[];
 }
@@ -68,14 +63,13 @@ export const HOP_LAND: Legs = [[-2, 3], [-1, 3], [1, 0], [2, 0]];
 export const HOP_GATHER: Legs = [[2, 1], [3, 1], [-1, 1], [0, 1]];
 export const TUCK: Legs = [[1, 3], [1, 3], [-1, 3], [-1, 3]];
 export const THUMP: Legs = [[0, 0], [3, 3], [0, 0], [0, 0]];
-// On its back, paws in the air, kicking one way then the other.
-export const KICK_A: Legs = [[-2, 0], [1, 2], [2, 0], [-1, 2]];
-export const KICK_B: Legs = [[1, 2], [-2, 0], [-1, 2], [2, 0]];
+// On its back: back feet kicking one after the other while the front paws pat the air.
+export const KICK_A: Legs = [[-1, 0], [1, 2], [0, 1], [0, 0]];
+export const KICK_B: Legs = [[1, 2], [-1, 0], [0, 0], [0, 1]];
 
 const STAND_LEG_X = [8, 11, 16, 19] as const;
 const LEG_TOP_Y = 24;
 const FOOT_Y = 28;
-const EARS_BACK_RAD = -0.55;
 
 // Each tail is a chain of fluffy circles [cx, cy, r]; the last one is the cream tip.
 const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
@@ -107,6 +101,8 @@ const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
   highL: [[6, 16, 2], [3.5, 12, 2.6], [2.5, 8, 3], [3.5, 4.5, 2.6], [3.5, 3.5, 2]],
   highR: [[6, 16, 2], [4.5, 12, 2.6], [5.5, 8, 3], [8, 5, 2.6], [8, 4, 2]],
   poof: [[7, 21, 2.6], [5, 17.5, 3.3], [4.2, 13.5, 3.8], [5, 9.5, 3.4], [5, 8.5, 2.6]],
+  backA: [[4.5, 27, 2.2], [2.8, 25.6, 2.1], [2, 23.8, 1.8], [2, 23, 1.4]],
+  backB: [[4.5, 27, 2.2], [2.5, 26.8, 2.1], [1.6, 26, 1.8], [1.2, 25.6, 1.4]],
 };
 
 const DEFAULT_TAIL: Record<Body, Tail> = {
@@ -115,7 +111,7 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   curl: 'curl',
   bow: 'high',
   lie: 'sitA',
-  back: 'sitA',
+  back: 'backA',
 };
 
 function leg(g: Grid, top: Point, foot: Point, c: string): void {
@@ -135,97 +131,6 @@ function drawTail(g: Grid, tail: Tail, b: number, outlined = false): void {
     parts.forEach(([cx, cy, r]) => ellipse(g, cx, cy + b, r + 1, r + 1, 'K', overBody));
   }
   parts.forEach(([cx, cy, r], i) => ellipse(g, cx, cy + b, r, r, i === parts.length - 1 ? 'c' : 'O'));
-}
-
-function drawEar(g: Grid, base1: Point, apex: Point, base2: Point, inner: boolean): void {
-  poly(g, [base1, apex, base2], 'O');
-  if (inner) {
-    const centroid: Point = [(base1[0] + apex[0] + base2[0]) / 3, (base1[1] + apex[1] + base2[1]) / 3];
-    poly(g, [lerp(base1, centroid, 0.45), lerp(apex, centroid, 0.45), lerp(base2, centroid, 0.45)], 'p');
-  }
-  poly(g, [lerp(apex, base1, 0.3), apex, lerp(apex, base2, 0.3)], 'd');
-}
-
-function drawHead(g: Grid, hx: number, hy: number, p: Pose): void {
-  const up = p.snoutUp ?? 0;
-  const tilt = ((p.ears ?? 'up') === 'up' ? 0 : EARS_BACK_RAD) - up * 0.12;
-  const ear = (dx: number, dy: number): Point => [
-    hx + dx * Math.cos(tilt) - dy * Math.sin(tilt),
-    hy + dx * Math.sin(tilt) + dy * Math.cos(tilt),
-  ];
-  drawEar(g, ear(-6, -3), ear(-4.5, -11.5), ear(-1, -5), false);
-  drawEar(g, ear(-1.5, -5), ear(2.5, -12), ear(5, -3.5), true);
-  ellipse(g, hx, hy, HEAD_RX, HEAD_RY, 'O');
-  const my = hy - up;
-  ellipse(g, hx + 3, my + 3.5, 4.2, 3, 'c', (x, y) => inEllipse(x, y, hx, hy, HEAD_RX, HEAD_RY));
-  ellipse(g, hx + 5.5, my + 2.2, 2.6, 1.8, 'c');
-  const ex = hx - Math.round(up / 2);
-
-  switch (p.eye ?? 'open') {
-    case 'open':
-      rect(g, hx + 1, hy - 2, hx + 2, hy, 'E');
-      set(g, hx + 2, hy - 2, 'W');
-      break;
-    case 'down':
-      rect(g, hx + 1, hy - 1, hx + 2, hy, 'E');
-      set(g, hx + 2, hy - 1, 'W');
-      break;
-    case 'up':
-      rect(g, ex + 1, hy - 3, ex + 2, hy - 1, 'E');
-      set(g, ex + 2, hy - 3, 'W');
-      break;
-    case 'sleepy':
-      rect(g, hx, hy - 1, hx + 3, hy - 1, 'E');
-      rect(g, hx + 1, hy, hx + 2, hy, 'E');
-      break;
-    case 'wide':
-      rect(g, hx, hy - 2, hx + 2, hy, 'E');
-      set(g, hx + 2, hy - 2, 'W');
-      set(g, hx, hy, 'W');
-      break;
-    case 'closed':
-      set(g, hx, hy - 1, 'E');
-      rect(g, hx + 1, hy, hx + 2, hy, 'E');
-      set(g, hx + 3, hy - 1, 'E');
-      break;
-    case 'happy':
-      set(g, hx, hy, 'E');
-      rect(g, hx + 1, hy - 1, hx + 2, hy - 1, 'E');
-      set(g, hx + 3, hy, 'E');
-      break;
-    case 'dizzy':
-      for (const [x, y] of [[0, -2], [2, -2], [1, -1], [0, 0], [2, 0]] as const) {
-        set(g, hx + x, hy + y, 'E');
-      }
-      break;
-  }
-
-  set(g, hx + 7, my + 1, 'E');
-  rect(g, hx - 1, hy + 2, hx, hy + 2, 'r');
-
-  switch (p.mouth ?? 'smile') {
-    case 'smile':
-      rect(g, hx + 4, my + 4, hx + 5, my + 4, 'K');
-      set(g, hx + 6, my + 3, 'K');
-      break;
-    case 'tongue':
-      rect(g, hx + 4, my + 4, hx + 5, my + 4, 'K');
-      set(g, hx + 6, my + 3, 'K');
-      set(g, hx + 5, my + 5, 'p');
-      break;
-    case 'blep':
-      rect(g, hx + 4, my + 4, hx + 6, my + 4, 'K');
-      set(g, hx + 5, my + 5, 'p');
-      set(g, hx + 5, my + 6, 'r');
-      break;
-    case 'flat':
-      rect(g, hx + 4, my + 4, hx + 6, my + 4, 'K');
-      break;
-    case 'open':
-      rect(g, hx + 3, my + 4, hx + 6, my + 5, 'M');
-      set(g, hx + 4, my + 5, 'p');
-      break;
-  }
 }
 
 function drawStand(g: Grid, b: number, legs: Legs, pitch: number): Point {
@@ -287,20 +192,30 @@ function drawLie(g: Grid, b: number): Point {
   return [22, 18 + b];
 }
 
-// Belly up, paws in the air; `legs` moves the paws as it wriggles.
+// Belly up like an otter: round tummy, bunny feet in the air, paws on its chest. `legs` moves them as it wriggles.
 function drawBack(g: Grid, b: number, legs: Legs): Point {
-  const paw = (i: number, x: number, c: string): void => {
-    const to: Point = [x + legs[i][0], 16 - legs[i][1]];
-    limb(g, [x, 24 + b], to, c);
-    rect(g, Math.floor(to[0]), Math.floor(to[1]) - 1, Math.floor(to[0]) + 1, Math.floor(to[1]), 'c');
+  const at = (i: number, x: number, y: number): Point => [x + legs[i][0], y + b - legs[i][1]];
+  const foot = (i: number, x: number, fur: string, pad: boolean): void => {
+    const [fx, fy] = at(i, x, 17.5);
+    limb(g, [x, 22 + b], [fx - 0.5, fy + 1], fur);
+    ellipse(g, fx + 0.5, fy, 1.7, 1.7, 'c');
+    if (pad) {
+      set(g, Math.floor(fx + 0.5), Math.floor(fy), 'p');
+    }
   };
-  paw(0, 5, 'o');
-  paw(2, 13, 'o');
-  ellipse(g, 12.5, 26 + b, 9, 3.6, 'O');
-  ellipse(g, 12, 24.4 + b, 6.5, 1.8, 'c');
-  paw(1, 8, 'O');
-  paw(3, 16, 'O');
-  return [24, 22 + b];
+  const mitt = (i: number, x: number, y: number, fur: string): void => {
+    const [fx, fy] = at(i, x, y);
+    limb(g, [x - 0.5, 22 + b], [fx - 0.5, fy + 0.5], fur);
+    ellipse(g, fx + 0.5, fy, 1.6, 1.4, 'c');
+  };
+  foot(0, 9.5, 'o', false);
+  mitt(2, 12, 19.6, 'o');
+  ellipse(g, 12, 25 + b, 9, 4.6, 'O');
+  ellipse(g, 12.5, 22.6 + b, 6.5, 2.4, 'c', (x, y) => inEllipse(x, y, 12, 25 + b, 9, 4.6));
+  ellipse(g, 6, 22.8 + b, 2.8, 2.6, 'O');
+  foot(1, 5.5, 'O', true);
+  mitt(3, 14.5, 19.4, 'O');
+  return [23, 21 + b];
 }
 
 export function frame(p: Pose): Frame {
@@ -337,7 +252,7 @@ export function frame(p: Pose): Frame {
   }
   const hx = head[0] + (p.head?.[0] ?? 0);
   const hy = head[1] + (p.head?.[1] ?? 0);
-  drawHead(g, hx, hy, p);
+  const eye = drawHead(g, hx, hy, p);
 
   if (paw === 'wave1') {
     raisedPaw(g, [19, 21 + b], [25.5, 21]);
@@ -360,7 +275,7 @@ export function frame(p: Pose): Frame {
   return {
     pixels: g.map((r) => r.join('')),
     overlays: (p.extras ?? []).flatMap((e) => EXTRAS[e]),
-    eye: (p.eye ?? 'open') === 'open' ? [hx + 1, hy - 2] : undefined,
+    eye: (p.eye ?? 'open') === 'open' ? eye : undefined,
     head: [hx, hy],
     treat: p.treat,
   };

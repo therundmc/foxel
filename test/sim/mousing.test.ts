@@ -69,7 +69,7 @@ describe('mouse hunt', () => {
 });
 
 describe('little moments', () => {
-  for (const state of ['roll', 'dig', 'stargaze'] as const) {
+  for (const state of ['roll', 'dig'] as const) {
     it(`plays ${state} and moves on`, () => {
       const b = spawn(fixed(0.5));
       b.world.resize(160, 60);
