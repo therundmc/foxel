@@ -37,15 +37,16 @@ const RANGE: Lights = ['#dcb5b8', '#efd6b2'];
 const RANGE_SWELL = 0.04;
 /** How much of the view's height the land takes. */
 const LAND = 0.56;
-/** The share of a dune's length that is its steep face, and how peaked its crest is. */
-const STEEP = 0.34;
-const GENTLE = 1 - STEEP;
+/** The share of a dune's length that is its steep face, from one dune to the next, and how peaked its crest is. */
+const STEEPS = [0.22, 0.46] as const;
 const PEAKED = 1.25;
-/** No two dunes are as long, nor as high: how much they differ, and over how many dunes. */
-const UNEVEN = 0.16;
+/** No two dunes are alike: how much their lengths differ and over how many dunes, and how much smaller one can be. */
+const UNEVEN = 0.2;
 const UNEVEN_OVER = 2.7;
-const SMALLER = 0.4;
-const SMALLER_OVER = 3.7;
+const SMALLER = 0.62;
+/** The ground they stand on rolls too: by this share of their height, over this many dunes. */
+const ROLLS = 0.3;
+const ROLLS_OVER = 4.3;
 /** The spine of a dune comes toward us curving away from the light, and its shadow dies away over this many heights of it. */
 const SPINE = 1.3;
 const SPINE_CURVE = 0.8;
@@ -80,7 +81,7 @@ interface Wave {
   readonly high: number;
   readonly phase: number;
   readonly uneven: number;
-  readonly smaller: number;
+  readonly seed: number;
 }
 
 /** The top of a dune, where the wind lifts the sand off it. */
@@ -107,12 +108,21 @@ export interface DunesLand {
 /** How many dunes along a wave `at` is: the whole part counts them, the rest says where on the dune. */
 const along = (wave: Wave, at: number): number => at / wave.long + wave.phase + UNEVEN * Math.sin((TURN * at) / (wave.long * UNEVEN_OVER) + wave.uneven);
 
+const chance = (n: number, seed: number): number => {
+  const v = Math.sin(n * 127.1 + seed * 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+/** The share of dune number `n` that is its gentle face: its crest is where that ends. */
+const gentleOf = (wave: Wave, n: number): number => 1 - STEEPS[0] - (STEEPS[1] - STEEPS[0]) * chance(n, wave.seed);
+
 function lift(wave: Wave, at: number): number {
   const turn = along(wave, at);
-  const on = turn - Math.floor(turn);
-  const raw = on < GENTLE ? 0.5 - 0.5 * Math.cos((Math.PI * on) / GENTLE) : 0.5 + 0.5 * Math.cos((Math.PI * (on - GENTLE)) / STEEP);
-  const size = 1 - SMALLER * (0.5 - 0.5 * Math.sin((TURN * at) / (wave.long * SMALLER_OVER) + wave.smaller));
-  return wave.high * raw ** PEAKED * size;
+  const n = Math.floor(turn);
+  const on = turn - n;
+  const gentle = gentleOf(wave, n);
+  const raw = on < gentle ? 0.5 - 0.5 * Math.cos((Math.PI * on) / gentle) : 0.5 + 0.5 * Math.cos((Math.PI * (on - gentle)) / (1 - gentle));
+  const rolls = ROLLS * Math.sin((TURN * at) / (wave.long * ROLLS_OVER) + wave.uneven * 1.7);
+  return wave.high * (raw ** PEAKED * (1 - SMALLER * chance(n, wave.seed + 1)) + rolls);
 }
 
 /** Stretches of one row in one tone: [column, row, width]. */
@@ -134,7 +144,7 @@ function build(view: VistaView): DunesLand {
   const ahead = w - behind;
   const random = seeded(0xd07e);
   const level = (plane: number): number => Math.round(base - tall * PLANES[plane].foot);
-  const waves = PLANES.map(({ high, long }): Wave => ({ long: Math.max(30, tall * long), high: tall * high, uneven: random() * TURN, smaller: random() * TURN, phase: random() }));
+  const waves = PLANES.map(({ high, long }): Wave => ({ long: Math.max(30, tall * long), high: tall * high, uneven: random() * TURN, seed: random() * 40, phase: random() }));
 
   // The great dune: a crest behind the fox's shoulder, a short face in the light and a long hollow one in shade.
   const great = {
@@ -179,7 +189,7 @@ function build(view: VistaView): DunesLand {
   const faces = waves.map((wave, plane) => {
     const top = tops[plane];
     const hidden = cover(plane);
-    const dies = (wave.long * STEEP) / (SHADOW_LONG * wave.high) ** SHADOW_CURVE;
+    const dies = wave.long / (SHADOW_LONG * wave.high) ** SHADOW_CURVE;
     const runs: Runs[] = [[], [], [], []];
     const sandAt = (x: number, y: number): Sand => {
       const at = dir * (x - foxX);
@@ -193,11 +203,12 @@ function build(view: VistaView): DunesLand {
       const spine = SPINE * Math.max(0, y - level(plane) + wave.high) ** SPINE_CURVE;
       const turn = along(wave, at - spine);
       const on = turn - Math.floor(turn);
-      if (on >= GENTLE) {
+      const gentle = gentleOf(wave, Math.floor(turn));
+      if (on >= gentle) {
         // The shadow narrows as it comes toward us: its far edge sweeps faster than the spine.
-        return Math.floor(along(wave, at - spine + dies * s ** SHADOW_CURVE)) === Math.floor(turn) ? Sand.Shade : Sand.Lit;
+        return Math.floor(along(wave, at - spine + dies * (1 - gentle) * s ** SHADOW_CURVE)) === Math.floor(turn) ? Sand.Shade : Sand.Lit;
       }
-      return s === 0 && on > GENTLE - RIM_LONG ? Sand.Rim : Sand.Lit;
+      return s === 0 && on > gentle - RIM_LONG ? Sand.Rim : Sand.Lit;
     };
     for (let y = Math.min(...top); y < h; y++) {
       let from = 0;
@@ -250,7 +261,8 @@ function build(view: VistaView): DunesLand {
       const before = along(waves[plane], at - 1);
       const here = along(waves[plane], at);
       const x = foxX + dir * at;
-      if (Math.floor(before) === Math.floor(here) && before - Math.floor(before) < GENTLE && here - Math.floor(here) >= GENTLE && tops[plane][x] < cover(plane)[x] && !(plane === NEAREST && isGreat[x])) {
+      const gentle = gentleOf(waves[plane], Math.floor(here));
+      if (Math.floor(before) === Math.floor(here) && before - Math.floor(before) < gentle && here - Math.floor(here) >= gentle && tops[plane][x] < cover(plane)[x] && !(plane === NEAREST && isGreat[x])) {
         crests.push({ x, y: tops[plane][x], near: plane / NEAREST });
       }
     }

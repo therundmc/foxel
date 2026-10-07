@@ -1,11 +1,13 @@
 import { dunesLand, type DunesLand } from './dunes-land';
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
+import { FAR_FLIGHT, NEAR_FLIGHT, paintGrains, paintRibbons, paintVeil } from './dunes-wind';
 import { paintWorm } from './dunes-worm';
 import { gradient, mix, ramp, seeded, type VistaPainter, type VistaView } from './paint';
 
 // Early morning over a sea of sand, on a world with two moons. Great dunes one behind the other, each with one
 // face in the light and one in shade; the wind lifts a little sand off the crests, the last stars go out and the
-// dawn slowly turns into a golden morning. Something travels under the sand, far away. At the great moment it
+// dawn slowly turns into a golden morning. The wind comes in gusts, carrying sand across the whole view (see
+// dunes-wind.ts). Something travels under the sand, far away. At the great moment it
 // comes out: an enormous worm leaps from behind a dune, arches across the sky and dives back in.
 //   0 s   dawn: rose and mauve, two pale moons, a few stars left (gone by 18 s)
 //   6 s   the light starts to warm, and is golden by 40 s
@@ -149,12 +151,17 @@ export const dunes: VistaPainter = {
     paintStars(view, land);
     paintMoons(view, land, light);
     paintLand(view, land.far, light);
+    paintVeil(view, land.skyFoot - 4, light);
     paintWorm(view, land, light);
     paintLand(view, land.near, light);
     paintSand(view, land, light);
+    paintGrains(view, FAR_FLIGHT, light);
     paintLookout(view, lookoutTones(light));
   },
   front(view) {
-    paintLookoutFront(view, lookoutTones(lightAt(view)));
+    const light = lightAt(view);
+    paintLookoutFront(view, lookoutTones(light));
+    paintGrains(view, NEAR_FLIGHT, light);
+    paintRibbons(view, light);
   },
 };
