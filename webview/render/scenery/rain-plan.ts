@@ -11,8 +11,8 @@ const RAIN_FULL = 12;
 const RAIN_THINS = 8;
 const LAST_DROPS = 0.07;
 /** The mist is thickest as the picture arrives, and most of it thins away when the air clears. */
-const MIST_SETTLED = 0.8;
-const MIST_LEFT = 0.3;
+const MIST_SETTLED = 0.92;
+const MIST_LEFT = 0.4;
 /** The warm light comes through the far trees first, then one row after the other, about a second apart. */
 const LIGHT_FROM = 3.5;
 const LIGHT_TAKES = 5;

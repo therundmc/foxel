@@ -39,7 +39,7 @@ A few times a day at most, the fox stops for the sky. It sits, pricks its ears, 
 | --- | --- |
 | Early morning | The sunrise: the night pales and the sun comes up big and slow in a gap of the far mountains, over the misty hills |
 | Daytime | A great sharp peak among the mountains, and an enormous summer cloud piling up behind it |
-| Some days | A soft rain in an autumn forest: maples red and gold in the mist, leaves coming down one after the other, rain on the big leaf it holds over its head, then a gust that sets the leaves flying and a warm light through the trees |
+| Some days | A rainy autumn day in the Japanese countryside: tall maples framing a wooded hill in the mist, leaves coming down one after the other, rain on the big leaf it holds over its head, then a gust that sets the leaves flying and a warm light through the trees |
 | Evening | The sunset over the water, and the colours that come once the sun is gone |
 | Night | A valley under the stars lighting up one by one, the moon climbing over the far mountains, the Milky Way drawing itself, a shooting star |
 

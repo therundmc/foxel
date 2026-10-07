@@ -16,8 +16,8 @@ export interface Depth {
 }
 
 /** Far ones are short, faint and slow; near ones longer and quicker. Both are slow for rain: it is a soft one. */
-export const FAR: Depth = { seed: 1, tall: 3, speed: 46, strength: 0.34, area: 190 };
-export const NEAR: Depth = { seed: 2, tall: 5, speed: 78, strength: 0.55, area: 520 };
+export const FAR: Depth = { seed: 1, tall: 3, speed: 46, strength: 0.42, area: 150 };
+export const NEAR: Depth = { seed: 2, tall: 5, speed: 78, strength: 0.62, area: 420 };
 const DROP = '#f4f5f2';
 
 /** The fox's leaf: half its width, the row of its top above the ground, how much lower its edges are. */

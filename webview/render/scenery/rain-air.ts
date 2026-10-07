@@ -5,9 +5,9 @@ import { lightOn, type Plan } from './rain-plan';
 // of mist lying between the rows of trees. The mist is all that drifts here, slowly, with the wind.
 
 /** Sky colours from the top down: under the rain, and once the light comes through. */
-const SKY_RAINY = ['#b5b6b9', '#cdcdc8', '#e7dfc8'] as const;
-const SKY_WARM = ['#c4ccd0', '#ece5cc', '#f9e2ac'] as const;
-const MIST = ['#dfe1de', '#f8ecd2'] as const;
+const SKY_RAINY = ['#84888f', '#9d9fa0', '#bdb7a6'] as const;
+const SKY_WARM = ['#aab2b8', '#d8d2bc', '#f0d8a0'] as const;
+const MIST = ['#c9cccb', '#f2e6cc'] as const;
 const LIGHT_RGB = '255,236,170';
 
 export function paintSky(view: VistaView, plan: Plan): void {
@@ -66,9 +66,9 @@ function stripOf(tall: number): HTMLCanvasElement {
 
 /** Where each bank starts along the strip, how fast it drifts, and how thick it shows. Far ones are slower. */
 const BANKS = [
-  { at: 0.1, speed: 1, strength: 0.9 },
-  { at: 0.55, speed: 1.7, strength: 0.85 },
-  { at: 0.32, speed: 2.6, strength: 0.6 },
+  { at: 0.1, speed: 1, strength: 1 },
+  { at: 0.55, speed: 1.7, strength: 0.95 },
+  { at: 0.32, speed: 2.6, strength: 0.75 },
 ] as const;
 
 /** One bank of mist `tall` pixels thick lying on `row`, 0 the farthest. It drifts toward the side the fox looks to. */

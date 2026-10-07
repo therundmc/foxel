@@ -2,10 +2,11 @@ import { prerender, px, ramp, seeded, type VistaView } from './paint';
 import { hash, lightOn } from './rain-plan';
 import { drawMass, drawTree, type Brush, type Kind, type Tones, type Tree } from './rain-trees';
 
-// The grove: a Japanese forest in autumn, a little way beyond the lookout. Three rows of trees: a far one that is
-// only soft masses in the mist, a paler middle one with a little torii among its trunks, and a near one of tall
-// maples, ginkgos and cedars on both sides of the fox. Nothing here moves: each row is painted once for a view,
-// under the rain and in the warm light, and the two are blended as the light comes.
+// The Japanese countryside in autumn, seen from the lookout. Three planes: a wooded hill in the distance, its
+// forest a patchwork of maples, ginkgos and cedars half lost in the mist; a few small trees in the valley at its
+// foot; and close to us, on the left and on the right, tall trees whose trunks and crowns run out of the frame.
+// Nothing here moves: each plane is painted once for a view, under the rain and in the warm light, and the two
+// are blended as the light comes.
 
 /** Maples in vermilion, scarlet, orange and gold; the clear yellow of a ginkgo; the dark of a cedar. */
 const MAPLES: readonly Tones[] = [
@@ -20,16 +21,17 @@ const GOLD = 3;
 const GINKGO: Tones = ['#bd9828', '#e8c83c', '#f8e682'];
 const CEDAR: Tones = ['#22352f', '#2f4a3c', '#48674d'];
 const BARK: Tones = ['#2e2226', '#3b2b2e', '#5e4a48'];
-/** The ground under the trees, a carpet of fallen leaves; and the torii. */
-const FLOOR = '#8a5c3e';
-const TORII = '#c8412c';
+/** The ground under the trees, a carpet of fallen leaves. */
+const FLOOR = '#7a5238';
 /** What the wet air and the warm light do to a colour, and how much of it each row has lost to the air. */
-const DULL = '#6e6a70';
-const RAIN_AIR = '#c6c7c4';
+const DULL = '#5c5a64';
+const RAIN_AIR = '#a4a7a8';
 const SUN = '#ffc860';
 const GOLD_AIR = '#f2e0b8';
 const GLINT = '#fff2b8';
-const HAZE = [0.72, 0.42, 0.06] as const;
+const HAZE = [0.56, 0.4, 0.04] as const;
+/** A farther hill behind the wooded one is hardly more than a shape in the rain. */
+const HAZE_BEYOND = 0.74;
 const [FAR, MIDDLE, NEAR] = [0, 1, 2];
 
 /** The colour `amount` of the way from one `#rrggbb` to another, as `#rrggbb` again so it can be blended further. */
@@ -44,7 +46,7 @@ function tint(from: string, to: string, amount: number): string {
 
 /** A colour as a row of trees shows it: under the rain, and in the warm light. */
 const lights = (color: string, haze: number): [string, string] => [
-  tint(tint(color, DULL, 0.1), RAIN_AIR, haze),
+  tint(tint(color, DULL, 0.24), RAIN_AIR, haze),
   tint(tint(color, SUN, 0.16), GOLD_AIR, haze * 0.6),
 ];
 
@@ -58,21 +60,33 @@ function tonesIn(tones: Tones, haze: number): Tones[] {
 }
 
 interface Layout {
-  /** How tall a near tree is, half the width of a maple's crown, and the row each row of trees stands on. */
+  /** The measure of the picture (the height of a full-grown tree), half the width of a maple's crown, and the row each plane stands on. */
   readonly tall: number;
   readonly spread: number;
   readonly feet: readonly [number, number, number];
+  /** The wooded hill: where its top is, how high it stands over the valley and how far it reaches on each side. */
+  readonly hill: { readonly x: number; readonly high: number; readonly reach: number };
+  /** The trees that frame the view: taller than the view, so that their crowns leave it by the top. */
+  readonly frame: number;
 }
 
-// Tall trees: in a low view their crowns run off the top. In a narrow one they are slender, so trunks still show.
-function layoutOf({ w, h }: VistaView): Layout {
+function layoutOf({ w, h, dir }: VistaView): Layout {
   const tall = Math.round(Math.min(130, Math.max(46, h * 0.9)));
   const depth = Math.min(10, Math.max(3, Math.round(h * 0.1)));
   return {
     tall,
-    spread: Math.round(Math.min(tall * 0.42, Math.max(12, w * 0.22))),
+    spread: Math.round(Math.min(tall * 0.42, Math.max(12, w * 0.2))),
     feet: [h - 3 - depth, h - 3 - Math.round(depth / 2), h - 3],
+    // A little toward the side the fox looks to, and wide: it fills the opening between the trees.
+    hill: { x: Math.round(w * (0.5 + 0.07 * dir)), high: Math.round(Math.min(74, Math.max(12, h * 0.46))), reach: Math.max(70, w * 0.5) },
+    frame: Math.round(Math.max(60, h * 1.32)),
   };
+}
+
+/** How high the hill stands at `x`, as a share of its height: a broad rounded back, never quite regular. */
+function hillAt(x: number, hill: Layout['hill']): number {
+  const away = (x - hill.x) / hill.reach;
+  return Math.max(0, 1 - away * away) ** 1.3 * (0.94 + 0.06 * Math.sin(x * 0.09 + 1.7));
 }
 
 interface Planted extends Tree {
@@ -111,25 +125,6 @@ function plant(view: VistaView, random: () => number, tall: number, wide: number
   return trees;
 }
 
-/** A little torii, `tall` pixels high, its posts standing on row `foot`. */
-function drawTorii(inks: readonly CanvasRenderingContext2D[], x: number, foot: number, tall: number): void {
-  const half = Math.round(tall * 0.45);
-  const tie = Math.max(2, Math.round(tall * 0.3));
-  const top = foot - tall;
-  const red = lights(TORII, HAZE[MIDDLE] * 0.6);
-  const cap = lights(BARK[1], HAZE[MIDDLE] * 0.6);
-  inks.forEach((ink, k) => {
-    // The dark lintel with its upturned ends, the red beam under it, the tie beam, the strut between, the posts.
-    px(ink, x - half - 2, top, cap[k], 1, 2 * half + 5, 1);
-    px(ink, x - half - 3, top - 1, cap[k]);
-    px(ink, x + half + 3, top - 1, cap[k]);
-    px(ink, x - half - 2, top + 1, red[k], 1, 2 * half + 5, 1);
-    px(ink, x - half - 1, top + 1 + tie, red[k], 1, 2 * half + 3, 1);
-    px(ink, x, top + 2, red[k], 1, 1, tie - 1);
-    [-half, half].forEach((post) => px(ink, x + post, top + 2, red[k], 1, tall >= 14 ? 2 : 1, tall - 2));
-  });
-}
-
 // The ground a row stands on, from its foot down: a carpet of fallen leaves, a few of them still bright.
 function drawFloor({ w, h }: VistaView, inks: readonly CanvasRenderingContext2D[], foot: number, haze: number, random: () => number): void {
   const floor = lights(FLOOR, haze);
@@ -165,66 +160,75 @@ export interface Grove {
 }
 
 function drawGrove(view: VistaView, key: string): Grove {
-  const { w, h, foxX, dir } = view;
-  const { tall, spread, feet } = layoutOf(view);
+  const { w, h, dir } = view;
+  const { tall, spread, feet, hill, frame } = layoutOf(view);
   const random = seeded(0x6a70);
   const shivers: Shiver[] = [];
   const rows = HAZE.map(() => [0, 1].map(() => prerender(w, h, () => undefined)));
   const inks = rows.map((row) => row.map((image) => image.getContext('2d') as CanvasRenderingContext2D));
-  const brush = (row: number, leaves: Tones, thick: number): Brush => {
-    const tones = tonesIn(leaves, HAZE[row]);
+  const brush = (row: number, leaves: Tones, thick: number, haze = HAZE[row]): Brush => {
+    const tones = tonesIn(leaves, haze);
     return {
       inks: inks[row],
       leaves: tones,
-      bark: tonesIn(BARK, HAZE[row]),
+      bark: tonesIn(BARK, haze),
       light: dir,
       thick,
       shiver: row === NEAR ? (x, y, tone) => shivers.length < MOST_SHIVERS && shivers.push({ x, y, colors: [tones[0][tone], tones[1][tone]] }) : undefined,
     };
   };
+  const anyLeaves = (): Tones => (random() < 0.24 ? GINKGO : MAPLES[Math.floor(random() * MAPLES.length)]);
 
-  // Far: soft masses of foliage, a dark spire here and there, their feet lost in the mist.
-  const band = Math.round(tall * 0.22);
-  const russet = tonesIn(MAPLES[ORANGE], HAZE[FAR]);
-  inks[FAR].forEach((ink, k) => px(ink, 0, feet[FAR] - band, russet[k][1], 1, w, band));
-  for (let x = -spread * 0.3; x < w + spread * 0.3; x += spread * (0.3 + 0.25 * random())) {
-    const roll = random();
-    const seed = Math.floor(random() * 1000);
-    if (roll < 0.14) {
-      drawTree(brush(FAR, CEDAR, 1), { kind: 'cedar', x: Math.round(x), foot: feet[FAR], tall: Math.round(tall * (0.5 + 0.14 * random())), spread: spread * 0.2, lean: 1, seed });
-    } else {
-      const rx = spread * (0.38 + 0.28 * random());
-      const mass = brush(FAR, roll < 0.36 ? GINKGO : MAPLES[Math.floor(random() * MAPLES.length)], 1);
-      drawMass(mass, x, feet[FAR] - tall * (0.24 + 0.16 * random()), rx, rx * 0.7, seed);
-      drawMass(mass, x + rx * 0.4, feet[FAR] - band * 0.7, rx * 1.1, band * 0.6, seed + 1);
+  // Far: a paler hill beyond, then the wooded hill, its forest a patchwork of crowns with a dark spire here and there.
+  const beyond = { x: hill.x - dir * hill.reach * 0.75, high: hill.high * 0.72, reach: hill.reach * 0.9 };
+  const ghost = tonesIn(BARK, HAZE_BEYOND);
+  const earth = tonesIn(MAPLES[ORANGE], HAZE[FAR]);
+  for (let x = 0; x < w; x++) {
+    const far = Math.round(beyond.high * hillAt(x, beyond));
+    const near = Math.round(hill.high * hillAt(x, hill));
+    inks[FAR].forEach((ink, k) => {
+      px(ink, x, feet[FAR] - far, ghost[k][1], 1, 1, far);
+      px(ink, x, feet[FAR] - near, earth[k][0], 1, 1, near);
+    });
+  }
+  const crown = Math.min(7, Math.max(3, Math.round(hill.high * 0.15)));
+  for (let x = -crown; x < w + crown; x += crown * (0.9 + 0.5 * random())) {
+    const high = hill.high * hillAt(x, hill);
+    for (let up = high; up > crown * 0.4; up -= crown * (0.7 + 0.3 * random())) {
+      const seed = Math.floor(random() * 1000);
+      const at = x + (random() - 0.5) * crown;
+      if (up === high && random() < 0.16) {
+        drawTree(brush(FAR, CEDAR, 1), { kind: 'cedar', x: Math.round(at), foot: Math.round(feet[FAR] - up + crown), tall: Math.round(crown * 3.4), spread: crown * 0.7, lean: 1, seed });
+      } else {
+        drawMass(brush(FAR, anyLeaves(), 1), at, feet[FAR] - up + crown * 0.2, crown * (0.9 + 0.4 * random()), crown * 0.7, seed);
+      }
     }
   }
-  const air = lights(RAIN_AIR, 0);
-  inks[FAR].forEach((ink, k) => {
-    px(ink, 0, feet[FAR] - band, air[k], 0.3, w, h);
-    px(ink, 0, feet[FAR] - Math.round(band * 0.45), air[k], 0.35, w, h);
-  });
   drawFloor(view, inks[FAR], feet[FAR], HAZE[FAR], random);
 
-  // Near: the tall trees, a vermilion maple on the side the fox looks to and a gold one on the other.
-  const near = plant(view, random, tall, spread, feet[NEAR], Math.min(18, Math.round(w * 0.2)), 0.35, [MAPLES[VERMILION], MAPLES[GOLD]]);
-  // The torii stands in the middle distance between the first two trunks on the side the fox looks to, if both are in view.
-  const ahead = near.filter((tree) => (tree.x - foxX) * dir > 0);
-  const toriiTall = Math.min(18, Math.max(9, Math.round(tall * 0.2)));
-  const toriiX = ahead.length > 1 ? Math.round((ahead[0].x + ahead[1].x) / 2) : undefined;
-  const torii = toriiX !== undefined && Math.abs(ahead[1].x - ahead[0].x) > toriiTall * 1.6 && Math.min(ahead[1].x, w - ahead[1].x) > 4 ? toriiX : undefined;
-
-  // Middle: the same trees, smaller, paler and thinner, in gold and orange behind the fox so its coat stands out.
+  // Middle: a few small trees in the valley, at the foot of the hill, kept away from behind the fox.
   drawFloor(view, inks[MIDDLE], feet[MIDDLE], HAZE[MIDDLE], random);
-  plant(view, random, Math.round(tall * 0.7), Math.round(spread * 0.68), feet[MIDDLE], 12, 0.7, [MAPLES[GOLD], MAPLES[ORANGE]])
-    .filter((tree) => torii === undefined || Math.abs(tree.x - torii) > toriiTall * 0.45 + 4)
-    .forEach((tree) => drawTree(brush(MIDDLE, tree.leaves, 1), tree));
-  if (torii !== undefined) {
-    drawTorii(inks[MIDDLE], torii, feet[MIDDLE], toriiTall);
-  }
+  plant(view, random, Math.round(tall * 0.36), Math.round(spread * 0.42), feet[MIDDLE], 14, 1.6, [MAPLES[GOLD], MAPLES[ORANGE]]).forEach((tree) =>
+    drawTree(brush(MIDDLE, tree.leaves, 1), tree),
+  );
 
+  // Near: the trees that frame the view. One stands at each edge, its trunk half out of the picture and its crown
+  // leaning in over our heads; a wide view has a slimmer one beside it, and the middle stays open on the hill.
   drawFloor(view, inks[NEAR], feet[NEAR], HAZE[NEAR], random);
-  near.forEach((tree) => drawTree(brush(NEAR, tree.leaves, tall >= 60 ? 3 : 2), tree));
+  const thick = Math.min(6, Math.max(3, Math.round(h / 16)));
+  const wide = Math.round(Math.min(frame * 0.4, Math.max(16, w * 0.2)));
+  const framing: Planted[] = [-1, 1].flatMap((side) => {
+    const edge = side < 0 ? 0 : w;
+    const lean = -side as 1 | -1;
+    const first: Planted = { kind: 'maple', x: Math.round(edge - side * wide * 0.3), foot: feet[NEAR], tall: frame, spread: wide, lean, seed: 11 + side, leaves: MAPLES[side * dir > 0 ? VERMILION : GOLD] };
+    if (w < wide * 7) {
+      return [first];
+    }
+    const kind: Kind = side * dir > 0 ? 'cedar' : 'ginkgo';
+    const second: Planted = { kind, x: Math.round(edge - side * wide * 1.75), foot: feet[NEAR], tall: Math.round(frame * (kind === 'cedar' ? 0.84 : 0.92)), spread: Math.round(wide * (kind === 'cedar' ? 0.36 : 0.5)), lean, seed: 31 + side, leaves: kind === 'cedar' ? CEDAR : GINKGO };
+    return [second, first];
+  });
+  framing.forEach((tree) => drawTree(brush(NEAR, tree.leaves, tree.kind === 'maple' ? thick : thick - 1), tree));
   return { key, tall, feet, rows: rows.map(([rainy, golden]) => ({ rainy, golden })), shivers };
 }
 

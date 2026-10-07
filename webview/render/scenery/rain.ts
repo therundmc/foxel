@@ -8,11 +8,11 @@ import { lightOn, planOf } from './rain-plan';
 
 /** The lookout in autumn, under the rain and in the golden light; its flowers are a few fallen leaves. */
 const RAINY: LookoutTones = {
-  body: '#6b6a44',
-  rim: '#8f8850',
-  deep: '#4c4d36',
-  blades: ['#7d7b48', '#9c9050'],
-  front: ['#5a5b3a', '#75713f'],
+  body: '#55573c',
+  rim: '#747245',
+  deep: '#3c3e2e',
+  blades: ['#66663f', '#827a46'],
+  front: ['#484a32', '#5f5d38'],
   flowers: ['#d06a2c', '#b8402e', '#d9a033', '#c8562a', '#a83a34'],
 };
 const GOLDEN: LookoutTones = {
@@ -25,10 +25,10 @@ const GOLDEN: LookoutTones = {
 };
 
 /** How thick a bank of mist is, as a share of the height of the near trees. */
-const MIST_THICK = 0.14;
+const MIST_THICK = 0.2;
 /** How much of the warm light shows on the sky, and again over the trees it comes through. */
-const LIGHT_BEHIND = 0.9;
-const LIGHT_THROUGH = 0.3;
+const LIGHT_BEHIND = 0.7;
+const LIGHT_THROUGH = 0.22;
 
 function lookoutTones({ moment }: VistaView): LookoutTones {
   const gold = lightOn(moment, 2.5);
@@ -47,10 +47,10 @@ function lookoutTones({ moment }: VistaView): LookoutTones {
 }
 
 /**
- * A soft rain in an autumn forest, in the manner of a Japanese garden. An even pearl sky; three rows of trees,
- * maples red and gold, a ginkgo, a dark cedar, the far ones dissolving in the mist that drifts between them; fine
- * rain, and leaves coming down one after the other. At the great moment a breath of wind lifts a swirl of leaves
- * and carries it away; then the rain thins, the mist lifts and a warm light comes through the trees.
+ * A rainy autumn day in the Japanese countryside. A grey sky; tall trees on the left and on the right, running out
+ * of the frame, and between them a wooded hill in the mist, maples red and gold, ginkgos, dark cedars; fine rain,
+ * and leaves coming down one after the other. At the great moment a breath of wind lifts a swirl of leaves and
+ * carries it away; then the rain thins, the mist lifts and a warm light comes through the trees.
  */
 export const rain: VistaPainter = {
   back(view) {

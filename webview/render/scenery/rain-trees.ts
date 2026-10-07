@@ -89,13 +89,14 @@ const GINKGO = [[0, 0.92, 0.5], [-0.12, 0.77, 0.85], [0.14, 0.61, 1], [-0.04, 0.
 function leafy(brush: Brush, tree: Tree, pads: readonly (readonly [number, number, number])[], forkAt: number, bend: number): void {
   const { x, foot, tall, spread, lean, seed } = tree;
   const fork = foot - Math.round(tall * forkAt);
-  const from = trunk(brush, x, foot, fork, lean * tall * bend);
+  // A very tall, slender tree neither bends nor swells with its height: its crown stays as wide as it is deep.
+  const from = trunk(brush, x, foot, fork, lean * Math.min(tall * bend, spread * 0.5));
   const thick = (tall * 0.085) * (pads === GINKGO ? 1.25 : 1);
   const clouds = pads.map(([aside, up, wide], i) => ({
     x: from + lean * aside * spread + (speck(seed, i) - 0.5) * spread * 0.14,
     y: foot - up * tall + (speck(seed + 1, i) - 0.5) * tall * 0.04,
     rx: Math.max(2, wide * spread),
-    ry: Math.max(2, thick),
+    ry: Math.max(2, Math.min(thick, wide * spread * 0.9)),
   }));
   clouds.forEach((cloud) => limb(brush, from, fork, cloud.x, cloud.y, brush.thick - 1));
   clouds.forEach((cloud, i) => pad(brush, cloud.x, cloud.y, cloud.rx, cloud.ry, seed + i * 17));
