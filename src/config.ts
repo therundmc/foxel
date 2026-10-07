@@ -3,7 +3,7 @@ import type { BuddySettings, Coat } from '../shared/protocol';
 
 export const SECTION = 'foxel';
 
-export type Position = 'panel' | 'explorer';
+export type Position = 'panel' | 'explorer' | 'editor';
 
 export interface BuddyConfig {
   enabled: boolean;
@@ -47,7 +47,7 @@ export function readConfig(): BuddyConfig {
     coat: c.get<Coat>('coat', 'red'),
     reactToTyping: c.get('reactToTyping', true),
     reactToErrors: c.get('reactToErrors', true),
-    sleepAfterSeconds: c.get('sleepAfterSeconds', 30),
+    sleepAfterSeconds: c.get('sleepAfterSeconds', 300),
     name: c.get('name', ''),
     dayNight: c.get('dayNight', true),
     meals: c.get('meals', true),

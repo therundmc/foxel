@@ -36,13 +36,13 @@ That is all this page will tell you. The rest is yours to find: it has more habi
 | Setting | Default | Description |
 | --- | --- | --- |
 | `foxel.enabled` | `true` | Show the companion |
-| `foxel.position` | `panel` | `panel` or `explorer` |
+| `foxel.position` | `panel` | `panel`, `explorer`, or `editor` for a strip of its own under your files |
 | `foxel.scale` | `4` | Size of one sprite pixel, in screen pixels |
 | `foxel.speed` | `1` | Animation speed multiplier |
 | `foxel.coat` | `red` | Fur colour: `red`, `arctic`, `silver` or `fennec` |
 | `foxel.reactToTyping` | `true` | Tap along when you type |
 | `foxel.reactToErrors` | `true` | React to errors appearing and being fixed |
-| `foxel.sleepAfterSeconds` | `30` | Inactivity before it falls asleep |
+| `foxel.sleepAfterSeconds` | `300` | Inactivity before it falls asleep |
 | `foxel.name` | `""` | Your fox's name, shown as the title of its view |
 | `foxel.dayNight` | `true` | Live by the local clock: greetings, light, bedtime, party days |
 | `foxel.meals` | `true` | Get hungry at meal times |

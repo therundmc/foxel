@@ -8,12 +8,15 @@ import {
   type Scene,
   type WebviewMessage,
 } from '../shared/protocol';
+import type { BuddyHost } from './buddyHost';
+import { BuddyPanel, PANEL_TYPE } from './buddyPanel';
 import { BuddyViewProvider } from './buddyViewProvider';
 import { readConfig, SECTION, WEBVIEW_SETTINGS, webviewSettings, type Position } from './config';
 import { ActivityWatcher } from './events';
 import { Routine } from './routine';
 
-const VIEW_IDS: Record<Position, string> = {
+/** The views it can live in; its third place, a strip of the editor area, is a panel of its own. */
+const VIEW_IDS: Record<Exclude<Position, 'editor'>, string> = {
   panel: 'foxel.panelView',
   explorer: 'foxel.explorerView',
 };
@@ -50,7 +53,7 @@ const SCENE_LABELS: Record<Scene, string> = {
 };
 
 export function activate(context: vscode.ExtensionContext): void {
-  const providers: BuddyViewProvider[] = [];
+  const providers: BuddyHost[] = [];
   const broadcast = (msg: HostMessage): void => providers.forEach((p) => p.post(msg));
   const react = (reaction: Reaction): void => broadcast({ type: 'reaction', reaction });
   const clock = (): Date => clockAt(readConfig().debugHour);
@@ -75,7 +78,7 @@ export function activate(context: vscode.ExtensionContext): void {
   let memory: BuddyMemory | undefined;
 
   // Opening its view is coming to see it: it is awake for that.
-  const onReady = (provider: BuddyViewProvider): void => {
+  const onReady = (provider: BuddyHost): void => {
     watcher.interacted();
     provider.post(settingsMessage());
     if (memory) {
@@ -83,7 +86,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     routine.viewReady();
   };
-  const onMessage = (msg: WebviewMessage, provider: BuddyViewProvider): void => {
+  const onMessage = (msg: WebviewMessage, provider: BuddyHost): void => {
     switch (msg?.type) {
       case 'ready':
         onReady(provider);
@@ -114,6 +117,26 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(id, provider, { webviewOptions: { retainContextWhenHidden: true } }));
   }
 
+  const strip = new BuddyPanel(context.extensionUri, onMessage);
+  strip.setTitle(title());
+  providers.push(strip);
+  // The editor brings its strip back with the rest of the window: it only needs taking charge of again.
+  context.subscriptions.push(vscode.window.registerWebviewPanelSerializer(PANEL_TYPE, { deserializeWebviewPanel: async (panel) => strip.adopt(panel) }));
+  /** Opens its strip when that is where it lives, and closes it when it is not. */
+  const syncStrip = async (): Promise<void> => {
+    const { enabled, position } = readConfig();
+    if (enabled && position === 'editor') {
+      await strip.show();
+    } else {
+      strip.close();
+    }
+  };
+  // At start-up the editor may be about to bring the strip back by itself: only make one if there is none coming.
+  const stripComing = vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.endsWith(PANEL_TYPE)));
+  if (!stripComing) {
+    void syncStrip();
+  }
+
   // A command that does something with the fox: the user is there for it.
   const withFox = (run: () => void) => (): void => {
     watcher.interacted();
@@ -124,8 +147,11 @@ export function activate(context: vscode.ExtensionContext): void {
     await vscode.workspace
       .getConfiguration(SECTION)
       .update('enabled', enabled, vscode.ConfigurationTarget.Global);
-    if (enabled) {
-      await vscode.commands.executeCommand(`${VIEW_IDS[readConfig().position]}.focus`);
+    const { position } = readConfig();
+    if (position === 'editor') {
+      await syncStrip();
+    } else if (enabled) {
+      await vscode.commands.executeCommand(`${VIEW_IDS[position]}.focus`);
     }
   };
 
@@ -153,6 +179,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration(`${SECTION}.name`)) {
         providers.forEach((p) => p.setTitle(title()));
+      }
+      if (e.affectsConfiguration(`${SECTION}.position`) || e.affectsConfiguration(`${SECTION}.enabled`)) {
+        void syncStrip();
       }
       if (e.affectsConfiguration(`${SECTION}.debug`)) {
         void setDebugContext();

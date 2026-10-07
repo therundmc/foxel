@@ -40,7 +40,8 @@
     "workspace"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onWebviewPanel:foxel.editor"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -129,6 +130,28 @@
           "when": "foxel.debug"
         }
       ],
+      "editor/title": [
+        {
+          "command": "foxel.throwBall",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "foxel.blowBubbles",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "foxel.giveTreat",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@3"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@4"
+        }
+      ],
       "view/title": [
         {
           "command": "foxel.throwBall",
@@ -164,11 +187,13 @@
           "type": "string",
           "enum": [
             "panel",
-            "explorer"
+            "explorer",
+            "editor"
           ],
           "enumDescriptions": [
             "In its own tab of the bottom panel, with plenty of room to run.",
-            "In the Explorer side bar."
+            "In the Explorer side bar.",
+            "In a strip of its own across the bottom of the editor area, which stays in sight whatever the panel shows."
           ],
           "default": "panel",
           "description": "Where the companion lives."
@@ -216,7 +241,7 @@
         },
         "foxel.sleepAfterSeconds": {
           "type": "integer",
-          "default": 30,
+          "default": 300,
           "minimum": 5,
           "description": "Inactivity delay, in seconds, before the companion falls asleep."
         },
