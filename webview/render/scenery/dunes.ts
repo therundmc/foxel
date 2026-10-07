@@ -2,34 +2,33 @@ import { dunesLand, type DunesLand } from './dunes-land';
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
 import { paintDrift, paintVeil, paintWave } from './dunes-wind';
 import { paintWorm } from './dunes-worm';
-import { gradient, mix, ramp, seeded, type VistaPainter, type VistaView } from './paint';
+import { gradient, mix, ramp, type VistaPainter, type VistaView } from './paint';
 
-// Early morning over a sea of sand, on a world with two moons. Great dunes one behind the other, each with one
-// face in the light and one in shade; the wind lifts a little sand off the crests, the last stars go out and the
-// dawn slowly turns into a golden morning. A few grains of sand drift by, and once a whole wave of it sweeps
-// through (see dunes-wind.ts). Something travels under the sand, far away. At the great moment it
-// comes out: an enormous worm leaps from behind a dune, arches across the sky and dives back in.
-//   0 s   dawn: rose and mauve, two pale moons, a few stars left (gone by 18 s)
+// Early morning over a sea of sand, in a haze of warm dust. Soft dunes lie one behind the other, each a single
+// long swell, paler with the distance; a great white sun hangs in the haze on the side the fox looks to. The dawn
+// slowly turns golden, a few grains of sand drift by, and once a whole wave of it sweeps through (see
+// dunes-wind.ts). Something travels under the sand, far away. At the great moment it comes out: an enormous
+// worm leaps from behind a dune, arches across the sun and dives back in.
+//   0 s   dawn: a rosy haze
 //   6 s   the light starts to warm, and is golden by 40 s
 //   8 s   the sign: a swell of sand moving along a far crest
 //  11 s   the wave of sand comes through, and has passed by 17 s
 //  moment the worm (6 s, see dunes-worm.ts), the sand it throws, the dust it leaves; then its sign moves away
 
-/** The sky from the top down to the horizon, at dawn and in the golden morning, and where each tone sits. */
-const SKY_DAWN = ['#7c88c6', '#b9a5c8', '#efbfae', '#fbd9a6'] as const;
-const SKY_MORNING = ['#5f9fdc', '#9cc9e8', '#dfe3cf', '#fbe7b4'] as const;
-const SKY_AT = [0, 0.45, 0.82, 1] as const;
+/** The haze from the top of the sky down to the horizon, at dawn and in the golden morning. */
+const SKY_DAWN = ['#e3a39d', '#eebbab', '#f6d6c3'] as const;
+const SKY_MORNING = ['#eeae78', '#f5c896', '#fae3bd'] as const;
+const SKY_AT = [0, 0.55, 1] as const;
 /** When the dawn starts to warm, and when the morning is golden. */
 const WARMS = [6, 40] as const;
-/** The glow of the sun to come, low behind the fox's shoulder, behind the great dune. */
-const GLOW_RGB = '255,226,170';
-const GLOW = [0.5, 0.75] as const;
-
-const STAR = '#fff6e6';
-const STARS_GONE = [3, 18] as const;
-/** The two moons, still up on the side the fox looks to: plain pale discs, paler as the day comes. */
-const MOON = '#fdeee0';
-const MOON_ALPHA = [0.9, 0.55] as const;
+/** The sun: a great plain white ball in the haze, with two soft rings of glare round it. */
+const SUN = '#fffaf0';
+const GLARE = [[1.9, 0.14], [1.4, 0.2]] as const;
+/** How big it is (a share of the sky's height, within these bounds), and where: along the room ahead of the fox, and down the sky. */
+const SUN_SIZE = 0.24;
+const SUN_SIZES = [4, 11] as const;
+const SUN_AHEAD = 0.6;
+const SUN_DOWN = 0.36;
 
 /** Sand blown off a crest, as puffs of single grains: how many puffs at a time and grains in each, how far they fly, for how long. */
 const STREAKS = 3;
@@ -62,56 +61,25 @@ function lookoutTones(light: number): LookoutTones {
   };
 }
 
-function paintGlow({ ctx, w, foxX, dir }: VistaView, land: DunesLand, light: number): void {
-  const room = dir > 0 ? foxX : w - foxX;
-  const rx = Math.max(40, w * 0.4);
-  const alpha = GLOW[0] + (GLOW[1] - GLOW[0]) * light;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, w, land.skyFoot);
-  ctx.clip();
-  ctx.translate(Math.round(foxX - dir * room * 0.6), land.skyFoot);
-  ctx.scale(1, Math.max(14, land.skyFoot * 0.9) / rx);
-  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-  glow.addColorStop(0, `rgba(${GLOW_RGB},${alpha})`);
-  glow.addColorStop(0.5, `rgba(${GLOW_RGB},${alpha * 0.35})`);
-  glow.addColorStop(1, `rgba(${GLOW_RGB},0)`);
-  ctx.fillStyle = glow;
-  ctx.fillRect(-rx, -rx, rx * 2, rx);
-  ctx.restore();
+function disc(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  for (let dy = -Math.floor(r); dy <= r; dy++) {
+    const half = Math.floor(Math.sqrt((r + 0.4) * (r + 0.4) - dy * dy));
+    ctx.fillRect(x - half, y + dy, half * 2 + 1, 1);
+  }
 }
 
-// The last stars, high up: each goes out at its own time.
-function paintStars({ ctx, w, t }: VistaView, land: DunesLand): void {
-  if (t >= STARS_GONE[1]) {
-    return;
-  }
-  const random = seeded(0x57a2);
-  ctx.fillStyle = STAR;
-  for (let i = Math.max(4, Math.round(w / 22)); i > 0; i--) {
-    const x = Math.floor(random() * w);
-    const y = Math.floor(random() * land.skyFoot * 0.5);
-    const leaves = STARS_GONE[0] + random() * (STARS_GONE[1] - STARS_GONE[0] - 3);
-    ctx.globalAlpha = 0.8 * (1 - ramp(t, leaves, leaves + 3));
-    ctx.fillRect(x, y, 1, 1);
-  }
-  ctx.globalAlpha = 1;
-}
-
-function paintMoons({ ctx, w, foxX, dir }: VistaView, land: DunesLand, light: number): void {
+function paintSun({ ctx, w, foxX, dir }: VistaView, land: DunesLand): void {
   const room = dir > 0 ? w - foxX : foxX;
-  const r = Math.min(8, Math.max(3, Math.round(land.skyFoot * 0.17)));
-  const x = Math.round(foxX + dir * room * 0.64);
-  const y = Math.round(land.skyFoot * 0.36);
-  ctx.fillStyle = MOON;
-  ctx.globalAlpha = MOON_ALPHA[0] + (MOON_ALPHA[1] - MOON_ALPHA[0]) * light;
-  for (const [cx, cy, radius] of [[x, y, r], [x + dir * Math.round(r * 2.4), y - Math.round(r * 0.9), Math.max(1.5, r * 0.45)]] as const) {
-    for (let dy = -Math.floor(radius); dy <= radius; dy++) {
-      const half = Math.floor(Math.sqrt((radius + 0.4) * (radius + 0.4) - dy * dy));
-      ctx.fillRect(cx - half, cy + dy, half * 2 + 1, 1);
-    }
+  const r = Math.min(SUN_SIZES[1], Math.max(SUN_SIZES[0], Math.round(land.skyFoot * SUN_SIZE)));
+  const x = Math.round(foxX + dir * room * SUN_AHEAD);
+  const y = Math.round(land.skyFoot * SUN_DOWN);
+  ctx.fillStyle = SUN;
+  for (const [wide, alpha] of GLARE) {
+    ctx.globalAlpha = alpha;
+    disc(ctx, x, y, r * wide);
   }
   ctx.globalAlpha = 1;
+  disc(ctx, x, y, r);
 }
 
 // The wind takes a little sand off each crest, in puffs: a few fine grains that fly on, spread and thin out.
@@ -155,9 +123,7 @@ export const dunes: VistaPainter = {
     const land = dunesLand(view);
     const light = lightAt(view);
     gradient(view, 0, land.skyFoot, SKY_DAWN.map((tone, i) => [SKY_AT[i], mix(tone, SKY_MORNING[i], light)] as const));
-    paintGlow(view, land, light);
-    paintStars(view, land);
-    paintMoons(view, land, light);
+    paintSun(view, land);
     paintLand(view, land.far, light);
     paintVeil(view, land.skyFoot - 4, light);
     paintWorm(view, land, light);
