@@ -1,13 +1,14 @@
-import { clamp01, gradient, parallax, px, ramp, seeded, type VistaPainter, type VistaView } from './paint';
-import { drawMist, drawRidge, drawRim, layLand, layMist, MARGIN, type Land } from './sun-land';
+import { lookoutTop, paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
+import { clamp01, gradient, ramp, seeded, type VistaPainter, type VistaView } from './paint';
+import { drawMist, drawRidge, drawRim, layLand, layMist, type Land } from './sun-land';
 import { blend, css, curve, tonesAt, type Mood, type Rgb, type Tones } from './sun-palette';
 import { drawReflection, drawWater } from './sun-sea';
 import { drawBirds, drawBrightStar, drawClouds, drawStars, layClouds, layStars, type Cloud } from './sun-sky';
 
 // The sunrise and the sunset: two moods of one painter. Morning is fresh, misty and pale, over mountains;
-// evening is rich and deep, over the sea. The fox watches from a grassy lookout close to us while the far
-// landscape glides slowly by. The sun is a big plain ball; the subject is the light: the colours turn all
-// through the minute, and the best comes with the great moment, when the ball clears the ridge and the
+// evening is rich and deep, over the sea. The fox watches from its grassy lookout, close to us; the land is far
+// and still. The sun is a big plain ball; the subject is the light: the colours turn all through the minute,
+// and the best comes with the great moment, when the ball clears the gap in the far mountains and the
 // morning blooms, or slips under the water and the afterglow flares.
 
 /** The moment comes somewhere in this window: until then the sun waits, barely moving. */
@@ -19,7 +20,6 @@ const SETTLE_FROM_S = 6.5;
 const SETTLE_TO_S = 21;
 /** The birds come in sight as the fox looks up. */
 const BIRDS_S = 0.3;
-
 interface Scene {
   readonly key: string;
   readonly land: Land;
@@ -31,29 +31,29 @@ interface Scene {
   readonly birds: { readonly x: number; readonly y: number };
 }
 
-// Laid out once per size and place, then only read: one scene kept per mood.
-const scenes: Partial<Record<Mood, Scene>> = {};
+// Laid out once per size and place, then only read: only the last scene is kept.
+let kept: Scene | undefined;
 
-function sceneFor({ w, h, foxX, dir }: VistaView, mood: Mood): Scene {
-  const key = `${w}:${h}:${Math.round(foxX)}:${dir}`;
-  const kept = scenes[mood];
+function sceneFor(view: VistaView, mood: Mood): Scene {
+  const { w, h, foxX, dir } = view;
+  const key = `${mood}:${w}:${h}:${Math.round(foxX)}:${dir}`;
   if (kept?.key === key) {
     return kept;
   }
   const morning = mood === 'sunrise';
-  const land = layLand(mood, w, h, Math.round(foxX), dir);
+  const land = layLand(mood, view);
   const { horizon, sunX, sunLine, radius } = land;
   const scene: Scene = {
     key,
     land,
-    clouds: layClouds(w, morning ? Math.round((land.far.crest + sunLine) / 2) : horizon - 1, morning ? 0xc10d : 0xc1e4),
+    clouds: layClouds(w, morning ? sunLine - Math.round(radius * 0.6) : horizon - 1, morning ? 0xc10d : 0xc1e4),
     stars: layStars(w, 1, Math.round(horizon * 0.62), morning ? 0x57a2 : 0x57a3),
     star: { x: Math.min(w - 4, Math.max(3, sunX + dir * radius * 2)), y: Math.max(3, Math.round(sunLine - Math.max(radius * 3.2, horizon * 0.55))) },
     mist: morning ? layMist(w, horizon, seeded(0xd3a1)) : new Float32Array(0),
     // Toward the side the fox looks to, and over its head when the view is tall enough.
     birds: { x: foxX + dir * 18, y: Math.max(5, Math.min(horizon - 8, h - 40)) },
   };
-  scenes[mood] = scene;
+  kept = scene;
   return scene;
 }
 
@@ -140,14 +140,9 @@ function paintSun(ctx: CanvasRenderingContext2D, land: Land, tones: Tones, sunY:
 
 type PlaneName = 'far' | 'mid' | 'near';
 
-// How deep each far plane lies, from 0 (just behind the lookout) to 1 (the sky): the nearer, the faster it slides.
-const DEPTH: Record<Mood, Record<PlaneName, number>> = {
-  sunrise: { far: 0.6, mid: 0.3, near: 0 },
-  sunset: { far: 0.75, mid: 0.45, near: 0.1 },
-};
-/** How much of the haze each plane takes, at its crest and at its foot. */
+/** How much of the haze each plane takes, at its crest and at its foot. The morning hills are flat tones: bands of haze would stripe them. */
 const HAZE: Record<Mood, Record<PlaneName, readonly [number, number]>> = {
-  sunrise: { far: [0.2, 0.95], mid: [0.25, 0.92], near: [0.3, 0.85] },
+  sunrise: { far: [0.1, 0.95], mid: [0.45, 0.5], near: [0.4, 0.4] },
   sunset: { far: [0.4, 0.55], mid: [0.2, 0.4], near: [0.12, 0.4] },
 };
 /** How much of the light each skyline catches. */
@@ -193,7 +188,7 @@ function paint(view: VistaView, mood: Mood): void {
   // Morning clouds catch fire from the horizon up; evening ones go out the same way.
   const fire = ramp(stage, 0.3, 1.9);
   const dusk = Math.max(0, stage - 2);
-  drawClouds(ctx, scene.clouds, parallax(view, 0.85), -dir * t, tones, morning ? (level) => clamp01((fire * 1.6 - level) / 0.6) : (level) => 1 - clamp01((dusk * 1.7 - level) / 0.7));
+  drawClouds(ctx, scene.clouds, -dir * t, tones, morning ? (level) => clamp01((fire * 1.6 - level) / 0.6) : (level) => 1 - clamp01((dusk * 1.7 - level) / 0.7));
   if (moment !== undefined && moment > BIRDS_S) {
     drawBirds(ctx, scene.birds.x, scene.birds.y, dir, moment - BIRDS_S, css(tones.bird));
   }
@@ -202,17 +197,12 @@ function paint(view: VistaView, mood: Mood): void {
   const lit = curve(LIT[mood], stage);
   const mist = curve(MIST[mood], stage);
   const reach = 50 + w * 0.12;
-  // A far plane, slid by its depth: it is laid out wider than the view, so nothing shows at its ends.
   const plane = (name: PlaneName): void => {
     const ridge = land[name];
     if (ridge) {
-      const shift = parallax(view, DEPTH[mood][name]) - MARGIN;
       const [crest, foot] = HAZE[mood][name];
-      ctx.save();
-      ctx.translate(shift, 0);
       drawRidge(ctx, ridge, tones[name], tones.haze, crest, foot * mist);
-      drawRim(ctx, ridge, rim, lit * RIM[name], land.sunX - shift, reach);
-      ctx.restore();
+      drawRim(ctx, ridge, rim, lit * RIM[name], land.sunX, reach);
     }
   };
   if (!morning) {
@@ -224,25 +214,33 @@ function paint(view: VistaView, mood: Mood): void {
   plane('mid');
   plane('near');
 
-  // The step in depth, then the lookout: the darkest thing in the picture, and the only one that stays put.
+  // The step in depth, then the lookout.
   const veil = Math.round(Math.min(14, Math.max(5, h * 0.14)));
-  gradient(view, land.lookout.crest - veil, h, [[0, css(tones.haze, 0)], [1, css(tones.haze)]], VEIL[mood] * mist);
-  drawRidge(ctx, land.lookout, tones.ground, tones.haze, 0, 0);
-  drawRim(ctx, land.lookout, rim, lit * 0.5, land.sunX, 60 + w * 0.2);
+  gradient(view, lookoutTop(view, view.foxX) - veil, h, [[0, css(tones.haze, 0)], [1, css(tones.haze)]], VEIL[mood] * mist);
+  paintLookout(view, lookoutTones(mood, tones, stage));
 }
 
-// A few blades of the lookout's grass stand in front of the fox, over its paws: how far from its middle, how tall,
-// and which way the tip leans.
-const BLADES: readonly (readonly [number, number, number])[] = [[-12, 3, 0], [-7, 2, 0], [-2, 4, 1], [5, 2, 0], [10, 3, -1]];
+const DARK: Rgb = [6, 6, 18];
+/** Pale flowers in the morning grass: they come out of the dark with the day. */
+const FLOWERS: readonly Rgb[] = [[255, 246, 236], [255, 214, 226], [255, 240, 176], [232, 224, 255]];
 
-function paintGrass({ ctx, h, t, moment, foxX }: VistaView, mood: Mood): void {
-  const color = css(tonesAt(mood, stageAt(t, moment)).ground);
-  for (const [away, tall, lean] of BLADES) {
-    const x = Math.round(foxX) + away;
-    px(ctx, x, h - tall + 1, color, 1, 1, tall - 1);
-    px(ctx, x + lean, h - tall, color);
-  }
+/** The lookout in this light: dark blue-green then fresh green in the morning, olive sinking to violet in the evening. */
+function lookoutTones(mood: Mood, { ground, grass }: Tones, stage: number): LookoutTones {
+  const shown = 0.9 * ramp(stage, 0.9, 2);
+  return {
+    body: css(ground),
+    rim: css(blend(ground, grass, 0.55)),
+    deep: css(blend(ground, DARK, 0.3)),
+    blades: [css(grass), css(blend(ground, grass, 0.4))],
+    front: [css(blend(ground, grass, 0.7)), css(blend(ground, DARK, 0.15))],
+    flowers: mood === 'sunrise' ? FLOWERS.map((pale) => css(blend(grass, pale, shown))) : undefined,
+  };
 }
 
-export const sunrise: VistaPainter = { back: (view) => paint(view, 'sunrise'), front: (view) => paintGrass(view, 'sunrise') };
-export const sunset: VistaPainter = { back: (view) => paint(view, 'sunset'), front: (view) => paintGrass(view, 'sunset') };
+const front = (mood: Mood) => (view: VistaView): void => {
+  const stage = stageAt(view.t, view.moment);
+  paintLookoutFront(view, lookoutTones(mood, tonesAt(mood, stage), stage));
+};
+
+export const sunrise: VistaPainter = { back: (view) => paint(view, 'sunrise'), front: front('sunrise') };
+export const sunset: VistaPainter = { back: (view) => paint(view, 'sunset'), front: front('sunset') };

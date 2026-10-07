@@ -41,7 +41,10 @@ function streak(length: number, depth: number, random: () => number): Int16Array
   return Int16Array.from(rows);
 }
 
-/** A handful of clouds from just above `floor` up to the top: thin and long near the horizon, fuller higher up. */
+/**
+ * A handful of clouds from just above `floor` up to the top: thin and long near the horizon, fuller higher up.
+ * None lies in the rows from `clear[0]` to `clear[1]`: one that would is laid just under them.
+ */
 export function layClouds(w: number, floor: number, seed: number): Cloud[] {
   const random = seeded(seed);
   const sky = Math.max(8, floor - 3);
@@ -49,29 +52,28 @@ export function layClouds(w: number, floor: number, seed: number): Cloud[] {
   const clouds: Cloud[] = [];
   for (let i = 0; i < count; i++) {
     const level = (i + 0.2 + 0.6 * random()) / count;
-    const y = Math.round(floor - 3 - level ** 1.15 * (sky - 4));
     const depth = sky < 26 ? 1 + Math.round(level) : level < 0.3 ? 2 : 3 + Math.floor(random() * 2);
+    const high = Math.round(floor - 3 - level ** 1.15 * (sky - 4));
     const length = Math.round((36 + random() * 44) * (1.25 - 0.5 * level) * Math.min(1.3, Math.max(0.7, w / 200)));
     const x = ((i * 0.618034 + random() * 0.25) % 1) * (w + 2 * PAST) - PAST - length / 2;
-    clouds.push({ x, y, speed: 0.15 + 0.35 * level, level, depth, rows: streak(length, depth, random) });
+    clouds.push({ x, y: high, speed: 0.15 + 0.35 * level, level, depth, rows: streak(length, depth, random) });
   }
   return clouds;
 }
 
 /**
- * `pan` is how far the whole bank has slid, `wind` how far a cloud of speed 1 has been blown on top of it.
- * `lightOf` gives, for a cloud's level, how much of the light its belly catches (0 to 1).
+ * `wind` is how far a cloud of speed 1 has been blown. `lightOf` gives, for a cloud's level, how much of the
+ * light its belly catches (0 to 1).
  */
 export function drawClouds(
   ctx: CanvasRenderingContext2D,
   clouds: readonly Cloud[],
-  pan: number,
   wind: number,
   tones: { readonly cloud: Rgb; readonly cloudLit: Rgb; readonly cloudShade: Rgb },
   lightOf: (level: number) => number,
 ): void {
   for (const cloud of clouds) {
-    const x = Math.round(cloud.x + pan + wind * cloud.speed);
+    const x = Math.round(cloud.x + wind * cloud.speed);
     const light = lightOf(cloud.level);
     const belly = css(blend(tones.cloud, tones.cloudLit, light));
     const body = css(blend(tones.cloud, tones.cloudLit, light * 0.4));

@@ -5,14 +5,14 @@ import { drawFar, drawGrass, drawNear, drawMoon, landFor, moonOf, type Moon } fr
 import { drawMilky, milkyFor } from './stars-milky';
 
 // The night sky, in the order things come:
-//   0 s   the dusk still glows on the horizon; the moon peeps over the far hills and starts to climb
+//   0 s   the dusk still glows on the horizon; the moon peeps over the far mountains and starts to climb
 //   2 s   the great stars light up one by one, then the bright ones, then the small ones (until 21 s)
 //  10 s   the star dust comes out
 //  11 s   the Milky Way draws itself from the horizon up, behind the fox (until 29 s)
 //  the great moment: a shooting star from above the fox, its sparks, then a ripple of light through the stars
 //  +10 s and +16 s after it: two more, small and far
 //  31 s   fireflies wake up near the ground, one after the other
-//  all along: the valley glides past below the hilltop, each plane at its own pace, banks of mist among them
+//  all along: the land is still; only banks of mist drift along the valley
 
 /** The stars stop three rows above the bottom edge: lower down there is only ground. */
 const FOOT = 3;
@@ -149,14 +149,13 @@ export const stars: VistaPainter = {
     const wave = paintMoment(view, moon);
     drawStars(view, field, floorY, moon, wave);
     drawMoon(view, moon);
-    const land = landFor(w, h, foxX, dir);
+    const land = landFor(view);
     drawFar(view, land);
     drawMist(view, h - land.mistFoot);
     drawNear(view, land, moon.rise);
   },
   front(view) {
-    const { w, h, foxX, dir } = view;
-    drawGrass(view, landFor(w, h, foxX, dir));
+    drawGrass(view);
     drawFireflies(view);
   },
 };

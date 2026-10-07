@@ -26,7 +26,7 @@ export type ToneName =
   | 'skyTop' | 'skyHigh' | 'skyMid' | 'skyLow' | 'skyRim'
   | 'sun' | 'sunCore' | 'glow'
   | 'cloud' | 'cloudLit' | 'cloudShade'
-  | 'far' | 'mid' | 'near' | 'ground' | 'haze' | 'rim' | 'sea' | 'bird';
+  | 'far' | 'mid' | 'near' | 'ground' | 'grass' | 'haze' | 'rim' | 'sea' | 'bird';
 
 export type Tones = Readonly<Record<ToneName, Rgb>>;
 
@@ -43,10 +43,11 @@ const SUNRISE: Record<ToneName, string> = {
   cloud: '3a3a78 5a5490 8a7cb0 a898c8 c0c0e0 e8f0fa',
   cloudLit: '8a6a9a e08a98 ffa890 ffc890 ffe4a8 ffffff',
   cloudShade: '2a2c66 45457e 6c6aa4 8a8cc0 a0b0d8 c4d8f0',
-  far: '4a4a86 6a5e9a 8c7cb0 9a94c0 9cb0d0 98c0d8',
+  far: '4a4a86 66589a 8470ac 8c86b8 8a9ec8 80aad0',
   mid: '34386e 474a84 575e96 5f72a0 5f8a9c 5c9c8a',
   near: '232a58 2d3566 354472 3a5878 3f6e6c 448a5c',
-  ground: '161c40 1c2448 223050 284452 2e584c 34703f',
+  ground: '12283a 163040 1a3c44 22504a 2c6846 388440',
+  grass: '1c3c4c 22484e 2c5a54 3c7654 4e9250 62ae4c',
   haze: '8a80b0 b890b0 e0a8b0 f8cc9c f8e4c0 f0f4f0',
   rim: 'b89aa6 f0b09a ffc878 ffe08c fff0b0 fff8d8',
   sea: '50709c 50709c 50709c 50709c 50709c 50709c',
@@ -69,7 +70,8 @@ const SUNSET: Record<ToneName, string> = {
   far: '98a0c0 9080b0 7c5c9c 66488c 4e3c7c 1c2046',
   mid: '8088b0 7468a0 5c4488 4a3878 3a2e6c 141838',
   near: '5c6890 564c84 46346e 3a2c64 2e265a 10142e',
-  ground: '3a4c38 363a3a 2c2640 241e3a 1c1a36 0a0c20',
+  ground: '3e4426 38382a 2e2a30 241e32 1a162e 0c0a1a',
+  grass: '5a5c30 504a34 40363c 30283e 221c38 100e22',
   haze: 'e8c8a8 e0a088 c87080 a85c88 84508c 2c285c',
   rim: 'fff0b0 ffd070 ffa850 ff8858 ff8080 8a5078',
   sea: '50709c 4a5890 3c4080 303470 282c64 0c1230',

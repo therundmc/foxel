@@ -1,8 +1,7 @@
 import type { VistaView } from './paint';
 
-// The great peak of the fox's valley: one mountain every sky shares, so that it is the same place at dawn, at noon
-// and under the stars. A sharp, lopsided pyramid in the manner of the Matterhorn: one long steady ridge, one
-// steeper side broken by a shoulder, and a summit that hooks over.
+// The great peak of the daytime view: a sharp, lopsided pyramid in the manner of the Matterhorn, with one long
+// steady ridge, one steeper side broken by a shoulder, and a summit that hooks over.
 
 /** Its outline, from the summit down, as [how far aside, how high], both as shares of its height. */
 const LEFT: readonly (readonly [number, number])[] = [[0, 1], [0.05, 0.82], [0.16, 0.62], [0.34, 0.38], [0.58, 0.18], [1, 0]];
