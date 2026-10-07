@@ -1,6 +1,8 @@
 import type { Scene } from '../../shared/protocol';
+import { SPRITE_SIZE } from '../sprites/frames';
 import type { Buddy } from './buddy';
 import { startContemplate } from './features/contemplate';
+import { startHunt } from './features/hunt';
 import { HUNGRY_SAD_MS, fillBowl } from './features/meals';
 import { startMousing } from './features/mousing';
 import { REACTION_MS, react } from './features/reactions';
@@ -96,8 +98,17 @@ export function act(b: Buddy, name: Act): void {
   }
 }
 
+const BIRD_LANDS_AWAY = 60;
 /** Long enough for a whole contemplation and for the sky to fade afterwards. */
 const CONTEMPLATE_MS = 72_000;
+
+// A bird comes down a little way off, on the side with more room.
+function landBird(b: Buddy): void {
+  const { bird, width, height } = b.world;
+  const center = b.x + SPRITE_SIZE / 2;
+  b.enter('sit', 20_000);
+  bird.land(center + (center < width / 2 ? 1 : -1) * BIRD_LANDS_AWAY, Infinity, width, height);
+}
 
 interface Script {
   /** Hour it pretends it is; the fraction is the minutes. */
@@ -122,6 +133,7 @@ const SCRIPTS: Record<Scene, Script> = {
   roll: { hour: 15.75, ms: 6000, cues: [[0, (b) => act(b, 'roll')]] },
   glass: { hour: 16, ms: 8000, cues: [[0, (b) => act(b, 'glass')]] },
   party: { hour: 16.25, ms: 6000, party: true, cues: [[0, (b) => act(b, 'party')]] },
+  bird: { hour: 18.5, ms: 17_000, cues: [[0, landBird], [3200, (b) => startHunt(b, 'bird')]] },
   mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
   sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },
   typing: {

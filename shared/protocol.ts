@@ -59,6 +59,7 @@ export const SCENES = [
   'glass',
   'party',
   'mouse',
+  'bird',
   'typing',
   'drowsy',
   'sunrise',

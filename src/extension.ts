@@ -31,6 +31,7 @@ const SCENE_LABELS: Record<Scene, string> = {
   glass: 'Rubbing and licking the glass',
   party: 'Party',
   mouse: 'Mouse hunt in the tall grass',
+  bird: 'A bird lands, it pounces and misses',
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',

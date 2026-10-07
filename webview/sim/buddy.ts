@@ -15,6 +15,7 @@ import { RestMemory } from './features/rest';
 import { TouchMemory } from './features/touch';
 import { SnackMemory } from './features/treat';
 import { TricksMemory } from './features/tricks';
+import { VisitorsMemory } from './features/visitors';
 import { clamp } from './math';
 import { FEATURES, STATES, URGES } from './registry';
 import type { AnimRef, BuddyState, Dir, Gaze, StateDef } from './state';
@@ -51,6 +52,7 @@ export class Buddy {
   placed = false;
   // What each feature remembers from one frame to the next.
   readonly hunt = new HuntMemory();
+  readonly visitors = new VisitorsMemory();
   readonly mousing = new MousingMemory();
   readonly fetch = new FetchMemory();
   readonly tricks = new TricksMemory();

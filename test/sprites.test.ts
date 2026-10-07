@@ -12,6 +12,9 @@ import {
   GRASS,
   GRASS_H,
   GRASS_W,
+  BIRD_FRAMES,
+  BIRD_H,
+  BIRD_W,
   HATS,
   MOUSE_FACE,
   MOUSE_FRAMES,
@@ -113,6 +116,14 @@ describe('sprites', () => {
     for (const glyph of GRASS) {
       expect(glyph).toHaveLength(GRASS_H);
       glyph.forEach((line) => expect(line).toHaveLength(GRASS_W));
+    }
+  });
+
+  it('bird frames use the palette and are all the declared size', () => {
+    for (const glyph of BIRD_FRAMES) {
+      expect(usesPalette(glyph)).toBe(true);
+      expect(glyph).toHaveLength(BIRD_H);
+      glyph.forEach((line) => expect(line).toHaveLength(BIRD_W));
     }
   });
 

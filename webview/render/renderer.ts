@@ -10,6 +10,7 @@ import {
   BASKET_BACK,
   BASKET_FRONT,
   BASKET_W,
+  BIRD_FRAMES,
   BUG_FRAMES,
   CAKE,
   EMOTES,
@@ -36,6 +37,7 @@ const CAKE_FLICKER_MS = 300;
 const mirrored = (glyph: Glyph): Glyph => glyph.map((line) => [...line].reverse().join(''));
 const TREAT_STAGES_FACING_LEFT = TREAT_STAGES.map(mirrored);
 const MOUSE_FRAMES_FACING_LEFT = MOUSE_FRAMES.map(mirrored);
+const BIRD_FRAMES_FACING_LEFT = BIRD_FRAMES.map(mirrored);
 
 /** The frame of its animation the buddy is showing right now. */
 export function currentFrame(buddy: Buddy): Frame {
@@ -74,6 +76,7 @@ export class Renderer {
     this.drawBowl(world.foodBowl, FOOD_BOWL);
     this.drawBowl(world.waterBowl, WATER_BOWL);
     this.drawTreat(frame);
+    this.drawBird(true);
     const fox = foxShown(session);
     if (fox) {
       this.drawBuddy(stage.buddyRect(buddy), frame, now);
@@ -86,6 +89,7 @@ export class Renderer {
     }
     this.drawBall();
     this.drawBug();
+    this.drawBird(false);
     this.scenery.drawFront(stage, world.scenery);
     sky.drawConfetti(stage, dt);
   }
@@ -250,6 +254,17 @@ export class Renderer {
     const r = this.stage.rect(grass.box);
     const img = this.bitmaps.get(GRASS[grass.swayed ? 1 : 0]);
     this.stage.ctx.drawImage(img, 0, GRASS_H - rows, GRASS_W, rows, r.x, r.y, r.w, r.h);
+  }
+
+  // Flying across in the distance it passes behind the fox; down on the ground it is in front, like the other critters.
+  private drawBird(far: boolean): void {
+    const bird = this.session.world.bird;
+    if (!bird.active || (bird.state === 'crossing') !== far) {
+      return;
+    }
+    const r = this.stage.rect(bird.box);
+    const glyph = (bird.dir === 1 ? BIRD_FRAMES : BIRD_FRAMES_FACING_LEFT)[bird.frame];
+    this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
   }
 
   private drawBug(): void {

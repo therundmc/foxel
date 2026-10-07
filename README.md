@@ -29,7 +29,7 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 ## On its own
 
-It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, and rolls onto its back to wriggle with its feet in the air. Sometimes it comes right up to the glass of its view, facing you: it rubs it with both front paws, gives it a few licks and is proud of the shine. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. Butterflies flutter through and a little bird sometimes crosses the sky or lands to peck: when it cannot resist, the fox stalks them, wiggles and pounces. It gets the butterfly now and then, never the bird. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, and rolls onto its back to wriggle with its feet in the air. Sometimes it comes right up to the glass of its view, facing you: it rubs it with both front paws, gives it a few licks and is proud of the shine. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
 
 ## Contemplation
 
@@ -117,6 +117,7 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 - Meals with a bowl to fill, water breaks, and a break reminder when you work too long
 - Party hat and confetti on Fridays and on the install anniversary
 - Name (`foxel.name`) shown as the view title
+- Passers-by: butterflies and a little bird come and go on their own, and it has a go at them
 - New things it does on its own: mouse hunts in the tall grass, digging, rolling on its back, rubbing and licking the glass of its view
 - Contemplation: a few times a day it sits with its back to you and watches the sunrise, the clouds, a far storm, the sunset or the stars
 - It comes to your pointer, runs when you click, and asks for a stroke when you rest your hand on it

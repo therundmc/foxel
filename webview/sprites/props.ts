@@ -26,6 +26,17 @@ export const BUG_FRAMES: readonly Glyph[] = [
 
 export const TREAT_GLYPH: Glyph = TREAT_STAGES[0];
 
+// A small bird facing right: wings up, wings down, standing, pecking.
+const BIRD_FILLS: readonly Glyph[] = [
+  ['.uu....', '.uUUU..', 'UUUUES.', '.Uccc..', '.......'],
+  ['.......', '..UUU..', 'UUUUES.', '.uccc..', '.uu....'],
+  ['...UU..', '..UUES.', 'uUUc...', '.uccc..', '..k.k..'],
+  ['.......', '..UU...', 'uUUUU..', '.uccES.', '..k.k..'],
+];
+export const BIRD_FRAMES: readonly Glyph[] = BIRD_FILLS.map(outlined);
+export const BIRD_W = BIRD_FRAMES[0][0].length;
+export const BIRD_H = BIRD_FRAMES[0].length;
+
 // Seam rotated 45° clockwise per frame, so rolling right spins the right way.
 export const BALL_FRAMES: readonly Glyph[] = [
   ['..KKK..', '.KBYYK.', 'KBgYBBK', 'KBBYBbK', 'KBBYbbK', '.KByyK.', '..KKK..'],

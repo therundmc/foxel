@@ -12,6 +12,7 @@ import { restFeature } from './features/rest';
 import { touchFeature } from './features/touch';
 import { treatFeature } from './features/treat';
 import { tricksFeature } from './features/tricks';
+import { visitorsFeature } from './features/visitors';
 import type { Feature, StateDefs, Urge } from './state';
 
 // The order matters where features share a hook: earlier urges win, earlier ticks run first.
@@ -19,6 +20,7 @@ export const FEATURES: readonly Feature[] = [
   ambientFeature,
   reactionsFeature,
   huntFeature,
+  visitorsFeature,
   mousingFeature,
   fetchFeature,
   tricksFeature,

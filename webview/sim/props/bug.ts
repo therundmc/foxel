@@ -18,6 +18,13 @@ export class Bug {
   private vx = 0;
   private fleeing = false;
   private frozen = false;
+  /** When it flies off by itself, in seconds since it came; never while something is after it. */
+  private leaveAt = Infinity;
+
+  /** Fluttering about, there to be chased. */
+  get around(): boolean {
+    return this.active && !this.fleeing;
+  }
 
   get box(): Box {
     return { x: this.x, y: this.y, w: BUG_W, h: BUG_H };
@@ -40,11 +47,23 @@ export class Bug {
     this.active = true;
     this.fleeing = false;
     this.frozen = false;
+    this.leaveAt = Infinity;
     this.t = 0;
     this.x = fromLeft ? -BUG_W : worldWidth;
     this.vx = (fromLeft ? 1 : -1) * (8 + random() * 6);
     this.baseY = clamp(MIN_HEIGHT + random() * HEIGHT_RANGE, 2, worldHeight - BUG_H - 2);
     this.y = this.baseY;
+  }
+
+  /** Just passing through: flutters in like `spawn`, and is gone again after `stayS` seconds. */
+  visit(worldWidth: number, worldHeight: number, random: () => number, stayS: number): void {
+    this.spawn(worldWidth, worldHeight, random);
+    this.leaveAt = stayS;
+  }
+
+  /** Something is after it: it no longer leaves by itself. */
+  linger(): void {
+    this.leaveAt = Infinity;
   }
 
   freeze(): void {
@@ -78,6 +97,10 @@ export class Bug {
     }
     if (this.frozen) {
       this.y = this.baseY + Math.sin(this.t * 5);
+      return;
+    }
+    if (this.t >= this.leaveAt) {
+      this.flee(this.vx);
       return;
     }
     if (random() < dt * 0.6) {

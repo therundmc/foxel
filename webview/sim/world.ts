@@ -2,6 +2,7 @@ import { dayPhase, type DayPhase, type Party } from '../../shared/day';
 import { SPRITE_SIZE } from '../sprites/frames';
 import type { Buddy } from './buddy';
 import { Ball } from './props/ball';
+import { Bird } from './props/bird';
 import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
 import { Grass } from './props/grass';
@@ -24,6 +25,7 @@ export class World {
   readonly buddies: Buddy[] = [];
   readonly ball = new Ball();
   readonly bug = new Bug();
+  readonly bird = new Bird();
   readonly grass = new Grass();
   readonly mouse = new Mouse();
   readonly scenery = new Scenery();
@@ -50,7 +52,7 @@ export class World {
   get restful(): boolean {
     const ballMoving = this.ball.state === 'held' || (this.ball.state === 'free' && !this.ball.resting);
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
-    const critters = this.bug.active || this.mouse.active || this.grass.active || this.scenery.active;
+    const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
     return !ballMoving && !treatMoving && !critters && this.buddies.every((b) => b.restful);
   }
 
@@ -70,6 +72,7 @@ export class World {
     const dt = dtMs / 1000;
     this.ball.update(dt, this.width, this.height);
     this.bug.update(dt, this.width, this.height, this.random);
+    this.bird.update(dt, this.width, this.height);
     this.grass.update(dtMs);
     this.mouse.update(dt, this.width);
     this.scenery.update(dtMs);
