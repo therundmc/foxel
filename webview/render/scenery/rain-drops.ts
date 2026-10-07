@@ -1,9 +1,9 @@
 import { px, type VistaView } from './paint';
-import { hash, rainAt, SLANT, type Plan } from './rain-plan';
+import { hash, rainAt, SLANT_MOST, type Plan } from './rain-plan';
 
-// The rain on us: fine pale streaks, nearly straight down. Each drop is a little clock that falls, waits, and
-// falls again somewhere else. Whether a fall happens is settled when it starts, so the rain sets in and thins
-// out drop by drop, never in mid-air.
+// The rain on us: a driving rain, leaning with the wind and laid almost flat by the gusts. Each drop is a little
+// clock that falls, waits, and falls again somewhere else. Whether a fall happens is settled when it starts, so the
+// rain sets in and thins out drop by drop, never in mid-air.
 
 export interface Depth {
   readonly seed: number;
@@ -15,9 +15,9 @@ export interface Depth {
   readonly area: number;
 }
 
-/** Far ones are short, faint and slow; near ones longer and quicker. Both are slow for rain: it is a soft one. */
-export const FAR: Depth = { seed: 1, tall: 3, speed: 46, strength: 0.42, area: 150 };
-export const NEAR: Depth = { seed: 2, tall: 5, speed: 78, strength: 0.62, area: 420 };
+/** Far ones are short, faint and slower; near ones long and quick. */
+export const FAR: Depth = { seed: 1, tall: 4, speed: 72, strength: 0.42, area: 95 };
+export const NEAR: Depth = { seed: 2, tall: 7, speed: 122, strength: 0.6, area: 270 };
 const DROP = '#f4f5f2';
 
 /** The fox's leaf: half its width, the row of its top above the ground, how much lower its edges are. */
@@ -31,13 +31,13 @@ const FOX_TALL = 30;
 
 /** One depth of rain. Drops stop on the fox's leaf, and none ever falls on the fox. */
 export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, depth: Depth): void {
-  const wind = dir * SLANT;
-  const slack = h * SLANT;
-  const half = depth.tall >> 1;
-  const count = Math.ceil((w * h) / depth.area);
+  const wind = dir * plan.slant;
+  // Room on the windward side for the drops the wind brings in from outside the view.
+  const slack = h * SLANT_MOST;
+  const count = Math.ceil(((w + slack) * h) / depth.area);
   ctx.fillStyle = DROP;
   for (let i = 0; i < count; i++) {
-    const cycle = (h + depth.tall) / depth.speed + 0.2 + hash(i, depth.seed) * 0.6;
+    const cycle = (h + depth.tall) / depth.speed + 0.15 + hash(i, depth.seed) * 0.5;
     const at = t + hash(i, depth.seed + 10) * cycle;
     const fall = Math.floor(at / cycle);
     const since = at - fall * cycle;
@@ -53,17 +53,36 @@ export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, de
     } else if (Math.abs(top + wind * (h - FOX_TALL / 2) - foxX) < (plan.leafUp ? FOX_HALF : FOX_HALF_BARE)) {
       continue;
     }
-    // The streak leans a little with the wind, and its tail is fainter.
-    const y = Math.round(since * depth.speed);
-    const head = Math.min(y, lands) - (y - half);
-    const tail = Math.min(y - half, lands) - (y - depth.tall);
-    if (head > 0) {
-      ctx.globalAlpha = depth.strength;
-      ctx.fillRect(Math.round(top + wind * y), y - half, 1, head);
+    // The streak leans with the wind, pixel by pixel, and its tail is fainter.
+    const head = Math.round(since * depth.speed);
+    for (let k = 0; k < depth.tall; k++) {
+      const y = head - k;
+      if (y >= 0 && y < lands) {
+        ctx.globalAlpha = depth.strength * (k < depth.tall / 2 ? 1 : 0.55);
+        ctx.fillRect(Math.round(top + wind * y), y, 1, 1);
+      }
     }
-    if (tail > 0) {
-      ctx.globalAlpha = depth.strength * 0.55;
-      ctx.fillRect(Math.round(top + wind * (y - half)), y - depth.tall, 1, tail);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Sheets of rain: in a gust, pale slanting veils sweep across the view with the wind. */
+const SHEETS = 4;
+const SHEET_SPEED = 95;
+
+export function paintSheets({ ctx, w, h, t, dir }: VistaView, plan: Plan): void {
+  const strength = 0.11 * plan.gust * rainAt(t, plan.clearAt);
+  if (strength < 0.01) {
+    return;
+  }
+  const span = w + h * 2;
+  ctx.fillStyle = DROP;
+  ctx.globalAlpha = strength;
+  for (let i = 0; i < SHEETS; i++) {
+    const along = (((t * SHEET_SPEED * (0.8 + 0.1 * i) + (i * span) / SHEETS) % span) + span) % span;
+    const top = dir > 0 ? along - h : w + h - along;
+    for (let y = 0; y < h; y += 2) {
+      ctx.fillRect(Math.round(top + dir * plan.slant * y), y, 2 + (i % 2), 2);
     }
   }
   ctx.globalAlpha = 1;

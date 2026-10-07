@@ -16,8 +16,11 @@ const MIST_LEFT = 0.4;
 /** The warm light comes through the far trees first, then one row after the other, about a second apart. */
 const LIGHT_FROM = 3.5;
 const LIGHT_TAKES = 5;
-/** Pixels sideways for each pixel down: the little wind there is blows toward the side the fox looks to. */
-export const SLANT = 0.12;
+/** Pixels sideways for each pixel down: the wind drives the rain toward the side the fox looks to, harder in the gusts. */
+const SLANT = 0.38;
+const SLANT_GUST = 0.62;
+/** The most the rain ever leans, for what has to make room for it. */
+export const SLANT_MOST = SLANT + SLANT_GUST;
 
 export interface Plan {
   /** When the great moment began, in the sky's own time. */
@@ -25,6 +28,9 @@ export interface Plan {
   /** How thick the mist lies, and how far the air has cleared: 0 to 1. */
   readonly mist: number;
   readonly clear: number;
+  /** How hard the wind blows right now, from 0 between gusts to 1 at the height of one, and how far it leans the rain. */
+  readonly gust: number;
+  readonly slant: number;
   /** Whether the fox holds its leaf up, and whether the leaf has been rained on long enough to drip. */
   readonly leafUp: boolean;
   readonly leafWet: boolean;
@@ -41,9 +47,19 @@ export function lightOn(moment: number | undefined, order: number): number {
   return moment === undefined ? 0 : ramp(moment, LIGHT_FROM + order, LIGHT_FROM + LIGHT_TAKES + order);
 }
 
+/** The gusts: they come every few seconds, never at quite the same pace, swell and die away. */
+export function gustAt(t: number): number {
+  const blow = 0.5 + 0.5 * Math.sin(t * 0.7 + 1.4 * Math.sin(t * 0.23)) + 0.25 * Math.sin(t * 1.9 + 2);
+  return Math.min(1, Math.max(0, blow - 0.25)) ** 1.5;
+}
+
 export function planOf({ t, moment }: VistaView): Plan {
   const leafUp = t >= LEAF_FROM && (moment === undefined || moment < LEAF_AFTER);
+  // The wind rises with the rain and drops with it once the air clears.
+  const gust = gustAt(t) * ramp(t, 4, 12) * (moment === undefined ? 1 : 1 - 0.8 * ramp(moment, 3, 9));
   return {
+    gust,
+    slant: SLANT + SLANT_GUST * gust,
     clearAt: moment === undefined ? undefined : t - moment,
     mist: (1 - (1 - MIST_SETTLED) * ramp(t, 2, 14)) * (moment === undefined ? 1 : 1 - (1 - MIST_LEFT) * ramp(moment, 1.5, 9)),
     clear: moment === undefined ? 0 : ramp(moment, 1.5, 8),

@@ -1,7 +1,7 @@
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
 import { mix, type VistaPainter, type VistaView } from './paint';
 import { paintLight, paintMist, paintSky } from './rain-air';
-import { FAR, NEAR, paintDrips, paintRain } from './rain-drops';
+import { FAR, NEAR, paintDrips, paintRain, paintSheets } from './rain-drops';
 import { groveOf, paintRow, paintShiver } from './rain-grove';
 import { paintLeaves, paintSwirl } from './rain-leaves';
 import { lightOn, planOf } from './rain-plan';
@@ -47,10 +47,11 @@ function lookoutTones({ moment }: VistaView): LookoutTones {
 }
 
 /**
- * A rainy autumn day in the Japanese countryside. A grey sky; tall trees on the left and on the right, running out
- * of the frame, and between them a wooded hill in the mist, maples red and gold, ginkgos, dark cedars; fine rain,
- * and leaves coming down one after the other. At the great moment a breath of wind lifts a swirl of leaves and
- * carries it away; then the rain thins, the mist lifts and a warm light comes through the trees.
+ * A day of wind and rain in the Japanese countryside, in autumn. A grey sky; in the upper corners, the foliage of
+ * the maples we stand under, tossing in the gusts; far away, wooded hills ridge behind ridge, their colours in the
+ * mist; a driving rain that leans with the wind, and leaves blown across. At the great moment a breath of wind
+ * lifts a swirl of leaves and carries it away; then the wind drops, the rain thins, the mist lifts and a warm
+ * light comes over the hills.
  */
 export const rain: VistaPainter = {
   back(view) {
@@ -62,7 +63,7 @@ export const rain: VistaPainter = {
     grove.rows.forEach((_, row) => {
       paintRow(view, grove, row);
       if (row === grove.rows.length - 1) {
-        paintShiver(view, grove);
+        paintShiver(view, grove, plan.gust);
         paintLight(view, LIGHT_THROUGH);
       }
       paintMist(view, plan, row, grove.feet[row], thick);
@@ -75,6 +76,7 @@ export const rain: VistaPainter = {
   front(view) {
     const plan = planOf(view);
     paintRain(view, plan, FAR);
+    paintSheets(view, plan);
     paintRain(view, plan, NEAR);
     paintDrips(view, plan);
     paintLookoutFront(view, lookoutTones(view));
