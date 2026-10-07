@@ -1,8 +1,10 @@
 import { paintLookout, paintLookoutFront, type LookoutTones } from './lookout';
 import { gradient, mix, px, ramp, seeded, type VistaPainter, type VistaView } from './paint';
+import { paintBear } from './snow-bear';
 import { winterLand, type WinterLand } from './snow-land';
 
-// A winter night. Snow falls softly on a white valley, a frozen lake and a cabin with a lit window. At the great
+// A winter night in the far north. Snow falls softly on a white valley, a frozen lake where a white bear wanders, and a
+// red cabin with lit windows. At the great
 // moment the snow thins, the sky clears, and the northern lights unfold over the mountains, from the fox's shoulder
 // toward the side it looks to; they go on dancing to the end, the lake giving them back.
 //   0 s   the night, the snow already falling, thicker until 10 s; smoke from the cabin
@@ -141,7 +143,8 @@ function paintCabin({ ctx, t }: VistaView, { cabin }: WinterLand): void {
     return;
   }
   // The fire inside flickers, and its smoke goes up, a puff after the other, leaning as it rises.
-  px(ctx, cabin.windowX, cabin.windowY, WINDOW[Math.floor(t * 3 + Math.sin(t * 7)) % 2 === 0 ? 0 : 1], 1, 2, 2);
+  const glow = WINDOW[Math.floor(t * 3 + Math.sin(t * 7)) % 2 === 0 ? 0 : 1];
+  cabin.lights.forEach(([x, y, wide, tall]) => px(ctx, x, y, glow, 1, wide, tall));
   for (let puff = 0; puff < 5; puff++) {
     const age = (t * 0.35 + puff / 5) % 1;
     px(ctx, cabin.chimneyX + age * 5 + Math.sin(age * 5 + puff), cabin.chimneyY - age * 12, SMOKE, 0.5 * (1 - age), age > 0.5 ? 2 : 1, 1);
@@ -187,6 +190,7 @@ export const snow: VistaPainter = {
     ctx.drawImage(land.image, 0, 0);
     paintReflection(view, land);
     paintCabin(view, land);
+    paintBear(view, land);
     paintSnow(view, FAR_SNOW);
     paintLookout(view, lookoutTones(view));
   },

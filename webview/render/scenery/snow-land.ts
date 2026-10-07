@@ -1,8 +1,8 @@
 import { lookoutTop } from './lookout';
 import { prerender, seeded, type VistaView } from './paint';
 
-// A winter valley at night, painted once for a view: snowy mountains, a frozen lake, pines along its shore and a
-// little cabin with a lit window. Nothing of it moves; the snow, the smoke and the northern lights are painted over it.
+// A winter valley at night in the far north, painted once for a view: snowy mountains, a frozen lake, pines along
+// its shore and a little red wooden cabin with lit windows. Nothing of it moves; the snow, the smoke and the northern lights are painted over it.
 
 const clamp = (v: number, low: number, high: number): number => Math.min(high, Math.max(low, v));
 /** A wave folded into straight slopes, from 0 to 1. */
@@ -15,9 +15,18 @@ const NEAR_SNOW = '#6f86b8';
 const PINE = '#14213d';
 const PINE_SNOW = '#c7d8f0';
 const LAKE = ['#182a52', '#1f3562', '#2a4474'] as const;
-const WALL = '#3a2a2c';
+/** The cabin: red painted boards, pale corner posts, a dark door, snow on its steep roof. */
+const BOARDS = '#8e2f3a';
+const BOARDS_DARK = '#6f2530';
+const TRIM = '#cdd8ea';
+const DOOR = '#2a1d24';
 const ROOF = '#e4edf9';
+const CHIMNEY = '#3a3038';
 const SHORE = '#b9c9e6';
+
+/** How tall the cabin stands, and how many of those rows are its gable. */
+const CABIN_TALL = 11;
+const GABLE = 6;
 
 export interface WinterLand {
   readonly image: HTMLCanvasElement;
@@ -26,8 +35,8 @@ export interface WinterLand {
   readonly lakeFoot: number;
   /** The highest the far mountains go: the northern lights hang above. */
   readonly skyline: number;
-  /** The cabin: its window and the top of its chimney, or undefined where there is no room for it. */
-  readonly cabin: { readonly windowX: number; readonly windowY: number; readonly chimneyX: number; readonly chimneyY: number } | undefined;
+  /** The cabin: its lit windows as [x, y, width, height] and the top of its chimney, or undefined where there is no room for it. */
+  readonly cabin: { readonly lights: readonly (readonly [number, number, number, number])[]; readonly chimneyX: number; readonly chimneyY: number } | undefined;
 }
 
 function build(view: VistaView): WinterLand {
@@ -65,7 +74,7 @@ function build(view: VistaView): WinterLand {
     for (let x = 3 + random() * 8; x < w - 3; x += 3 + random() * (random() < 0.3 ? 26 : 5)) {
       const tall = 4 + Math.floor(random() * clamp(h * 0.06, 2, 6));
       const at = Math.round(x);
-      if (cabinX !== undefined && Math.abs(at - cabinX) < 9) {
+      if (cabinX !== undefined && Math.abs(at - cabinX) < 11) {
         continue;
       }
       for (let row = 0; row < tall; row++) {
@@ -78,18 +87,43 @@ function build(view: VistaView): WinterLand {
       }
     }
     if (cabinX !== undefined) {
-      // Walls, a roof heavy with snow, a chimney: the window is lit afterwards, it flickers.
-      ctx.fillStyle = WALL;
-      ctx.fillRect(cabinX - 4, lakeTop - 5, 9, 5);
-      ctx.fillRect(cabinX + 2, lakeTop - 10, 2, 3);
+      // Its gable faces us: a steep roof, so the snow slides off, and every other board a little darker.
+      const top = lakeTop - CABIN_TALL;
+      for (let row = 0; row < GABLE; row++) {
+        ctx.fillStyle = BOARDS;
+        ctx.fillRect(cabinX - row, top + row, row * 2 + 1, 1);
+      }
+      ctx.fillRect(cabinX - 5, top + GABLE, 11, CABIN_TALL - GABLE);
+      ctx.fillStyle = BOARDS_DARK;
+      for (let x = cabinX - 3; x <= cabinX + 4; x += 2) {
+        ctx.fillRect(x, top + GABLE, 1, CABIN_TALL - GABLE);
+      }
+      ctx.fillStyle = TRIM;
+      ctx.fillRect(cabinX - 5, top + GABLE, 1, CABIN_TALL - GABLE);
+      ctx.fillRect(cabinX + 5, top + GABLE, 1, CABIN_TALL - GABLE);
+      ctx.fillRect(cabinX - 4, top + GABLE + 3, 4, 1);
+      ctx.fillStyle = DOOR;
+      ctx.fillRect(cabinX + 2, top + GABLE + 2, 2, CABIN_TALL - GABLE - 2);
+      ctx.fillStyle = CHIMNEY;
+      ctx.fillRect(cabinX + 3, top - 1, 2, 4);
+      // Snow lies thick on both slopes of the roof, overhanging the walls, and caps the chimney.
       ctx.fillStyle = ROOF;
-      ctx.fillRect(cabinX - 5, lakeTop - 6, 11, 1);
-      ctx.fillRect(cabinX - 4, lakeTop - 7, 9, 1);
-      ctx.fillRect(cabinX - 2, lakeTop - 8, 5, 1);
-      ctx.fillRect(cabinX + 2, lakeTop - 11, 2, 1);
+      for (let k = 0; k <= GABLE; k++) {
+        ctx.fillRect(cabinX - k - 1, top - 1 + k, 2, 1);
+        ctx.fillRect(cabinX + k, top - 1 + k, 2, 1);
+      }
+      ctx.fillRect(cabinX + 3, top - 2, 2, 1);
     }
   });
-  const cabin = cabinX === undefined ? undefined : { windowX: cabinX - 2, windowY: lakeTop - 4, chimneyX: cabinX + 2, chimneyY: lakeTop - 12 };
+  const cabin =
+    cabinX === undefined
+      ? undefined
+      : {
+          // The window by the door, and a small one under the roof.
+          lights: [[cabinX - 3, lakeTop - CABIN_TALL + GABLE + 1, 2, 2], [cabinX, lakeTop - CABIN_TALL + 3, 1, 1]] as const,
+          chimneyX: cabinX + 3,
+          chimneyY: lakeTop - CABIN_TALL - 3,
+        };
   return { image, lakeTop, lakeFoot, skyline: lakeTop - farTall, cabin };
 }
 
