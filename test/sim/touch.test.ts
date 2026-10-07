@@ -90,6 +90,8 @@ describe('touch', () => {
     b.world.resize(300, 60);
     react(b, 'sleep');
     touch(b, 'head');
+    // The extension hears about the click and says you are back.
+    react(b, 'wake');
     expect(b.current().anim).toBe('patLie');
     simulate(b, 2000);
     expect(b.state).toBe('lie');

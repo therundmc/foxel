@@ -62,6 +62,8 @@ export class Input {
   constructor(
     private readonly stage: Stage,
     private readonly session: Session,
+    /** Called whenever the user does something with the fox or its things. */
+    private readonly onInteraction: () => void,
   ) {
     this.draggables = draggables(session);
     const canvas = stage.canvas;
@@ -141,6 +143,7 @@ export class Input {
     const picked = this.draggableAt(e.clientX, e.clientY);
     if (picked) {
       this.holding = picked;
+      this.onInteraction();
       this.throwing.reset();
       picked.grab(p);
       this.throwing.sample(p, performance.now());
@@ -174,6 +177,7 @@ export class Input {
       const minTravel = STROKE_MIN_TRAVEL * this.stage.scale;
       if (this.overBuddy(e.clientX, e.clientY) && this.stroke.move(e.movementX, performance.now(), minTravel)) {
         pet(buddy);
+        this.onInteraction();
       }
     }
     this.updateCursor(e.clientX, e.clientY);
@@ -212,11 +216,14 @@ export class Input {
     }
     if (this.overFoodBowl(e.clientX, e.clientY)) {
       fillBowl(buddy);
+      this.onInteraction();
       return;
     }
     const zone = this.zoneAt(e.clientX, e.clientY);
     if (zone) {
+      // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
+      this.onInteraction();
     }
   }
 
@@ -225,6 +232,7 @@ export class Input {
     if (world.ball.state === 'none' && !this.overBuddy(e.clientX, e.clientY)) {
       const p = this.stage.toWorld(e.clientX, e.clientY);
       spawnBall(this.session.buddy, p.x, p.y, 0);
+      this.onInteraction();
     }
   }
 }

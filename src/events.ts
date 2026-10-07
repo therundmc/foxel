@@ -50,6 +50,16 @@ export class ActivityWatcher implements vscode.Disposable {
     this.timer = setInterval(() => this.checkSleep(), SLEEP_CHECK_MS);
   }
 
+  /** Doing something with the fox is being there too, even with the editor left alone. */
+  interacted(): void {
+    this.touch();
+  }
+
+  /** Playing with the fox is a break from work. */
+  tookBreak(): void {
+    this.workingSince = Date.now();
+  }
+
   dispose(): void {
     clearInterval(this.timer);
     this.disposables.forEach((d) => d.dispose());

@@ -138,6 +138,19 @@ describe('ActivityWatcher', () => {
     expect(reactions).toEqual(['sleep', 'wake', 'wave']);
   });
 
+  it('counts doing something with the fox as being there, and playing with it as a break', () => {
+    pass(31 * SECOND);
+    expect(watcher.asleep).toBe(true);
+    watcher.interacted();
+    expect(watcher.asleep).toBe(false);
+    expect(reactions).toEqual(['sleep', 'wake']);
+
+    const start = watcher.workingSince;
+    pass(20 * SECOND);
+    watcher.tookBreak();
+    expect(watcher.workingSince).toBe(start + 51 * SECOND);
+  });
+
   it('starts a new stretch of work after a real break only', () => {
     const start = watcher.workingSince;
     pass(4 * MINUTE);

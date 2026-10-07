@@ -23,6 +23,7 @@ export type Act =
 export function act(b: Buddy, name: Act): void {
   b.meals.hungry = false;
   b.meals.thirsty = false;
+  b.rest.sleepy = false;
   b.rest.breakWanted = false;
   b.rest.askingBreak = false;
   b.rest.breakAsks = 0;
@@ -58,6 +59,7 @@ export function act(b: Buddy, name: Act): void {
       react(b, 'typing');
       return;
     case 'bedtime':
+      b.rest.sleepy = true;
       startBedtime(b);
       return;
     case 'party':

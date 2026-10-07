@@ -6,6 +6,8 @@ import { startLeave } from './play';
 import { SIGH, perform } from './touch';
 
 export class RestMemory {
+  /** You stopped working: it sleeps as soon as it is done with what it is doing, until you are back. */
+  sleepy = false;
   breakWanted = false;
   /** On its way to get the ball to ask for a break with. */
   askingBreak = false;
@@ -36,6 +38,22 @@ export function startBreak(b: Buddy): void {
   }
 }
 
+/** Playing with it is the break it was after: it stops asking, and the extension starts counting again. */
+export function tookBreak(b: Buddy): void {
+  b.rest.breakWanted = false;
+  b.rest.breakAsks = 0;
+  b.world.effects.push('played');
+}
+
+/** Naps where it is by day; at night it goes to its basket first. */
+export function goToSleep(b: Buddy): void {
+  if (b.world.phase === 'night') {
+    startBedtime(b);
+  } else {
+    b.tryEnter('sleep', Infinity);
+  }
+}
+
 // At night it trots to a little basket, puts its nightcap on and curls up there.
 export function startBedtime(b: Buddy): void {
   if (b.world.bed === undefined) {
@@ -45,6 +63,11 @@ export function startBedtime(b: Buddy): void {
 }
 
 function updateToBed(b: Buddy, dt: number): void {
+  // You came back before it got there.
+  if (!b.rest.sleepy) {
+    b.enterNext(b.pickNext());
+    return;
+  }
   const bed = b.world.bed ?? b.x;
   const facing = bed < b.world.width / 2 ? 1 : -1;
   if (!b.walkTo(bed, facing, WALK_SPEED * dt)) {
@@ -76,7 +99,7 @@ export const restFeature = {
       emote: () => 'cup',
     },
   },
-  urges: [urge((b) => b.rest.breakWanted, startBreak)],
+  urges: [urge((b) => b.rest.sleepy, goToSleep), urge((b) => b.rest.breakWanted, startBreak)],
   // The basket only stays out while it heads there, sleeps and wakes up.
   entered(b, state) {
     if (state !== 'toBed' && state !== 'sleep' && state !== 'stretch') {

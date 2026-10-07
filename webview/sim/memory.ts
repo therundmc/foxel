@@ -1,7 +1,7 @@
 import type { BuddyMemory } from '../../shared/protocol';
 import type { Buddy } from './buddy';
 
-/** What it still needs, as of `now` (ms since the epoch). */
+/** What it carries over, as of `now` (ms since the epoch). */
 export function remember(b: Buddy, now: number): BuddyMemory {
   return {
     savedAt: now,
@@ -9,20 +9,22 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     thirsty: b.meals.thirsty,
     breakWanted: b.rest.breakWanted,
     breakAsks: b.rest.breakAsks,
+    greeted: { ...b.intro.greeted },
   };
 }
 
-/** Whether two memories hold the same needs, whenever they were noted. */
-export function sameNeeds(a: BuddyMemory, b: BuddyMemory): boolean {
+/** Whether two memories hold the same things, whenever they were noted. */
+export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
   return (
     (a.hungryForMs === undefined) === (b.hungryForMs === undefined) &&
     a.thirsty === b.thirsty &&
     a.breakWanted === b.breakWanted &&
-    a.breakAsks === b.breakAsks
+    a.breakAsks === b.breakAsks &&
+    JSON.stringify(a.greeted) === JSON.stringify(b.greeted)
   );
 }
 
-/** Picks its needs back up where it left them, hungrier by the time that went by. */
+/** Picks up where it left off, hungrier by the time that went by. */
 export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   if (memory.hungryForMs !== undefined) {
     b.meals.hungry = true;
@@ -31,4 +33,5 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.meals.thirsty = memory.thirsty;
   b.rest.breakWanted = memory.breakWanted;
   b.rest.breakAsks = memory.breakAsks;
+  b.intro.greeted = { ...memory.greeted };
 }

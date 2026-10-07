@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Buddy } from '../../webview/sim/buddy';
-import { spawnBall } from '../../webview/sim/features/fetch';
+import { grabBall, spawnBall, throwBall } from '../../webview/sim/features/fetch';
 import { startIntro } from '../../webview/sim/features/intro';
 import { fillBowl } from '../../webview/sim/features/meals';
 import { react } from '../../webview/sim/features/reactions';
+import { recall, remember } from '../../webview/sim/memory';
 import type { BuddyState } from '../../webview/sim/state';
 import type { AnimName } from '../../webview/sprites/fox/animations';
 import { fixed, simulate, spawn } from './helpers';
@@ -183,5 +184,78 @@ describe('living with you', () => {
     const b = fox(at(1));
     react(b, 'typing');
     expect(b.current().anim).toBe('typingSleepy');
+  });
+
+  it('finishes what it is doing before falling asleep, and stays up if you are back first', () => {
+    const b = fox(at(15));
+    spawnBall(b, 200, 20, 0);
+    react(b, 'sleep');
+    expect(b.state).toBe('fetch');
+    simulate(b, 60_000, () => b.state === 'sleep');
+    expect(b.state).toBe('sleep');
+
+    const back = fox(at(15));
+    spawnBall(back, 200, 20, 0);
+    react(back, 'sleep');
+    react(back, 'wake');
+    const states = new Set<BuddyState>();
+    simulate(back, 60_000, () => {
+      states.add(back.state);
+    });
+    expect(states).not.toContain('sleep');
+  });
+
+  it('turns back from its basket if you return before it gets there', () => {
+    const b = fox(at(23));
+    react(b, 'sleep');
+    simulate(b, 500);
+    expect(b.state).toBe('toBed');
+    react(b, 'wake');
+    simulate(b, 100);
+    expect(b.state).not.toBe('toBed');
+    expect(b.world.bed).toBeUndefined();
+  });
+
+  it('takes a game of fetch as the break it asked for', () => {
+    const b = fox(at(15));
+    react(b, 'breakTime');
+    simulate(b, 30_000, () => b.state === 'askBreak');
+    const ball = b.world.ball;
+    grabBall(b, ball.center, 10);
+    throwBall(b, 60, 40, 150);
+    expect(b.world.effects).toContain('played');
+    // Asked again much later, it asks nicely once more instead of sighing.
+    simulate(b, 60_000, () => b.def.calm === true);
+    react(b, 'breakTime');
+    const anims = new Set<AnimName>();
+    const emotes = new Set<string | undefined>();
+    simulate(b, 40_000, () => {
+      anims.add(b.current().anim);
+      emotes.add(b.emote());
+    });
+    expect(anims).not.toContain('sigh');
+    expect(emotes).toContain('cup');
+  });
+
+  it('keeps the big welcome for the first time it sees you', () => {
+    const comeIn = (b: Buddy): void => {
+      startIntro(b);
+      simulate(b, 15_000, () => b.state !== 'intro');
+    };
+    const b = fox(at(8));
+    comeIn(b);
+    expect(b.current().anim).toBe('morning');
+    simulate(b, 10_000);
+    comeIn(b);
+    expect(b.state).toBe('wave');
+
+    const reopened = fox(at(8, 30));
+    recall(reopened, remember(b, 0), 0);
+    comeIn(reopened);
+    expect(reopened.state).toBe('wave');
+
+    b.world.setClock(at(22), true);
+    comeIn(b);
+    expect(b.current().anim).toBe('goodNight');
   });
 });

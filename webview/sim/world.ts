@@ -11,8 +11,8 @@ export interface WorldPoint {
   y: number;
 }
 
-/** One-off things for the view to act on: tell the extension it ate, throw confetti. */
-export type Effect = 'fed' | 'confetti';
+/** One-off things for the view to act on: tell the extension it ate or was played with, throw confetti. */
+export type Effect = 'fed' | 'played' | 'confetti';
 
 /** What the buddies share: the ground, the toys and bowls on it, the pointer and the time of day. */
 export class World {

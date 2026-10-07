@@ -10,6 +10,9 @@
 - Party days: a party hat and confetti on Friday afternoons, plus a cake on the anniversary of the install.
 - Name: `foxel.name` becomes the title of its view.
 - Its needs last: closing the view no longer makes it forget that it is hungry, thirsty or waiting for a break, and reminders that come up while the view is closed wait for you to open it.
+- Sleep waits its turn: if it is busy when you stop working, it finishes what it is doing and then falls asleep. Doing something with it, or opening its view, counts as being there, so it no longer dozes off while you play with it.
+- A game of fetch is a break: throw the ball and it stops asking for one, and starts counting your work again from there.
+- The big good morning, good night and party welcome are kept for the first time it sees you; when the view comes back a moment later, it just waves.
 - No text and no gauges: it shows what it feels with its face, its pose and small picture bubbles.
 
 ## 1.1.0

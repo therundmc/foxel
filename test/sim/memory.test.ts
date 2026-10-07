@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Buddy } from '../../webview/sim/buddy';
 import { react } from '../../webview/sim/features/reactions';
-import { recall, remember, sameNeeds } from '../../webview/sim/memory';
+import { recall, remember, sameMemory } from '../../webview/sim/memory';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('memory', () => {
@@ -36,7 +36,7 @@ describe('memory', () => {
 
   it('still wants the drink and the break it could not get to', () => {
     const after = fox();
-    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0 }, MINUTE);
+    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {} }, MINUTE);
     simulate(after, 3000, () => after.state === 'drink');
     expect(after.state).toBe('drink');
   });
@@ -60,8 +60,8 @@ describe('memory', () => {
     react(b, 'hungry');
     const hungry = remember(b, 10);
     simulate(b, 5000);
-    expect(sameNeeds(calm, remember(fox(), 99))).toBe(true);
-    expect(sameNeeds(calm, hungry)).toBe(false);
-    expect(sameNeeds(hungry, remember(b, 5010))).toBe(true);
+    expect(sameMemory(calm, remember(fox(), 99))).toBe(true);
+    expect(sameMemory(calm, hungry)).toBe(false);
+    expect(sameMemory(hungry, remember(b, 5010))).toBe(true);
   });
 });

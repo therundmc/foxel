@@ -58,13 +58,12 @@ export function activate(context: vscode.ExtensionContext): void {
   // A view forgets everything when it is closed, so the fox's needs are kept here for the next one.
   let memory: BuddyMemory | undefined;
 
+  // Opening its view is coming to see it: it is awake for that.
   const onReady = (provider: BuddyViewProvider): void => {
+    watcher.interacted();
     provider.post(settingsMessage());
     if (memory) {
       provider.post({ type: 'memory', memory });
-    }
-    if (watcher.asleep) {
-      provider.post({ type: 'reaction', reaction: 'sleep' });
     }
     routine.viewReady();
   };
@@ -75,6 +74,12 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'fed':
         routine.fed();
+        break;
+      case 'interaction':
+        watcher.interacted();
+        break;
+      case 'played':
+        watcher.tookBreak();
         break;
       case 'memory':
         memory = msg.memory;
@@ -92,6 +97,12 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(id, provider));
   }
 
+  // A command that does something with the fox: the user is there for it.
+  const withFox = (run: () => void) => (): void => {
+    watcher.interacted();
+    run();
+  };
+
   const setEnabled = async (enabled: boolean): Promise<void> => {
     await vscode.workspace
       .getConfiguration(SECTION)
@@ -107,10 +118,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('foxel.enable', () => setEnabled(true)),
     vscode.commands.registerCommand('foxel.disable', () => setEnabled(false)),
     vscode.commands.registerCommand('foxel.toggle', () => setEnabled(!readConfig().enabled)),
-    vscode.commands.registerCommand('foxel.wave', () => react('wave')),
-    vscode.commands.registerCommand('foxel.throwBall', () => broadcast({ type: 'spawnBall' })),
-    vscode.commands.registerCommand('foxel.giveTreat', () => broadcast({ type: 'giveTreat' })),
-    vscode.commands.registerCommand('foxel.fillBowl', () => broadcast({ type: 'fillBowl' })),
+    vscode.commands.registerCommand('foxel.wave', withFox(() => react('wave'))),
+    vscode.commands.registerCommand('foxel.throwBall', withFox(() => broadcast({ type: 'spawnBall' }))),
+    vscode.commands.registerCommand('foxel.giveTreat', withFox(() => broadcast({ type: 'giveTreat' }))),
+    vscode.commands.registerCommand('foxel.fillBowl', withFox(() => broadcast({ type: 'fillBowl' }))),
     vscode.commands.registerCommand('foxel.playScene', async () => {
       const picks = [
         { label: 'A day in the life', scenes: SCENES },

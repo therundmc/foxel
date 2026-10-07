@@ -2,7 +2,7 @@ import type { Reaction } from '../../../shared/protocol';
 import type { Buddy } from '../buddy';
 import type { Feature } from '../state';
 import { startDrink, startHungry } from './meals';
-import { startBedtime, startBreak } from './rest';
+import { goToSleep, startBreak } from './rest';
 
 type TimedReaction = 'alert' | 'wave' | 'love' | 'happy' | 'celebrate' | 'sad' | 'panic';
 
@@ -25,17 +25,15 @@ const timed = (state: TimedReaction) => (b: Buddy): void => b.tryEnter(state, RE
 // What each message from the editor does to it. The compiler asks for an entry here when the protocol gains a `Reaction`.
 const HANDLERS: Record<Reaction, (b: Buddy) => void> = {
   wake(b) {
+    b.rest.sleepy = false;
     b.rest.breakAsks = 0;
     if (b.state === 'sleep') {
       b.enter('stretch', b.ambientDuration('stretch'));
     }
   },
   sleep(b) {
-    if (b.world.phase === 'night') {
-      startBedtime(b);
-    } else {
-      b.tryEnter('sleep', Infinity);
-    }
+    b.rest.sleepy = true;
+    goToSleep(b);
   },
   hungry(b) {
     if (!b.meals.hungry) {

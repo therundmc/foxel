@@ -6,6 +6,7 @@ import { clamp } from '../math';
 import { Ball } from '../props/ball';
 import type { AnimRef, Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, CATCH_RADIUS, FETCH_FAR, FETCH_MAX_MS, FETCH_RUN_SPEED, FETCH_WALK_SPEED, NOSE_REACH } from '../tuning';
+import { tookBreak } from './rest';
 import { showOff } from './tricks';
 
 const BRING_SPEED = 14;
@@ -65,7 +66,7 @@ export function throwBall(b: Buddy, vx: number, vy: number, playerX: number | un
   }
   b.world.ball.launch(vx, vy);
   b.fetch.playerX = playerX;
-  b.rest.breakAsks = 0;
+  tookBreak(b);
   b.tryEnter('fetch', FETCH_MAX_MS);
 }
 

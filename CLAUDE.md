@@ -52,7 +52,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New reaction to the editor**: add it to `Reaction` (`shared/protocol.ts`); the compiler asks for its handler in `features/reactions.ts`. Emit it from `src/events.ts` or `src/routine.ts`.
 - **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry.
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
-- **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameNeeds` and `recall` in `sim/memory.ts`. The host needs no change.
+- **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameMemory` and `recall` in `sim/memory.ts`. The host needs no change.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Document it in the README.
 - **New toy**: a class in `sim/props/` exposing its `box`, a field and its update in `World`, its glyph in `sprites/props.ts` and a draw method in `render/renderer.ts`. If it can be dragged, one entry in `draggables` (`webview/input.ts`). What the fox does with it is a feature like any other.
 

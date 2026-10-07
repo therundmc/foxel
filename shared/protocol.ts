@@ -27,7 +27,10 @@ export interface BuddySettings {
   debugHour?: number;
 }
 
-/** What the fox still needs, carried over when its view is closed and opened again. */
+/** The welcomes it keeps for the first time it sees you. */
+export type Greeting = 'morning' | 'night' | 'party';
+
+/** What the fox carries over when its view is closed and opened again. */
 export interface BuddyMemory {
   /** When this was noted, in ms since the epoch: time goes on while the view is closed. */
   savedAt: number;
@@ -37,6 +40,8 @@ export interface BuddyMemory {
   breakWanted: boolean;
   /** Break requests it made in vain so far. */
   breakAsks: number;
+  /** When it last gave each welcome, in ms since the epoch. */
+  greeted: Partial<Record<Greeting, number>>;
 }
 
 export const SCENES = [
@@ -65,4 +70,11 @@ export type HostMessage =
   | { type: 'play'; scenes: readonly Scene[] }
   | { type: 'shown' };
 
-export type WebviewMessage = { type: 'ready' } | { type: 'fed' } | { type: 'memory'; memory: BuddyMemory };
+export type WebviewMessage =
+  | { type: 'ready' }
+  | { type: 'fed' }
+  /** The user did something in the view: they are there, even without touching the editor. */
+  | { type: 'interaction' }
+  /** The user played with the fox, which is a break from work. */
+  | { type: 'played' }
+  | { type: 'memory'; memory: BuddyMemory };

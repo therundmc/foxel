@@ -10,7 +10,7 @@ import { spawnBall } from './sim/features/fetch';
 import { startIntro } from './sim/features/intro';
 import { fillBowl } from './sim/features/meals';
 import { react } from './sim/features/reactions';
-import { recall, remember, sameNeeds } from './sim/memory';
+import { recall, remember, sameMemory } from './sim/memory';
 import { giveTreat } from './sim/features/treat';
 import { Showcase } from './sim/showcase';
 import { World, type Effect } from './sim/world';
@@ -27,6 +27,7 @@ declare function acquireVsCodeApi(): {
 const MAX_FRAME_DT_MS = 100;
 const RESTFUL_FRAME_MS = 80;
 const SPAWN_SPEED = 40;
+const INTERACTION_EVERY_MS = 1000;
 
 const vscode = acquireVsCodeApi();
 const stage = new Stage(document.getElementById('stage') as HTMLCanvasElement);
@@ -43,7 +44,17 @@ const session: Session = {
   introPending: true,
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
-const input = new Input(stage, session);
+const input = new Input(stage, session, onInteraction);
+
+// Tells the extension the user is with the fox; once a second is plenty while they stroke it.
+let toldAt = -Infinity;
+function onInteraction(): void {
+  const now = performance.now();
+  if (now - toldAt >= INTERACTION_EVERY_MS) {
+    toldAt = now;
+    vscode.postMessage({ type: 'interaction' });
+  }
+}
 
 function resize(): void {
   stage.fit(session.settings.scale);
@@ -73,6 +84,9 @@ function onEffect(effect: Effect): void {
     case 'fed':
       vscode.postMessage({ type: 'fed' });
       break;
+    case 'played':
+      vscode.postMessage({ type: 'played' });
+      break;
     case 'confetti':
       sky.burst(stage, buddy.x + SPRITE_SIZE / 2);
       break;
@@ -81,11 +95,11 @@ function onEffect(effect: Effect): void {
   }
 }
 
-// The extension keeps what the fox still needs, for the next time the view is opened.
+// The extension keeps what the fox carries over, for the next time the view is opened.
 let saved = remember(buddy, Date.now());
 function saveMemory(): void {
   const memory = remember(buddy, Date.now());
-  if (!sameNeeds(saved, memory)) {
+  if (!sameMemory(saved, memory)) {
     saved = memory;
     vscode.postMessage({ type: 'memory', memory });
   }

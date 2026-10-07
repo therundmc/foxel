@@ -1,3 +1,4 @@
+import type { Greeting } from '../../../shared/protocol';
 import { PEEK_DUCK_MS, PEEK_HAPPY_MS, PEEK_LOOK_MS, PEEK_RETURN_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
@@ -11,6 +12,7 @@ const PEEK_DUCK = 5;
 const PEEK_SLIDE_MS = 150;
 const PEEK_MS = PEEK_LOOK_MS + PEEK_DUCK_MS + PEEK_RETURN_MS + PEEK_HAPPY_MS;
 const INTRO_SPEED = 26;
+const GREET_AGAIN_MS = 12 * 60 * 60_000;
 // Looking around while peeking: up, back, down.
 const PEEK_GLANCES: readonly (readonly [number, Gaze])[] = [
   [500, { x: 0, y: -1 }],
@@ -22,6 +24,8 @@ export class IntroMemory {
   phase: 'peek' | 'enter' = 'peek';
   peekX = 0;
   targetX = 0;
+  /** When it last gave each welcome, by the world's clock. */
+  greeted: Partial<Record<Greeting, number>> = {};
 }
 
 /** First appearance: pokes its head in from an edge, looks around, then trots in to say hello. */
@@ -63,17 +67,44 @@ function updateIntro(b: Buddy, dt: number): void {
 
 // Says hello the way the moment calls for: party, good morning, good night, or a plain wave.
 function greet(b: Buddy): void {
-  const phase = b.world.phase;
-  if (b.world.party) {
-    b.world.effects.push('confetti');
-    b.enter('celebrate', REACTION_MS.celebrate);
-  } else if (phase === 'dawn' || phase === 'morning') {
-    perform(b, MORNING);
-  } else if (phase === 'evening' || phase === 'night') {
-    perform(b, GOOD_NIGHT);
-  } else {
-    b.enter('wave', REACTION_MS.wave);
+  const welcome = welcomeDue(b);
+  switch (welcome) {
+    case 'party':
+      b.world.effects.push('confetti');
+      b.enter('celebrate', REACTION_MS.celebrate);
+      break;
+    case 'morning':
+      perform(b, MORNING);
+      break;
+    case 'night':
+      perform(b, GOOD_NIGHT);
+      break;
+    default:
+      welcome satisfies undefined;
+      b.enter('wave', REACTION_MS.wave);
   }
+}
+
+// The big welcome is for the first time it sees you; coming back in a moment later, a wave will do.
+function welcomeDue(b: Buddy): Greeting | undefined {
+  const phase = b.world.phase;
+  const welcome: Greeting | undefined = b.world.party
+    ? 'party'
+    : phase === 'dawn' || phase === 'morning'
+      ? 'morning'
+      : phase === 'evening' || phase === 'night'
+        ? 'night'
+        : undefined;
+  if (!welcome) {
+    return undefined;
+  }
+  const now = b.world.now.getTime();
+  const last = b.intro.greeted[welcome];
+  if (last !== undefined && Math.abs(now - last) < GREET_AGAIN_MS) {
+    return undefined;
+  }
+  b.intro.greeted[welcome] = now;
+  return welcome;
 }
 
 export const introFeature = {
