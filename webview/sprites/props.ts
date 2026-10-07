@@ -156,7 +156,7 @@ export const EMOTES: Record<Emote, Glyph> = {
   bowl: emoteBubble(EMOTE_ICONS.bowl),
 };
 
-export type Hat = 'party' | 'nightcap' | 'leaf';
+export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf';
 
 /** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
 export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
@@ -181,5 +181,11 @@ export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
     ]),
     x: -10,
     y: -19,
+  },
+  // A red scarf round its neck in the snow, seen from behind, one end hanging down its back.
+  scarf: {
+    glyph: outlined(['AAAAAAAAAAAA', 'aAaAaAaAaAaA', '.........AA.', '.........Aa.', '.........aA.']),
+    x: -7,
+    y: 4,
   },
 };

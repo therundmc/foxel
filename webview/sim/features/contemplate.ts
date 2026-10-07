@@ -21,8 +21,9 @@ const WAIT_MAX_MS = 3.5 * 3_600_000;
 const FIRST_WAIT_MS = 15 * 60_000;
 /** Coming back to a view that was closed, it first settles in, however long it has been. */
 export const AFTER_OPEN_MS = 3 * 60_000;
-/** Some days, in clouds weather, it rains instead. */
+/** Some days, in clouds weather, it rains instead; and some nights it snows. */
 const RAIN_CHANCE = 0.3;
+const SNOW_CHANCE = 0.3;
 /** Under the rain it holds a leaf over its head, until this long after the sky clears. */
 const LEAF_DOWN_MS = 7000;
 
@@ -57,7 +58,8 @@ function startDueContemplation(b: Buddy): void {
   const vista = vistaNow(b);
   if (vista) {
     b.contemplate.waitMs = b.between(WAIT_MIN_MS, WAIT_MAX_MS);
-    startContemplate(b, vista === 'clouds' && b.world.random() < RAIN_CHANCE ? 'rain' : vista);
+    const weather = vista === 'clouds' ? (['rain', RAIN_CHANCE] as const) : vista === 'stars' ? (['snow', SNOW_CHANCE] as const) : undefined;
+    startContemplate(b, weather && b.world.random() < weather[1] ? weather[0] : vista);
   }
 }
 
@@ -100,8 +102,12 @@ export const contemplateFeature = {
       },
       hat(b) {
         const facing = b.elapsed >= FACING_MS && b.duration - b.elapsed >= LEAVE_MS;
+        if (!facing) {
+          return 'none';
+        }
+        // A leaf over its head while it rains, a scarf round its neck in the snow.
         const raining = b.contemplate.vista === 'rain' && b.elapsed < b.contemplate.momentAt + LEAF_DOWN_MS;
-        return facing && raining ? 'leaf' : 'none';
+        return raining ? 'leaf' : b.contemplate.vista === 'snow' ? 'scarf' : 'none';
       },
     },
   },

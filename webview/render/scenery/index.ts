@@ -4,11 +4,12 @@ import type { Stage } from '../../stage';
 import { clouds } from './clouds';
 import type { VistaPainter, VistaView } from './paint';
 import { rain } from './rain';
+import { snow } from './snow';
 import { stars } from './stars';
 import { sunrise, sunset } from './sun';
 
 /** One painter per sky. The compiler asks for an entry here when a `Vista` is added. */
-const VISTAS: Record<Vista, VistaPainter> = { sunrise, clouds, sunset, stars, rain };
+const VISTAS: Record<Vista, VistaPainter> = { sunrise, clouds, sunset, stars, rain, snow };
 
 type Layer = 'back' | 'front';
 

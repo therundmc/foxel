@@ -35,6 +35,7 @@ const SCENE_LABELS: Record<Scene, string> = {
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',
+  snow: 'Contemplating the snow and the northern lights',
   sunrise: 'Contemplating the sunrise',
   daydream: 'Contemplating mountains and clouds',
   sunset: 'Contemplating the sunset',

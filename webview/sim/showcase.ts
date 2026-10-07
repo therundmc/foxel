@@ -30,6 +30,7 @@ type Act =
   | 'daydream'
   | 'sunset'
   | 'rain'
+  | 'snow'
   | 'mouse';
 
 /** Jumps straight into one of its daily moments, whatever it was doing: for the showcase. */
@@ -83,6 +84,7 @@ export function act(b: Buddy, name: Act): void {
     case 'sunrise':
     case 'sunset':
     case 'rain':
+    case 'snow':
       startContemplate(b, name);
       return;
     case 'bedtime':
@@ -143,6 +145,7 @@ const SCRIPTS: Record<Scene, Script> = {
   },
   drowsy: { hour: 22.75, ms: 7000, cues: [[0, (b) => act(b, 'drowsy')]] },
   stargaze: { hour: 22.9, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'stargaze')]] },
+  snow: { hour: 22.95, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'snow')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },
   bedtime: { hour: 23.5, ms: 15_000, cues: [[0, (b) => act(b, 'bedtime')], [11_000, (b) => react(b, 'wake')]] },
 };

@@ -67,6 +67,7 @@ export const SCENES = [
   'daydream',
   'sunset',
   'stargaze',
+  'snow',
   'goodNight',
   'bedtime',
 ] as const;

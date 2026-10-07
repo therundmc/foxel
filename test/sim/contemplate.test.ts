@@ -100,6 +100,19 @@ describe('contemplating the sky', () => {
   });
 });
 
+describe('contemplating the snow', () => {
+  it('wears a scarf for as long as it has its back to us', () => {
+    const b = fox(20, at(23));
+    startContemplate(b, 'snow');
+    expect(b.hat()).toBeUndefined();
+    simulate(b, 12_000);
+    expect(b.current().anim).toBe('gaze');
+    expect(b.hat()).toBe('scarf');
+    simulate(b, 120_000, () => b.current().anim === 'gazeSettle');
+    expect(b.hat()).toBeUndefined();
+  });
+});
+
 describe('when it contemplates', () => {
   function skyAfter(clock: Date, ms: number, random = 0.5): Vista | undefined {
     const b = fox(20, clock, random);
@@ -119,8 +132,9 @@ describe('when it contemplates', () => {
     expect(skyAfter(at(23), 20 * 60_000)).toBe('stars');
   });
 
-  it('gets rain instead of clouds some days, never instead of a sunset', () => {
+  it('gets rain instead of clouds some days and snow instead of stars some nights, never instead of a sunset', () => {
     expect(skyAfter(at(14), 20 * 60_000, 0.1)).toBe('rain');
+    expect(skyAfter(at(23), 20 * 60_000, 0.1)).toBe('snow');
     expect(skyAfter(at(19, 30), 20 * 60_000, 0.1)).toBe('sunset');
   });
 
