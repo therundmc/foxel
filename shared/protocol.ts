@@ -1,3 +1,5 @@
+import type { Vista } from './day';
+
 export type Reaction =
   | 'wave'
   | 'love'
@@ -44,6 +46,10 @@ export interface BuddyMemory {
   greeted: Partial<Record<Greeting, number>>;
   /** Time left, when this was noted, before it feels like contemplating the sky again. */
   vistaInMs: number;
+  /** The sky it watched and has not dreamt of yet. */
+  dream?: Vista;
+  /** Whether a mouse has made friends with it. */
+  mouseFriend: boolean;
 }
 
 export const SCENES = [

@@ -2,6 +2,7 @@ import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, FETCH_MAX_MS, WALK_SPEED } from '../tuning';
+import { sleepOf } from './contemplate';
 import { startLeave } from './play';
 import { SIGH, perform } from './touch';
 
@@ -82,6 +83,7 @@ export const restFeature = {
       priority: 1,
       restful: true,
       free: true,
+      anim: (b) => ({ anim: sleepOf(b), elapsed: b.elapsed }),
       hat: (b) => (b.world.bed !== undefined ? 'nightcap' : 'none'),
     },
     toBed: {

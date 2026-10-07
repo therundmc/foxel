@@ -15,6 +15,8 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     breakAsks: b.rest.breakAsks,
     greeted: { ...b.intro.greeted },
     vistaInMs: b.contemplate.waitMs,
+    dream: b.contemplate.dream,
+    mouseFriend: b.visitors.mouseFriend,
   };
 }
 
@@ -26,6 +28,8 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     a.breakWanted === b.breakWanted &&
     a.breakAsks === b.breakAsks &&
     JSON.stringify(a.greeted) === JSON.stringify(b.greeted) &&
+    a.dream === b.dream &&
+    a.mouseFriend === b.mouseFriend &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
 }
@@ -40,6 +44,8 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.rest.breakWanted = memory.breakWanted;
   b.rest.breakAsks = memory.breakAsks;
   b.intro.greeted = { ...memory.greeted };
+  b.contemplate.dream = memory.dream;
+  b.visitors.mouseFriend = memory.mouseFriend === true;
   // A memory noted by a view from before contemplations knows nothing of the wait.
   b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, (memory.vistaInMs ?? 0) - Math.max(0, now - memory.savedAt));
 }

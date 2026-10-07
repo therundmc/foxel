@@ -1,7 +1,7 @@
 import { BIRD_H, BIRD_W } from '../../sprites/props';
 import { clamp, type Box } from '../math';
 
-type BirdState = 'away' | 'crossing' | 'landing' | 'pecking' | 'leaving';
+type BirdState = 'away' | 'crossing' | 'landing' | 'pecking' | 'watching' | 'leaving';
 
 const CROSS_SPEED = 26;
 const LAND_S = 2.4;
@@ -27,6 +27,8 @@ export class Bird {
   private toX = 0;
   private stayS = 0;
   private hopFrom = 0;
+  /** Come to keep someone company: once down it stands still, looking this way. */
+  private company: 1 | -1 | undefined;
 
   get active(): boolean {
     return this.state !== 'away';
@@ -51,6 +53,9 @@ export class Bird {
 
   /** Which picture of it to show: wings up, wings down, standing, pecking. */
   get frame(): number {
+    if (this.state === 'watching') {
+      return 2;
+    }
     if (this.state === 'pecking' && this.y === 0) {
       return Math.floor(this.t / PECK_S) % 3 === 1 ? 3 : 2;
     }
@@ -79,6 +84,13 @@ export class Bird {
     this.x = this.fromX;
     this.y = this.fromY;
     this.stayS = stayS;
+    this.company = undefined;
+  }
+
+  /** Comes down at `spotX` to sit beside someone and look the way they look, until it is sent off. */
+  perch(spotX: number, facing: 1 | -1, worldWidth: number, worldHeight: number): void {
+    this.land(spotX, Infinity, worldWidth, worldHeight);
+    this.company = facing;
   }
 
   /** Something is creeping up on it: it does not leave by itself any more. */
@@ -117,7 +129,8 @@ export class Bird {
         this.x = this.fromX + (this.toX - this.fromX) * eased;
         this.y = this.fromY * (1 - eased);
         if (p >= 1) {
-          this.state = 'pecking';
+          this.state = this.company ? 'watching' : 'pecking';
+          this.dir = this.company ?? this.dir;
           this.t = 0;
           this.y = 0;
           this.hopFrom = this.x;
@@ -140,6 +153,8 @@ export class Bird {
         }
         break;
       }
+      case 'watching':
+        break;
       case 'leaving':
         this.x += this.dir * LEAVE_SPEED * dt;
         this.y += LEAVE_RISE * dt;

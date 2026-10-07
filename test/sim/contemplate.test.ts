@@ -101,15 +101,92 @@ describe('contemplating the sky', () => {
 });
 
 describe('contemplating the snow', () => {
-  it('wears a scarf for as long as it has its back to us', () => {
+  it('wears a scarf while its back is to us, gets snow on its head, and shakes it off as it gets up', () => {
     const b = fox(20, at(23));
     startContemplate(b, 'snow');
     expect(b.hat()).toBeUndefined();
     simulate(b, 12_000);
     expect(b.current().anim).toBe('gaze');
     expect(b.hat()).toBe('scarf');
+    simulate(b, 12_000);
+    expect(b.hat()).toBe('scarfSnow');
     simulate(b, 120_000, () => b.current().anim === 'gazeSettle');
+    expect(b.hat()).toBe('snowcap');
+    simulate(b, 20_000, () => b.state !== 'contemplate');
+    expect(b.current().anim).toBe('shakeSnow');
     expect(b.hat()).toBeUndefined();
+    simulate(b, 3000, () => b.state !== 'touched');
+    expect(b.state).toBe('sit');
+  });
+
+  it('shakes itself dry after the rain', () => {
+    const b = fox(20, at(11));
+    startContemplate(b, 'rain');
+    simulate(b, 120_000, () => b.state !== 'contemplate');
+    expect(b.current().anim).toBe('shakeDry');
+  });
+});
+
+describe('what it keeps of a contemplation', () => {
+  it('dreams of the sky it watched the next time it sleeps, once', () => {
+    const b = fox(20, at(23));
+    startContemplate(b, 'stars');
+    simulate(b, 10_000);
+    expect(b.contemplate.dream).toBeUndefined();
+    simulate(b, 120_000, () => b.state !== 'contemplate');
+    expect(b.contemplate.dream).toBe('stars');
+    b.enter('sleep', Infinity);
+    expect(b.current().anim).toBe('sleepStars');
+    simulate(b, 25_000);
+    b.enter('sit', 5000);
+    b.world.update(16);
+    b.enter('sleep', Infinity);
+    expect(b.current().anim).toBe('sleep');
+  });
+
+  it('still dreams of it after a nap too short for the dream', () => {
+    const b = fox(20, at(23));
+    b.contemplate.dream = 'sunset';
+    b.enter('sleep', Infinity);
+    simulate(b, 5000);
+    b.enter('sit', 5000);
+    b.world.update(16);
+    b.enter('sleep', Infinity);
+    expect(b.current().anim).toBe('sleepSunset');
+  });
+});
+
+describe('company', () => {
+  it('on a fine day a bird sometimes comes to sit beside it, looks where it looks, and leaves when it turns back', () => {
+    const b = fox(40, at(14), 0.2);
+    b.world.resize(240, 60);
+    startContemplate(b, 'clouds');
+    const { bird } = b.world;
+    simulate(b, 8000);
+    expect(bird.active).toBe(false);
+    simulate(b, 12_000, () => bird.state === 'watching');
+    expect(bird.state).toBe('watching');
+    expect(bird.dir).toBe(b.dir);
+    expect(Math.abs(bird.centerX - (b.x + 16))).toBeLessThan(30);
+    expect(b.state).toBe('contemplate');
+    simulate(b, 120_000, () => b.current().anim === 'gazeReturn');
+    b.world.update(16);
+    expect(bird.state).toBe('leaving');
+  });
+
+  it('none comes in the rain, and the one that came flies off if the fox is called away', () => {
+    const wet = fox(40, at(11), 0.2);
+    wet.world.resize(240, 60);
+    startContemplate(wet, 'rain');
+    simulate(wet, 30_000);
+    expect(wet.world.bird.active).toBe(false);
+
+    const b = fox(40, at(14), 0.2);
+    b.world.resize(240, 60);
+    startContemplate(b, 'clouds');
+    simulate(b, 30_000, () => b.world.bird.state === 'watching');
+    react(b, 'celebrate');
+    expect(b.world.bird.state).toBe('leaving');
   });
 });
 

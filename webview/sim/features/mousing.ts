@@ -5,6 +5,7 @@ import type { Buddy } from '../buddy';
 import { clamp } from '../math';
 import type { Feature } from '../state';
 import { REACTION_MS } from './reactions';
+import { befriendMouse } from './visitors';
 
 type MousingPhase = 'spot' | 'sneak' | 'lurk' | 'wiggle' | 'leap' | 'friend' | 'miss';
 
@@ -105,6 +106,9 @@ function updateMousing(b: Buddy, dt: number, dtMs: number): void {
         b.y = 0;
         if (m.willCatch) {
           mouse.caught();
+        }
+        if (m.willCatch) {
+          befriendMouse(b);
         }
         setPhase(b, m.willCatch ? 'friend' : 'miss');
       }

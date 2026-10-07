@@ -12,6 +12,12 @@ export type Extra =
   | 'dreamBall'
   | 'dreamBone'
   | 'dreamButterfly'
+  | 'dreamSun'
+  | 'dreamDusk'
+  | 'dreamPeak'
+  | 'dreamStars'
+  | 'dreamLeaf'
+  | 'dreamLights'
   | 'heartsA'
   | 'heartsB'
   | 'smallHeartA'
@@ -29,6 +35,10 @@ export type Extra =
   | 'crumbsB'
   | 'rumbleA'
   | 'rumbleB'
+  | 'sprayA'
+  | 'sprayB'
+  | 'flurryA'
+  | 'flurryB'
   | 'dirtA'
   | 'dirtB'
   | 'mouseA'
@@ -49,6 +59,15 @@ const GLYPHS = {
   puff: ['Q'],
   crumb: ['t'],
 } as const satisfies Record<string, Glyph>;
+
+// Drops flung from its coat on both sides, `out` pixels farther from it the second time.
+function spray(color: string, out: number): readonly Overlay[] {
+  return [[9 - out, 13], [4 - out, 19], [12 - out, 8 - out], [27 + out, 6 - out], [30 + out, 13], [20, 4 - out], [29 + out, 20]].map(([x, y]) => ({
+    x: Math.max(0, Math.min(31, x)),
+    y: Math.max(0, y),
+    glyph: [color],
+  }));
+}
 
 // A thought bubble above the sleeping head, with a little picture of what it dreams about.
 function dream(icon: Glyph): readonly Overlay[] {
@@ -83,6 +102,13 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   dreamBall: dream(['.BB.', 'BBYB', 'BYBB', '.BB.']),
   dreamBone: dream(['T...T', 'TTTTT', 't...t']),
   dreamButterfly: dream(['VV.VV', 'VVKVV', '.VKV.']),
+  // The skies it sat and watched: the sun coming up, going down into the sea, the great peak, the stars, an autumn leaf, the northern lights.
+  dreamSun: dream(['..X..', '.XXX.', 'XXXXX', 'wwwww']),
+  dreamDusk: dream(['.xxx.', 'xxxxx', 'IIIII', 'IxIxI']),
+  dreamPeak: dream(['...w...', '..wwI..', '.IIIII.', 'IIIIIII']),
+  dreamStars: dream(['S...S', '..S..', '.SSS.', '..S..']),
+  dreamLeaf: dream(['A.A.A', '.AAA.', 'AAAAA', '..k..']),
+  dreamLights: dream(['.F..F..', 'FFwFFwF', '.wV.wV.']),
   heartsA: [{ x: 26, y: 4, glyph: GLYPHS.heart }],
   heartsB: [{ x: 27, y: 1, glyph: GLYPHS.heart }, { x: 29, y: 7, glyph: GLYPHS.smallHeart }],
   smallHeartA: [{ x: 27, y: 3, glyph: GLYPHS.smallHeart }],
@@ -110,6 +136,11 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   rumbleB: [{ x: 22, y: 22, glyph: ['.Q.', 'Q.Q'] }],
   dirtA: [{ x: 3, y: 26, glyph: ['tk', 'kt'] }, { x: 0, y: 23, glyph: ['t'] }, { x: 5, y: 29, glyph: ['kt'] }],
   dirtB: [{ x: 1, y: 24, glyph: ['kt', 'tk'] }, { x: 4, y: 22, glyph: ['t'] }, { x: 0, y: 28, glyph: ['tk'] }],
+  // What flies off when it shakes itself: drops of water after the rain, bits of snow after the snow.
+  sprayA: spray('C', 0),
+  sprayB: spray('C', 2),
+  flurryA: spray('W', 0),
+  flurryB: spray('W', 2),
   // A mouse sitting on its head, between the ears.
   mouseA: [{ x: 18, y: 1, glyph: MOUSE_FACE }],
   mouseB: [{ x: 18, y: 0, glyph: MOUSE_FACE }],

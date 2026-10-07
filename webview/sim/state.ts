@@ -58,6 +58,7 @@ export type BuddyState =
   | 'come'
   | 'nudge'
   | 'mousing'
+  | 'mouseHello'
   | 'panic';
 
 /** Likely next states, each with its odds. */

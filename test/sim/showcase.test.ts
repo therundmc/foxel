@@ -51,6 +51,8 @@ describe('Showcase', () => {
     expect(hats).toContain('nightcap');
     expect(hats).toContain('leaf');
     expect(hats).toContain('scarf');
+    expect(hats).toContain('scarfSnow');
+    expect(hats).toContain('snowcap');
     expect(effects).toContain('confetti');
     expect(effects).toContain('fed');
   });

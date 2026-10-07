@@ -39,6 +39,7 @@ export const STATES: StateDefs = {
   ...ambientFeature.states,
   ...reactionsFeature.states,
   ...huntFeature.states,
+  ...visitorsFeature.states,
   ...mousingFeature.states,
   ...fetchFeature.states,
   ...tricksFeature.states,

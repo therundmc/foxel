@@ -65,8 +65,22 @@ export function nudgeAnimation(body: 'sit' | 'lie', lean: 1 | -1): Animation {
   ]);
 }
 
+// Shaking itself off: the body twists one way and the other, ears flat, and drops or snow fly from it.
+export function shakeAnimation(out: Extra, farther: Extra): Animation {
+  return anim([
+    [{ eye: 'closed', ears: 'back', tail: 'up' }, 220],
+    ...Array.from({ length: 6 }, (_, i): [Pose, number][] => [
+      [{ eye: 'closed', ears: 'back', head: [-1, 0], bob: 1, tail: 'wagL', extras: [i % 2 === 0 ? out : farther] }, 75],
+      [{ eye: 'closed', ears: 'back', head: [1, 0], tail: 'wagR', extras: [i % 2 === 0 ? farther : out] }, 75],
+    ]).flat(),
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagL' }, 260],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagR' }, 260],
+  ]);
+}
+
 // A long sleepy loop: slow breathing with rising Zzz, little twitches and dreams of the ball, a treat and a butterfly.
-export function sleepAnimation(): Animation {
+// With `sky`, it first dreams of that: something it sat and watched before going to sleep.
+export function sleepAnimation(sky?: Extra): Animation {
   const SLEEP = { body: 'curl', eye: 'closed', ears: 'back' } as const;
   const breathe = (): [Pose, number][] => [
     [{ ...SLEEP, extras: ['zzz1'] }, 900],
@@ -86,6 +100,7 @@ export function sleepAnimation(): Animation {
   ];
   return anim([
     ...breathe(),
+    ...(sky ? [...dreamOf(sky, { tail: 'curlFlick' }), ...breathe()] : []),
     ...breathe(),
     [{ ...SLEEP, ears: 'up' }, 150],
     [SLEEP, 150],

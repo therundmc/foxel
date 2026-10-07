@@ -156,7 +156,14 @@ export const EMOTES: Record<Emote, Glyph> = {
   bowl: emoteBubble(EMOTE_ICONS.bowl),
 };
 
-export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf';
+export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf' | 'scarfSnow' | 'snowcap';
+
+// A red scarf round its neck, seen from behind, one end hanging down its back; and the snow that piles up on its head.
+const SCARF: Glyph = outlined(['AAAAAAAAAAAA', 'aAaAaAaAaAaA', '.........AA.', '.........Aa.', '.........aA.']);
+const SNOW_PILE: Glyph = outlined(['.WWW.', 'WWWWW']);
+/** Rows between the top of the pile on its head and the top of the scarf, and how far in from the scarf's edge the pile sits. */
+const PILE_ABOVE_SCARF = 14;
+const PILE_INSET = 3;
 
 /** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
 export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
@@ -182,10 +189,16 @@ export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
     x: -10,
     y: -19,
   },
-  // A red scarf round its neck in the snow, seen from behind, one end hanging down its back.
-  scarf: {
-    glyph: outlined(['AAAAAAAAAAAA', 'aAaAaAaAaAaA', '.........AA.', '.........Aa.', '.........aA.']),
+  scarf: { glyph: SCARF, x: -7, y: 4 },
+  // The scarf, and the snow that has settled between its ears by now: one picture, with clear air between the two.
+  scarfSnow: {
+    glyph: [
+      ...SNOW_PILE.map((line) => line.padStart(line.length + PILE_INSET, TRANSPARENT).padEnd(SCARF[0].length, TRANSPARENT)),
+      ...Array.from({ length: PILE_ABOVE_SCARF - SNOW_PILE.length }, () => TRANSPARENT.repeat(SCARF[0].length)),
+      ...SCARF,
+    ],
     x: -7,
-    y: 4,
+    y: 4 - PILE_ABOVE_SCARF,
   },
+  snowcap: { glyph: SNOW_PILE, x: -7 + PILE_INSET, y: 4 - PILE_ABOVE_SCARF },
 };

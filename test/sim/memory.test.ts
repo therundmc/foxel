@@ -36,7 +36,7 @@ describe('memory', () => {
 
   it('still wants the drink and the break it could not get to', () => {
     const after = fox();
-    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0 }, MINUTE);
+    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: false }, MINUTE);
     simulate(after, 3000, () => after.state === 'drink');
     expect(after.state).toBe('drink');
   });
@@ -89,5 +89,21 @@ describe('memory of its contemplations', () => {
     expect(sameMemory(first, remember(b, 10 * MINUTE))).toBe(true);
     b.contemplate.waitMs = 180 * MINUTE;
     expect(sameMemory(first, remember(b, 10 * MINUTE))).toBe(false);
+  });
+});
+
+describe('memory of its friends and dreams', () => {
+  it('keeps the dream it has not had yet and its friendship with the mouse', () => {
+    const before = spawn(fixed(0.5));
+    const plain = remember(before, 0);
+    before.contemplate.dream = 'snow';
+    before.visitors.mouseFriend = true;
+    const memory = remember(before, 0);
+    expect(sameMemory(plain, memory)).toBe(false);
+
+    const after = spawn(fixed(0.5));
+    recall(after, JSON.parse(JSON.stringify(memory)), 1000);
+    expect(after.contemplate.dream).toBe('snow');
+    expect(after.visitors.mouseFriend).toBe(true);
   });
 });

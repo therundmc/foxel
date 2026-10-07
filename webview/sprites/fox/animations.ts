@@ -19,7 +19,7 @@ import {
   anim,
   type Pose,
 } from './pose';
-import { eatAnimation, nudgeAnimation, nuzzleAnimation, patAnimation, sleepAnimation } from './sequences';
+import { eatAnimation, nudgeAnimation, nuzzleAnimation, patAnimation, shakeAnimation, sleepAnimation } from './sequences';
 
 // Timings the simulation needs to line its movement up with the frames below.
 export const TWIRL_CROUCH_MS = 120;
@@ -109,6 +109,12 @@ export const ANIMATIONS = {
     [{ head: [0, -1], extras: ['question'] }, 600],
   ]),
   sleep: sleepAnimation(),
+  sleepSunrise: sleepAnimation('dreamSun'),
+  sleepClouds: sleepAnimation('dreamPeak'),
+  sleepSunset: sleepAnimation('dreamDusk'),
+  sleepStars: sleepAnimation('dreamStars'),
+  sleepRain: sleepAnimation('dreamLeaf'),
+  sleepSnow: sleepAnimation('dreamLights'),
   typing: anim([
     [{ ...SIT, paw: 'tapNear', eye: 'down', mouth: 'flat' }, 180],
     [{ ...SIT, paw: 'tapFar', eye: 'down', mouth: 'flat' }, 180],
@@ -552,6 +558,9 @@ export const ANIMATIONS = {
     [{ ...SIT, head: [0, 3], eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['mouseB', 'smallHeartB'] }, 450],
   ]),
   // You ignored the break: it flops down and sighs.
+  // After the rain, or the snow: it shakes itself from nose to tail, and what was on it flies off.
+  shakeDry: shakeAnimation('sprayA', 'sprayB'),
+  shakeSnow: shakeAnimation('flurryA', 'flurryB'),
   sigh: anim([
     [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitA' }, 900],
     [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],

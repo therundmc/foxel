@@ -152,3 +152,52 @@ describe('how often visitors come', () => {
     expect(birds).toBeLessThanOrEqual(4);
   });
 });
+
+describe('the mouse that made friends', () => {
+  function friends(): Buddy {
+    const b = spawn(fixed(0.3));
+    b.world.resize(200, 60);
+    b.restore(40, 1);
+    b.world.setClock(new Date(2026, 9, 7, 14), true);
+    b.visitors.butterflyInMs = Infinity;
+    b.visitors.birdInMs = Infinity;
+    return b;
+  }
+
+  it('is a friend once it has sat on the fox head, and drops by later to say hello', async () => {
+    const { startMousing } = await import('../../webview/sim/features/mousing');
+    const b = friends();
+    expect(b.visitors.mouseFriend).toBe(false);
+    startMousing(b);
+    simulate(b, 45_000, () => b.state !== 'mousing');
+    expect(b.visitors.mouseFriend).toBe(true);
+    simulate(b, 10_000, () => !b.world.mouse.active);
+
+    const anims: AnimName[] = [];
+    let sat = false;
+    simulate(b, 12 * 60_000, () => {
+      if (b.state !== 'sit' && b.state !== 'mouseHello') {
+        b.enter('sit', 60_000);
+      }
+      if (b.state === 'mouseHello') {
+        sat ||= b.world.mouse.sitting;
+        const { anim } = b.current();
+        if (anims[anims.length - 1] !== anim) {
+          anims.push(anim);
+        }
+      }
+      return anims.length > 0 && b.state !== 'mouseHello';
+    });
+    expect(sat).toBe(true);
+    expect(anims).toEqual(['watch', 'wave', 'love']);
+    expect(b.state).toBe('sit');
+    simulate(b, 4000);
+    expect(b.world.mouse.active).toBe(false);
+  });
+
+  it('no mouse comes to a fox that has no such friend', () => {
+    const b = friends();
+    simulate(b, 30 * 60_000, () => b.state === 'mouseHello' || b.world.mouse.active);
+    expect(b.world.mouse.active).toBe(false);
+  });
+});
