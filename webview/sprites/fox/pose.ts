@@ -4,7 +4,7 @@ import { TRANSPARENT } from '../palette';
 import { GROUND_ROW, HEAD_RX, HEAD_RY } from './anchors';
 import { EXTRAS, type Extra } from './overlays';
 
-type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie';
+type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back';
 type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy';
 type Mouth = 'smile' | 'open' | 'flat' | 'tongue' | 'blep';
 type Ears = 'up' | 'back';
@@ -68,6 +68,9 @@ export const HOP_LAND: Legs = [[-2, 3], [-1, 3], [1, 0], [2, 0]];
 export const HOP_GATHER: Legs = [[2, 1], [3, 1], [-1, 1], [0, 1]];
 export const TUCK: Legs = [[1, 3], [1, 3], [-1, 3], [-1, 3]];
 export const THUMP: Legs = [[0, 0], [3, 3], [0, 0], [0, 0]];
+// On its back, paws in the air, kicking one way then the other.
+export const KICK_A: Legs = [[-2, 0], [1, 2], [2, 0], [-1, 2]];
+export const KICK_B: Legs = [[1, 2], [-2, 0], [-1, 2], [2, 0]];
 
 const STAND_LEG_X = [8, 11, 16, 19] as const;
 const LEG_TOP_Y = 24;
@@ -112,6 +115,7 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   curl: 'curl',
   bow: 'high',
   lie: 'sitA',
+  back: 'sitA',
 };
 
 function leg(g: Grid, top: Point, foot: Point, c: string): void {
@@ -283,6 +287,22 @@ function drawLie(g: Grid, b: number): Point {
   return [22, 18 + b];
 }
 
+// Belly up, paws in the air; `legs` moves the paws as it wriggles.
+function drawBack(g: Grid, b: number, legs: Legs): Point {
+  const paw = (i: number, x: number, c: string): void => {
+    const to: Point = [x + legs[i][0], 16 - legs[i][1]];
+    limb(g, [x, 24 + b], to, c);
+    rect(g, Math.floor(to[0]), Math.floor(to[1]) - 1, Math.floor(to[0]) + 1, Math.floor(to[1]), 'c');
+  };
+  paw(0, 5, 'o');
+  paw(2, 13, 'o');
+  ellipse(g, 12.5, 26 + b, 9, 3.6, 'O');
+  ellipse(g, 12, 24.4 + b, 6.5, 1.8, 'c');
+  paw(1, 8, 'O');
+  paw(3, 16, 'O');
+  return [24, 22 + b];
+}
+
 export function frame(p: Pose): Frame {
   const g: Grid = Array.from({ length: SPRITE_SIZE }, () =>
     Array<string>(SPRITE_SIZE).fill(TRANSPARENT),
@@ -308,6 +328,9 @@ export function frame(p: Pose): Frame {
       break;
     case 'lie':
       head = drawLie(g, b);
+      break;
+    case 'back':
+      head = drawBack(g, b, p.legs ?? STILL);
       break;
     default:
       head = drawStand(g, b, p.legs ?? STILL, p.pitch ?? 0);

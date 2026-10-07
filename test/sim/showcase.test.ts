@@ -37,6 +37,10 @@ describe('Showcase', () => {
       'typingSleepy',
       'drowsy',
       'goodNight',
+      'dig',
+      'roll',
+      'stargaze',
+      'lurk',
     ] as const) {
       expect(anims, anim).toContain(anim);
     }

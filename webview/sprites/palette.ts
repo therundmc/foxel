@@ -41,6 +41,9 @@ export const PALETTE: Readonly<Record<string, string>> = {
   G: '#f6f0c8',
   q: '#d6cc98',
   J: '#fff6c4',
+  F: '#7ccf5a',
+  f: '#4c9a45',
+  m: '#bdb6cc',
 };
 
 // Fur letters only; everything else keeps the base palette.

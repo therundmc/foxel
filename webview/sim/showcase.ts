@@ -1,6 +1,7 @@
 import type { Scene } from '../../shared/protocol';
 import type { Buddy } from './buddy';
 import { HUNGRY_SAD_MS, fillBowl } from './features/meals';
+import { startMousing } from './features/mousing';
 import { REACTION_MS, react } from './features/reactions';
 import { startBedtime } from './features/rest';
 import { GOOD_NIGHT, MORNING, SIGH, perform } from './features/touch';
@@ -17,7 +18,11 @@ export type Act =
   | 'drowsy'
   | 'typing'
   | 'bedtime'
-  | 'party';
+  | 'party'
+  | 'roll'
+  | 'dig'
+  | 'stargaze'
+  | 'mouse';
 
 /** Jumps straight into one of its daily moments, whatever it was doing: for the showcase. */
 export function act(b: Buddy, name: Act): void {
@@ -58,6 +63,9 @@ export function act(b: Buddy, name: Act): void {
     case 'typing':
       react(b, 'typing');
       return;
+    case 'mouse':
+      startMousing(b);
+      return;
     case 'bedtime':
       b.rest.sleepy = true;
       startBedtime(b);
@@ -87,13 +95,17 @@ const SCRIPTS: Record<Scene, Script> = {
   sigh: { hour: 11.5, ms: 5000, cues: [[0, (b) => act(b, 'sigh')]] },
   starving: { hour: 12.5, ms: 14_000, cues: [[0, (b) => act(b, 'starving')], [5000, fillBowl]] },
   doze: { hour: 15.25, ms: 9000, cues: [[0, (b) => act(b, 'doze')]] },
+  dig: { hour: 15.5, ms: 5000, cues: [[0, (b) => act(b, 'dig')]] },
+  roll: { hour: 15.75, ms: 4000, cues: [[0, (b) => act(b, 'roll')]] },
   party: { hour: 16.25, ms: 6000, party: true, cues: [[0, (b) => act(b, 'party')]] },
+  mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
   typing: {
     hour: 22.5,
     ms: 5000,
     cues: [[0, (b) => act(b, 'typing')], [1500, (b) => react(b, 'typing')], [3000, (b) => react(b, 'typing')]],
   },
   drowsy: { hour: 22.75, ms: 7000, cues: [[0, (b) => act(b, 'drowsy')]] },
+  stargaze: { hour: 22.9, ms: 8000, cues: [[0, (b) => act(b, 'stargaze')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },
   bedtime: { hour: 23.5, ms: 15_000, cues: [[0, (b) => act(b, 'bedtime')], [11_000, (b) => react(b, 'wake')]] },
 };

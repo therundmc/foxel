@@ -46,6 +46,42 @@ function bowlGlyph(fill: string, amount: number, capacity: number): Glyph {
   return outlined([top, ...BOWL_SHAPE.map((r) => (fill === 'w' ? r.replace(/A/g, 'U').replace(/a/g, 'u') : r))]);
 }
 
+/** The mouse from the side, scurrying on two frames then sitting up; it faces right (mirror when it goes left). */
+export const MOUSE_FRAMES: readonly Glyph[] = [
+  ['..pp...', '.mmmmm.', 'pmmmEmr', '.m...m.'],
+  ['..pp...', '.mmmmm.', 'pmmmEmr', '..m.m..'],
+  ['..pp.', '.mmm.', '.mEmr', '.mcm.', 'pmcm.', '.m.m.'],
+].map(outlined);
+/** Seen from the front, the way it looks at the fox from the tip of its nose. */
+export const MOUSE_FACE: Glyph = outlined(['p...p', 'pmmmp', 'mEmEm', '.mrm.', '.mcm.', '.m.m.']);
+
+// Tall grass: blades as [column, height, lean of the tip].
+const BLADES: readonly (readonly [number, number, number])[] = [
+  [0, 6, -1], [2, 9, 1], [4, 11, 0], [6, 8, -1], [8, 10, 1], [10, 13, 0], [12, 9, -1], [14, 11, 1],
+  [16, 8, 0], [18, 10, -1], [20, 12, 1], [22, 9, 0], [24, 10, -1], [26, 7, 1],
+];
+export const GRASS_W = 29;
+export const GRASS_H = 13;
+
+function grass(sway: number): Glyph {
+  const rows = Array.from({ length: GRASS_H }, () => Array<string>(GRASS_W).fill(TRANSPARENT));
+  for (const [column, height, lean] of BLADES) {
+    for (let i = 0; i < height; i++) {
+      const bend = Math.round((lean + sway) * (i / height) ** 2);
+      const x = column + 1 + bend;
+      const y = GRASS_H - 1 - i;
+      rows[y][x] = i >= height - 3 ? 'F' : 'f';
+      if (i < height - 2) {
+        rows[y][x + 1] = 'F';
+      }
+    }
+  }
+  return rows.map((r) => r.join(''));
+}
+
+/** The same tuft swaying one way, then the other. */
+export const GRASS: readonly Glyph[] = [grass(-0.5), grass(0.5)];
+
 export const BOWL_W = 12;
 export const BOWL_H = 6;
 export const BOWL_CAPACITY = 5;

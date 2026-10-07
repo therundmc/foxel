@@ -51,6 +51,10 @@ export type BuddyState =
   | 'feast'
   | 'drink'
   | 'askBreak'
+  | 'roll'
+  | 'dig'
+  | 'stargaze'
+  | 'mousing'
   | 'panic';
 
 /** Likely next states, each with its odds. */

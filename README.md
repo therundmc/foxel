@@ -14,7 +14,7 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 | Hold the button down and stroke the fox back and forth | You pet it: it closes its eyes with little hearts, then curls up for a cuddle |
 | Click its nose | Boop and sneeze, a little blep, or it licks your finger |
 | Click its head | Leans into a head pat, nuzzles your hand, or tilts its head curiously |
-| Click its back | Thumps a back paw, play-bows then gets the zoomies, or flops over happily |
+| Click its back | Thumps a back paw, play-bows then gets the zoomies, flops over happily, or rolls onto its back |
 | Click a paw | Gives you its paw, a high five, or a little twirl in the air |
 | Click its tail | Spins after it, jumps in surprise with a puffed-up tail, or proudly fluffs it |
 | Keep clicking while it reacts | It gets so excited it runs zoomies, then flops down panting |
@@ -27,7 +27,7 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 ## On its own
 
-It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, rolls onto its back with its paws in the air, and looks up at the stars at night. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
 
 ## Its day
 
@@ -101,6 +101,7 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 - Meals with a bowl to fill, water breaks, and a break reminder when you work too long
 - Party hat and confetti on Fridays and on the install anniversary
 - Name (`foxel.name`) shown as the view title
+- New things it does on its own: mouse hunts in the tall grass, digging, rolling on its back, stargazing
 - Everything told through emotions and picture bubbles, no text or gauges
 
 ### 1.3 — Following your work

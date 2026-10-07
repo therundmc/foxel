@@ -8,6 +8,8 @@ import {
   HOP_GATHER,
   HOP_KICK,
   HOP_LAND,
+  KICK_A,
+  KICK_B,
   RUN_GATHER,
   RUN_REACH,
   STEP_A,
@@ -15,6 +17,7 @@ import {
   THUMP,
   TUCK,
   anim,
+  type Pose,
 } from './pose';
 import { eatAnimation, nuzzleAnimation, patAnimation, sleepAnimation } from './sequences';
 
@@ -408,6 +411,54 @@ export const ANIMATIONS = {
     [{ ...SIT, paw: 'tapFar', eye: 'sleepy', mouth: 'flat' }, 320],
   ]),
   // You ignored the break: it flops down and sighs.
+  // Rolls onto its back and wriggles, paws in the air.
+  roll: anim([
+    [{ body: 'lie', eye: 'happy', tail: 'sitA' }, 260],
+    ...Array.from({ length: 4 }, (_, i): [Pose, number][] => [
+      [{ body: 'back', legs: KICK_A, eye: 'happy', mouth: 'open', tail: 'sitA', extras: i === 2 ? ['smallHeartA'] : [] }, 190],
+      [{ body: 'back', legs: KICK_B, head: [0, 1], eye: 'happy', mouth: 'tongue', tail: 'sitB', extras: i === 2 ? ['smallHeartB'] : [] }, 190],
+    ]).flat(),
+    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 420],
+  ]),
+  // Digs with its front paws, stops to look at the hole, digs some more and is rather pleased.
+  dig: anim([
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ body: 'bow', head: [1, 3], eye: 'down', mouth: 'flat', tail: 'highL', extras: ['dirtA'] }, 110],
+      [{ body: 'bow', bob: 1, head: [1, 4], eye: 'down', mouth: 'flat', tail: 'highR', extras: ['dirtB'] }, 110],
+    ]).flat(),
+    [{ body: 'bow', head: [0, 1], eye: 'wide', tail: 'high' }, 420],
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ body: 'bow', head: [1, 3], eye: 'down', mouth: 'flat', tail: 'highL', extras: ['dirtA'] }, 110],
+      [{ body: 'bow', bob: 1, head: [1, 4], eye: 'down', mouth: 'flat', tail: 'highR', extras: ['dirtB'] }, 110],
+    ]).flat(),
+    [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['sparkleA'] }, 450],
+    [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitB', extras: ['sparkleB'] }, 450],
+  ]),
+  // Sits and looks up at the night sky.
+  stargaze: anim([
+    [{ ...SIT, snoutUp: 2, eye: 'up', tail: 'sitA' }, 1400],
+    [{ ...SIT, snoutUp: 2, eye: 'up', tail: 'sitB', extras: ['twinkleA'] }, 1400],
+    [{ ...SIT, snoutUp: 3, eye: 'up', mouth: 'open', tail: 'sitA', extras: ['twinkleB'] }, 1400],
+    [{ ...SIT, snoutUp: 2, eye: 'happy', tail: 'sitB' }, 900],
+  ]),
+  // Flat in the tall grass, watching.
+  lurk: anim([
+    [{ body: 'lie', mouth: 'flat', tail: 'sitA' }, 500],
+    [{ body: 'lie', mouth: 'flat', tail: 'sitB' }, 500],
+  ]),
+  // Lands nose first where the mouse was.
+  dive: anim([
+    [{ body: 'bow', head: [1, 5], eye: 'closed', mouth: 'flat', tail: 'high', extras: ['dirtA'] }, 300],
+    [{ body: 'bow', head: [1, 4], eye: 'closed', mouth: 'flat', tail: 'highL' }, 220],
+    [{ body: 'bow', head: [0, 1], eye: 'wide', tail: 'highR' }, 420],
+  ]),
+  // The mouse ended up on its nose: they look at each other, and it is love.
+  mouseFriend: anim([
+    [{ ...SIT, head: [0, 3], eye: 'up', mouth: 'flat', tail: 'sitA', extras: ['mouseA'] }, 600],
+    [{ ...SIT, head: [0, 3], eye: 'up', mouth: 'flat', tail: 'sitA', extras: ['mouseB'] }, 300],
+    [{ ...SIT, head: [0, 3], eye: 'happy', tail: 'sitB', extras: ['mouseA', 'smallHeartA'] }, 450],
+    [{ ...SIT, head: [0, 3], eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['mouseB', 'smallHeartB'] }, 450],
+  ]),
   sigh: anim([
     [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitA' }, 900],
     [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],

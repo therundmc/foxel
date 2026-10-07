@@ -1,5 +1,6 @@
 import { TRANSPARENT } from '../palette';
 import type { Glyph, Overlay } from '../frames';
+import { MOUSE_FACE } from '../props';
 
 /** Little pictures floating around the fox in a frame: Zzz, hearts, sparks, dreams. */
 export type Extra =
@@ -27,7 +28,13 @@ export type Extra =
   | 'crumbsA'
   | 'crumbsB'
   | 'rumbleA'
-  | 'rumbleB';
+  | 'rumbleB'
+  | 'dirtA'
+  | 'dirtB'
+  | 'twinkleA'
+  | 'twinkleB'
+  | 'mouseA'
+  | 'mouseB';
 
 const GLYPHS = {
   z: ['ZZZZ', '..Z.', '.Z..', 'ZZZZ'],
@@ -103,4 +110,11 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   crumbsB: [{ x: 31, y: 24, glyph: GLYPHS.crumb }, { x: 23, y: 25, glyph: GLYPHS.crumb }],
   rumbleA: [{ x: 21, y: 23, glyph: ['Q.Q', '.Q.'] }],
   rumbleB: [{ x: 22, y: 22, glyph: ['.Q.', 'Q.Q'] }],
+  dirtA: [{ x: 3, y: 26, glyph: ['tk', 'kt'] }, { x: 0, y: 23, glyph: ['t'] }, { x: 5, y: 29, glyph: ['kt'] }],
+  dirtB: [{ x: 1, y: 24, glyph: ['kt', 'tk'] }, { x: 4, y: 22, glyph: ['t'] }, { x: 0, y: 28, glyph: ['tk'] }],
+  twinkleA: [{ x: 27, y: 0, glyph: GLYPHS.spark }],
+  twinkleB: [{ x: 24, y: 2, glyph: GLYPHS.spark }, { x: 30, y: 1, glyph: ['H'] }],
+  // A mouse sitting on its head, between the ears.
+  mouseA: [{ x: 18, y: 1, glyph: MOUSE_FACE }],
+  mouseB: [{ x: 18, y: 0, glyph: MOUSE_FACE }],
 };

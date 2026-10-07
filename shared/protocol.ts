@@ -52,9 +52,13 @@ export const SCENES = [
   'sigh',
   'starving',
   'doze',
+  'dig',
+  'roll',
   'party',
+  'mouse',
   'typing',
   'drowsy',
+  'stargaze',
   'goodNight',
   'bedtime',
 ] as const;

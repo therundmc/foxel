@@ -7,6 +7,7 @@ import { FetchMemory } from './features/fetch';
 import { HuntMemory } from './features/hunt';
 import { IntroMemory } from './features/intro';
 import { MealsMemory } from './features/meals';
+import { MousingMemory } from './features/mousing';
 import { PlayMemory } from './features/play';
 import { RestMemory } from './features/rest';
 import { TouchMemory } from './features/touch';
@@ -48,6 +49,7 @@ export class Buddy {
   placed = false;
   // What each feature remembers from one frame to the next.
   readonly hunt = new HuntMemory();
+  readonly mousing = new MousingMemory();
   readonly fetch = new FetchMemory();
   readonly tricks = new TricksMemory();
   readonly play = new PlayMemory();

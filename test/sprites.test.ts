@@ -3,7 +3,21 @@ import { touchZone } from '../webview/sprites/fox/anchors';
 import { ANIMATIONS } from '../webview/sprites/fox/animations';
 import { SPRITE_SIZE, frameAt, totalDuration } from '../webview/sprites/frames';
 import { COATS, PALETTE, TRANSPARENT } from '../webview/sprites/palette';
-import { BALL_FRAMES, BALL_SIZE, BUG_FRAMES, BUG_H, BUG_W, TREAT_GLYPH, TREAT_H, TREAT_W } from '../webview/sprites/props';
+import {
+  BALL_FRAMES,
+  BALL_SIZE,
+  BUG_FRAMES,
+  BUG_H,
+  BUG_W,
+  GRASS,
+  GRASS_H,
+  GRASS_W,
+  MOUSE_FACE,
+  MOUSE_FRAMES,
+  TREAT_GLYPH,
+  TREAT_H,
+  TREAT_W,
+} from '../webview/sprites/props';
 
 const usesPalette = (lines: readonly string[]): boolean =>
   lines.every((line) => [...line].every((c) => c === TRANSPARENT || c in PALETTE));
@@ -88,6 +102,16 @@ describe('sprites', () => {
       expect(glyph).toHaveLength(BUG_H);
       glyph.forEach((line) => expect(line).toHaveLength(BUG_W));
       expect(usesPalette(glyph)).toBe(true);
+    }
+  });
+
+  it('mouse and grass use the palette, and the grass matches the declared size', () => {
+    for (const glyph of [...MOUSE_FRAMES, MOUSE_FACE, ...GRASS]) {
+      expect(usesPalette(glyph)).toBe(true);
+    }
+    for (const glyph of GRASS) {
+      expect(glyph).toHaveLength(GRASS_H);
+      glyph.forEach((line) => expect(line).toHaveLength(GRASS_W));
     }
   });
 

@@ -3,6 +3,7 @@ import { fetchFeature } from './features/fetch';
 import { huntFeature } from './features/hunt';
 import { introFeature } from './features/intro';
 import { mealsFeature } from './features/meals';
+import { mousingFeature } from './features/mousing';
 import { playFeature } from './features/play';
 import { reactionsFeature } from './features/reactions';
 import { restFeature } from './features/rest';
@@ -16,6 +17,7 @@ export const FEATURES: readonly Feature[] = [
   ambientFeature,
   reactionsFeature,
   huntFeature,
+  mousingFeature,
   fetchFeature,
   tricksFeature,
   playFeature,
@@ -31,6 +33,7 @@ export const STATES: StateDefs = {
   ...ambientFeature.states,
   ...reactionsFeature.states,
   ...huntFeature.states,
+  ...mousingFeature.states,
   ...fetchFeature.states,
   ...tricksFeature.states,
   ...playFeature.states,
