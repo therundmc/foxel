@@ -18,8 +18,8 @@ export type Lights = readonly [dawn: string, morning: string];
  * and how pale the distance makes them (0 the farthest tones, 1 the nearest).
  */
 const RANKS = [
-  { foot: 0.6, high: [0.34, 0.56], crestAhead: 0.3, near: 0 },
-  { foot: 0.28, high: [0.46, 0.7], crestAhead: 0.66, near: 0.55 },
+  { foot: 0.6, high: [0.16, 0.56], crestAhead: 0.3, near: 0 },
+  { foot: 0.28, high: [0.24, 0.7], crestAhead: 0.66, near: 0.55 },
   // The nearest is the great dune alone, on open ground.
   { foot: 0.04, high: [0, 0], crestAhead: 0, near: 1 },
 ] as const;
@@ -36,16 +36,29 @@ const GREAT_SHADE: Lights = ['#5d3c6c', '#8b5049'];
 const HORIZON: Lights = ['#dcb5b8', '#efd6b2'];
 /** How much of the view's height the land takes. */
 const LAND = 0.56;
-/** A dune's two faces, in heights of it: the one in the light, and the long one in shade. No two dunes are quite alike. */
-const LIT_FACE = 1.45;
-const SHADED_FACE = 3.1;
-const UNALIKE = 0.3;
-/** How round its lit face is, and how hollow its shaded one. */
+/**
+ * No two dunes are alike. Each is drawn by lot within these bounds: the lengths of its face in the light and of
+ * its face in shade (in heights of it), how round the first is and how hollow the second (under 1 it bulges: a
+ * dome rather than a horn), how its spine swings on its way down and how far it drifts toward us (shares of its
+ * height), and whether it has a shoulder: a second, lower swell part of the way down its shaded face.
+ */
+const LIT_FACES = [0.9, 3] as const;
+const SHADED_FACES = [1.3, 3.8] as const;
+const FULLS = [1.3, 2.6] as const;
+const HOLLOWS = [0.85, 2.1] as const;
+const SWINGS = [-0.22, 0.3] as const;
+const DRIFTS = [0.08, 0.6] as const;
+const SHOULDERED = 0.4;
+const SHOULDERS = [0.18, 0.4] as const;
+/** The great dune keeps its own shape: these are its roundness, its hollow and its spine. */
 const FULL = 1.7;
 const HOLLOW = 1.7;
-/** Its spine swings toward the light, then back across and on toward us: shares of its height. */
 const SWING = 0.2;
 const DRIFT = 0.42;
+/** How much the dunes of a rank overlap: the next one's crest comes this share of the way along, at least and at most. */
+const APART = [0.3, 1.05] as const;
+/** The hollow between two dunes comes toward us leaning by this many pixels a row. */
+const HOLLOW_SLANT = 0.9;
 /** How far down its shaded face the crest is rimmed with light. */
 const RIMMED = 0.45;
 /** The ground between the dunes of a rank rolls a little: by this share of the land, over this many pixels. */
@@ -70,7 +83,13 @@ interface Dune {
   readonly high: number;
   readonly lit: number;
   readonly shaded: number;
+  readonly full: number;
+  readonly hollow: number;
+  readonly swing: number;
   readonly drift: number;
+  /** Its shoulder: how high (a share of its height) and where along its shaded face; none when 0. */
+  readonly shoulder: number;
+  readonly shoulderAt: number;
   readonly great?: true;
 }
 
@@ -98,15 +117,20 @@ export interface DunesLand {
 function lift(dune: Dune, at: number): number {
   const off = at - dune.at;
   if (off < 0) {
-    return -off < dune.lit ? dune.high * (1 - (-off / dune.lit) ** FULL) : 0;
+    return -off < dune.lit ? dune.high * (1 - (-off / dune.lit) ** dune.full) : 0;
   }
-  return off < dune.shaded ? dune.high * (1 - off / dune.shaded) ** HOLLOW : 0;
+  if (off >= dune.shaded) {
+    return 0;
+  }
+  const along = off / dune.shaded;
+  const swell = Math.max(0, Math.cos((Math.PI * (along - dune.shoulderAt)) / 0.5)) ** 2;
+  return dune.high * ((1 - along) ** dune.hollow + dune.shoulder * swell * (1 - along));
 }
 
 /** Where a dune's spine is, `s` rows under its crest. */
 function spine(dune: Dune, s: number): number {
   const down = clamp(s / dune.high, 0, 1);
-  return dune.at - SWING * dune.high * Math.sin(TURN * down * 0.62) * (1 - down) + dune.drift * down * down;
+  return dune.at - dune.swing * dune.high * Math.sin(TURN * down * 0.62) * (1 - down) + dune.drift * down * down;
 }
 
 /** Stretches of one row in one tone: [column, row, width]. */
@@ -129,24 +153,33 @@ function build(view: VistaView): DunesLand {
   const random = seeded(0xd07e);
   const level = (rank: number): number => Math.round(base - tall * RANKS[rank].foot);
 
-  const dune = (at: number, high: number): Dune => {
-    const lit = high * LIT_FACE * (1 - UNALIKE / 2 + UNALIKE * random());
-    return { at, high, lit, shaded: high * SHADED_FACE * (1 - UNALIKE / 2 + UNALIKE * random()), drift: DRIFT * high };
-  };
+  const drawn = ([low, most]: readonly [number, number]): number => low + (most - low) * random();
+  const dune = (at: number, high: number): Dune => ({
+    at,
+    high,
+    lit: high * drawn(LIT_FACES),
+    shaded: high * drawn(SHADED_FACES),
+    full: drawn(FULLS),
+    hollow: drawn(HOLLOWS),
+    swing: drawn(SWINGS),
+    drift: high * drawn(DRIFTS),
+    shoulder: random() < SHOULDERED ? drawn(SHOULDERS) : 0,
+    shoulderAt: 0.3 + 0.3 * random(),
+  });
   /** A rank of dunes: one with its crest at its place, then others out to both ends of the view, overlapping. */
   const rankOf = (index: number): Dune[] => {
     const { high, crestAhead } = RANKS[index];
-    const sized = (): number => tall * (high[0] + (high[1] - high[0]) * random());
     const first = dune(ahead * crestAhead, tall * high[1]);
     const dunes = [first];
+    // Some stand shoulder to shoulder, others leave the open desert between them.
     for (let last = first; last.at < ahead; ) {
-      const next = sized();
-      last = dune(last.at + last.shaded * (0.5 + 0.3 * random()) + next * LIT_FACE * 0.5, next);
+      const next = dune(0, tall * drawn(high));
+      last = { ...next, at: last.at + (last.shaded + next.lit) * drawn(APART) };
       dunes.push(last);
     }
     for (let last = first; last.at > -behind; ) {
-      const next = sized();
-      last = dune(last.at - last.lit * 0.6 - next * SHADED_FACE * (0.5 + 0.3 * random()), next);
+      const next = dune(0, tall * drawn(high));
+      last = { ...next, at: last.at - (last.lit + next.shaded) * drawn(APART) };
       dunes.push(last);
     }
     return dunes;
@@ -160,7 +193,12 @@ function build(view: VistaView): DunesLand {
     high: greatHigh,
     lit: Math.max(26, tall * 1.25),
     shaded: clamp(ahead * GREAT_AHEAD, GREAT_AHEADS[0], GREAT_AHEADS[1]) - greatAt,
+    full: FULL,
+    hollow: HOLLOW,
+    swing: SWING,
     drift: Math.min(DRIFT * greatHigh, Math.max(0, -greatAt - SPINE_CLEAR)),
+    shoulder: 0,
+    shoulderAt: 0,
     great: true,
   });
 
@@ -198,12 +236,23 @@ function build(view: VistaView): DunesLand {
     const hidden = cover(index);
     const runs: Runs[] = [[], [], [], []];
     const sandAt = (x: number, y: number): Sand => {
-      const d = dunes[owner[x]];
       // Open ground, and the ground a dune stands on, lie in the light.
-      if (!d || y >= ground[x]) {
+      if (owner[x] < 0 || y >= ground[x]) {
         return Sand.Lit;
       }
       const at = dir * (x - foxX);
+      // Where two dunes meet, the hollow between them runs toward us aslant, like their spines: lower down, a
+      // place belongs to the dune that stands highest a little further toward the light.
+      const from = at - HOLLOW_SLANT * (y - top[x]);
+      let d = dunes[owner[x]];
+      let most = 0;
+      for (const other of dunes) {
+        const up = lift(other, from);
+        if (up > most) {
+          most = up;
+          d = other;
+        }
+      }
       if (at < spine(d, y - (level(index) - Math.round(d.high)))) {
         return Sand.Lit;
       }
