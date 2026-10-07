@@ -235,6 +235,9 @@ function build(view: VistaView): DunesLand {
     const { top, owner, ground } = shapes[index];
     const hidden = cover(index);
     const runs: Runs[] = [[], [], [], []];
+    // How high each dune stands at each column, and a little way outside the view: worked out once, not per pixel.
+    const margin = Math.ceil(h * HOLLOW_SLANT) + 1;
+    const lifts = dunes.map((d) => Float32Array.from({ length: w + margin * 2 }, (_unused, i) => lift(d, dir * (i - margin - foxX))));
     const sandAt = (x: number, y: number): Sand => {
       // Open ground, and the ground a dune stands on, lie in the light.
       if (owner[x] < 0 || y >= ground[x]) {
@@ -243,14 +246,13 @@ function build(view: VistaView): DunesLand {
       const at = dir * (x - foxX);
       // Where two dunes meet, the hollow between them runs toward us aslant, like their spines: lower down, a
       // place belongs to the dune that stands highest a little further toward the light.
-      const from = at - HOLLOW_SLANT * (y - top[x]);
+      const from = clamp(x - dir * Math.round(HOLLOW_SLANT * (y - top[x])), -margin, w + margin - 1) + margin;
       let d = dunes[owner[x]];
       let most = 0;
-      for (const other of dunes) {
-        const up = lift(other, from);
-        if (up > most) {
-          most = up;
-          d = other;
+      for (let n = 0; n < dunes.length; n++) {
+        if (lifts[n][from] > most) {
+          most = lifts[n][from];
+          d = dunes[n];
         }
       }
       if (at < spine(d, y - (level(index) - Math.round(d.high)))) {
