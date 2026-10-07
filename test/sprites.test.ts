@@ -124,12 +124,11 @@ describe('sprites', () => {
     MOON.forEach((line) => expect(line).toHaveLength(MOON_W));
   });
 
-  it('tips the head back without moving it, and keeps a level head as it was', () => {
-    const level = ANIMATIONS.sit.frames[0];
-    const tipped = ANIMATIONS.stargaze.frames[0];
-    expect(tipped.head).toEqual(level.head);
-    const noseRow = (pixels: readonly string[]): number => pixels.findIndex((line) => line.lastIndexOf('E') >= level.head[0] + 6);
-    expect(noseRow(tipped.pixels)).toBeLessThan(noseRow(level.pixels));
+  it('shows no face when it sits with its back to us', () => {
+    for (const frame of ANIMATIONS.stargaze.frames) {
+      expect(frame.eye).toBeUndefined();
+      expect(frame.pixels.join('')).not.toContain('E');
+    }
   });
 
   it('treat glyph matches the declared size', () => {

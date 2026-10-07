@@ -20,7 +20,7 @@ export class StargazeMemory {
   sinceMs = AGAIN_MS / 2;
 }
 
-/** Sits down facing the open sky; the stars come out as it looks up. */
+/** Sits down facing the sky, on the side with more of it; the stars come out as it looks. */
 export function startStargaze(b: Buddy): void {
   const center = b.x + SPRITE_SIZE / 2;
   b.dir = center < b.world.width / 2 ? 1 : -1;
@@ -30,7 +30,7 @@ export function startStargaze(b: Buddy): void {
   b.enter('stargaze', b.between(32_000, 40_000));
 }
 
-// It looks up, dreams for a while, makes a wish on a shooting star, then lies down and gazes on until its eyes close.
+// It turns its back to us to face the sky, dreams for a while, makes a wish on a shooting star and gazes on until it nods off.
 export const stargazeFeature = {
   states: {
     stargaze: {
@@ -61,7 +61,7 @@ export const stargazeFeature = {
         const left = b.duration - b.elapsed;
         return left < DROWSE_MS
           ? { anim: 'stargazeDrowsy', elapsed: Math.max(0, DROWSE_MS - left) }
-          : { anim: 'stargazeLie', elapsed: sinceWish - WISH_MS };
+          : { anim: 'stargaze', elapsed: sinceWish - WISH_MS };
       },
     },
   },

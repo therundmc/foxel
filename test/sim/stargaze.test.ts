@@ -28,7 +28,7 @@ describe('stargazing', () => {
     expect(stars.glow).toBe(1);
   });
 
-  it('dreams for a long while: a wish on a shooting star, then lying down until its eyes close', () => {
+  it('dreams for a long while: a wish on a shooting star, then more gazing until it nods off', () => {
     const b = gazer(20);
     const anims: AnimName[] = [];
     let shotAt: number | undefined;
@@ -45,7 +45,7 @@ describe('stargazing', () => {
       }
       return b.state !== 'stargaze';
     });
-    expect(anims.slice(0, 5)).toEqual(['gazeUp', 'stargaze', 'starWish', 'stargazeLie', 'stargazeDrowsy']);
+    expect(anims.slice(0, 5)).toEqual(['gazeUp', 'stargaze', 'starWish', 'stargaze', 'stargazeDrowsy']);
     expect(shotAt).toBeGreaterThan(10_000);
     expect(ms).toBeGreaterThan(30_000);
     expect(b.world.stars.shooting).toBeUndefined();

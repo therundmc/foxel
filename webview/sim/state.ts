@@ -54,6 +54,8 @@ export type BuddyState =
   | 'roll'
   | 'dig'
   | 'stargaze'
+  | 'come'
+  | 'nudge'
   | 'mousing'
   | 'panic';
 

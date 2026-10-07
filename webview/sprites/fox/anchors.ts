@@ -10,6 +10,8 @@ export const GROUND_ROW = 30;
 /** Centre of the treat being eaten, in sprite columns; it sticks out past the nose. */
 export const TREAT_PAWS_X = 33.5;
 
+/** Middle of the head when it sits or stands. */
+export const HEAD_X = 21.5;
 export const HEAD_RX = 7;
 export const HEAD_RY = 6.5;
 

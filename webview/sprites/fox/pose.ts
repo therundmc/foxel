@@ -1,11 +1,11 @@
 import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
-import { ellipse, inEllipse, limb, outline, rect, set, type Grid } from '../grid';
+import { ellipse, inEllipse, lerp, limb, outline, poly, rect, set, type Grid } from '../grid';
 import { TRANSPARENT } from '../palette';
 import { GROUND_ROW } from './anchors';
 import { drawHead, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
-type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back';
+type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back' | 'behind';
 type Tail =
   | 'up'
   | 'wagL'
@@ -22,7 +22,11 @@ type Tail =
   | 'highR'
   | 'poof'
   | 'backA'
-  | 'backB';
+  | 'backB'
+  | 'behindL'
+  | 'behindMidL'
+  | 'behindMidR'
+  | 'behindR';
 type Paw = 'none' | 'wave1' | 'wave2' | 'lick' | 'tapNear' | 'tapFar' | 'beg';
 
 // [foot x offset, foot lift] for back-far, back-near, front-far, front-near legs.
@@ -103,6 +107,10 @@ const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
   poof: [[7, 21, 2.6], [5, 17.5, 3.3], [4.2, 13.5, 3.8], [5, 9.5, 3.4], [5, 8.5, 2.6]],
   backA: [[4.5, 27, 2.2], [2.8, 25.6, 2.1], [2, 23.8, 1.8], [2, 23, 1.4]],
   backB: [[4.5, 27, 2.2], [2.5, 26.8, 2.1], [1.6, 26, 1.8], [1.2, 25.6, 1.4]],
+  behindL: [[14, 27.4, 2.2], [11, 27.9, 2.3], [8, 27.6, 2.2], [6.2, 27, 1.7]],
+  behindMidL: [[15, 27.4, 2.2], [13, 28, 2.2], [11.6, 28.2, 1.7]],
+  behindMidR: [[17, 27.4, 2.2], [19, 28, 2.2], [20.4, 28.2, 1.7]],
+  behindR: [[18, 27.4, 2.2], [21, 27.9, 2.3], [24, 27.6, 2.2], [25.8, 27, 1.7]],
 };
 
 const DEFAULT_TAIL: Record<Body, Tail> = {
@@ -112,6 +120,7 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   bow: 'high',
   lie: 'sitA',
   back: 'backA',
+  behind: 'behindR',
 };
 
 function leg(g: Grid, top: Point, foot: Point, c: string): void {
@@ -218,6 +227,33 @@ function drawBack(g: Grid, b: number, legs: Legs): Point {
   return [23, 21 + b];
 }
 
+// Sitting with its back to us, looking away into the picture, its tail lying our way.
+function drawBehind(g: Grid, b: number, p: Pose, tail: Tail): Point {
+  const hx = 16 + (p.head?.[0] ?? 0);
+  const hy = 12 + b + (p.head?.[1] ?? 0);
+  // Ears laid back spread outwards and sit lower.
+  const flat = (p.ears ?? 'up') === 'up' ? 0 : 1;
+  for (const side of [-1, 1]) {
+    const outer: Point = [hx + side * 6.2, hy - 2.5 + flat];
+    const apex: Point = [hx + side * (5.6 + flat * 2.4), hy - 11.5 + flat * 3.5];
+    const inner: Point = [hx + side * 2.6, hy - 5.5 + flat];
+    poly(g, [outer, apex, inner], 'O');
+    poly(g, [lerp(apex, outer, 0.5), apex, lerp(apex, inner, 0.5)], 'd');
+  }
+  rect(g, 8, 29, 9, 29, 'c');
+  rect(g, 22, 29, 23, 29, 'c');
+  ellipse(g, 16, 22.5 + b, 6, 6, 'O');
+  ellipse(g, 16, 26, 7.5, 3.6, 'O');
+  ellipse(g, 16, 18.6 + b, 4.4, 1.2, 'o');
+  ellipse(g, hx, hy - 0.5, 6.2, 5.8, 'O');
+  ellipse(g, hx, hy + 2, 7.2, 3.8, 'O');
+  // Cheek fluff showing on both sides.
+  rect(g, hx - 8, hy + 2, hx - 7, hy + 3, 'c');
+  rect(g, hx + 6, hy + 2, hx + 7, hy + 3, 'c');
+  drawTail(g, tail, 0, true);
+  return [16, 12 + b];
+}
+
 export function frame(p: Pose): Frame {
   const g: Grid = Array.from({ length: SPRITE_SIZE }, () =>
     Array<string>(SPRITE_SIZE).fill(TRANSPARENT),
@@ -227,7 +263,7 @@ export function frame(p: Pose): Frame {
   const tail = p.tail ?? DEFAULT_TAIL[body];
   const paw = p.paw ?? 'none';
 
-  if (body !== 'curl') {
+  if (body !== 'curl' && body !== 'behind') {
     drawTail(g, tail, b);
   }
   let head: Point;
@@ -247,12 +283,15 @@ export function frame(p: Pose): Frame {
     case 'back':
       head = drawBack(g, b, p.legs ?? STILL);
       break;
+    case 'behind':
+      head = drawBehind(g, b, p, tail);
+      break;
     default:
       head = drawStand(g, b, p.legs ?? STILL, p.pitch ?? 0);
   }
   const hx = head[0] + (p.head?.[0] ?? 0);
   const hy = head[1] + (p.head?.[1] ?? 0);
-  const eye = drawHead(g, hx, hy, p);
+  const eye = body === 'behind' ? undefined : drawHead(g, hx, hy, p);
 
   if (paw === 'wave1') {
     raisedPaw(g, [19, 21 + b], [25.5, 21]);
@@ -275,7 +314,7 @@ export function frame(p: Pose): Frame {
   return {
     pixels: g.map((r) => r.join('')),
     overlays: (p.extras ?? []).flatMap((e) => EXTRAS[e]),
-    eye: (p.eye ?? 'open') === 'open' ? eye : undefined,
+    eye: eye && (p.eye ?? 'open') === 'open' ? eye : undefined,
     head: [hx, hy],
     treat: p.treat,
   };

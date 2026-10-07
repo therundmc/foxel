@@ -15,7 +15,9 @@
 - The big good morning, good night and party welcome are kept for the first time it sees you; when the view comes back a moment later, it just waves.
 - Mouse hunt: a tuft of tall grass comes up, the fox slips in and lies flat with only its head showing, a mouse scurries by, it wiggles and pounces. The mouse is always quicker: either it is gone and the fox lands nose first, puzzled, or it ends up sitting on the fox's head, to be waved goodbye.
 - More to watch: it digs, and rolls onto its back to wriggle with its feet in the air (also when you rub its back).
-- Stargazing: in the evening and at night it sometimes sits and lifts its nose to the sky. Night comes down over the view, the moon and the stars come out one after the other, a shooting star crosses and it makes a wish, then it lies down and gazes on until its eyes close.
+- Stargazing: in the evening and at night it sometimes turns its back to you and sits facing the sky, its tail sweeping the ground. Night comes down over the view, the moon and the stars come out one after the other, a shooting star crosses and it makes a wish, then it gazes on until it nods off.
+- It comes to you: move the pointer into its view and it glances at it, turns, then trots or runs over and wags its tail.
+- It asks to be petted: rest the pointer on it and it looks up, paws at your hand and pushes its head under it.
 - No text and no gauges: it shows what it feels with its face, its pose and small picture bubbles.
 
 ## 1.1.0

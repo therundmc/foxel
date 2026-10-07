@@ -96,6 +96,8 @@ describe('Buddy', () => {
     b.world.resize(300, 60);
     simulate(b, 800);
     expect(b.dir).toBe(1);
+    // It has just been over to the pointer, so it stays where it is.
+    b.pointer.sinceComeMs = 0;
     const eye = { x: b.x + 23, y: 18 };
     b.world.pointer = { x: 0, y: 18 };
     b.world.update(16);

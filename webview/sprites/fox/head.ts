@@ -2,7 +2,7 @@ import type { Point } from '../frames';
 import { ellipse, inEllipse, lerp, poly, rect, set, type Grid } from '../grid';
 import { HEAD_RX, HEAD_RY } from './anchors';
 
-type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy' | 'starry';
+type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy';
 type Mouth = 'smile' | 'open' | 'flat' | 'tongue' | 'blep';
 type Ears = 'up' | 'back';
 
@@ -60,12 +60,6 @@ export function drawHead(g: Grid, hx: number, hy: number, p: HeadPose): Point {
   const snout = tipped(5.5, 2.2 - up);
   ellipse(g, hx + muzzle[0], hy + muzzle[1], 4.2, 3, 'c', (x, y) => inEllipse(x, y, hx, hy, HEAD_RX, HEAD_RY));
   ellipse(g, hx + snout[0], hy + snout[1], 2.6, 1.8, 'c');
-  // Seen a little from below, the muzzle reaches further out.
-  const reach = turn === 0 ? 0 : 1;
-  if (reach > 0) {
-    const tip = tipped(6.8, 2 - up);
-    ellipse(g, hx + tip[0], hy + tip[1], 1.9, 1.7, 'c');
-  }
 
   const [esx, esy] = moved(1.5, -1);
   const ex = hx + esx;
@@ -94,11 +88,6 @@ export function drawHead(g: Grid, hx: number, hy: number, p: HeadPose): Point {
       set(g, ex + 2, ey - 2, 'W');
       set(g, ex, ey, 'W');
       break;
-    case 'starry':
-      rect(g, ex, ey - 2, ex + 2, ey, 'E');
-      set(g, ex + 2, ey - 2, 'W');
-      set(g, ex, ey, 'J');
-      break;
     case 'closed':
       set(g, ex, ey - 1, 'E');
       rect(g, ex + 1, ey, ex + 2, ey, 'E');
@@ -118,7 +107,7 @@ export function drawHead(g: Grid, hx: number, hy: number, p: HeadPose): Point {
 
   const [bsx, bsy] = moved(-0.5, 2);
   rect(g, hx - 1 + bsx, hy + 2 + bsy, hx + bsx, hy + 2 + bsy, 'r');
-  for (const [dx, dy, c] of [[7 + reach, 1, 'E'], ...MOUTHS[p.mouth ?? 'smile']] as const) {
+  for (const [dx, dy, c] of [[7, 1, 'E'], ...MOUTHS[p.mouth ?? 'smile']] as const) {
     const [x, y] = tipped(dx + 0.5, dy + 0.5 - up);
     set(g, Math.floor(hx + x), Math.floor(hy + y), c);
   }
