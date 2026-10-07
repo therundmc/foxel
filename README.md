@@ -23,10 +23,27 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 | Click the ball button in the view title, or double-click an empty spot | A ball appears and the fox runs after it |
 | Drag the ball, then let go while moving the mouse | You throw it; the fox fetches it (catching it in mid-air when it can), brings it back to you and waits for the next throw |
 | Once it brings the ball back | Sometimes it shows off: balances it on its nose like a seal, tosses it up and catches it, or rolls it between its paws |
+| Click its bowl when it is hungry | You fill it; the fox eats kibble by kibble and licks its lips |
 
 ## On its own
 
 It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+
+## Its day
+
+Foxel lives by your local clock, like a little tamagotchi without gauges: you read how it feels from its face, its pose and small picture bubbles.
+
+| When | What it does |
+| --- | --- |
+| Morning | Says good morning with a little sun bubble, stretches and yawns |
+| Meal times (7:00, 11:30, 16:00, 18:30) | Gets hungry, pushes out its empty bowl and begs with a rumbling tummy; sad if nobody feeds it |
+| Every hour | Has a drink from its water bowl, a reminder for you to drink too |
+| After 50 minutes of work | Brings its ball and asks for a break; sighs if you keep going |
+| Afternoon | Dozes off now and then |
+| Evening | Bursts of zoomies, a soft golden light on its fur |
+| Night | Drowsy, types along half asleep, then sleeps in its basket with a nightcap; a shooting star may cross the view |
+| Friday afternoon | Wears a party hat and greets you with confetti |
+| Install anniversary | Party hat, confetti and a cake |
 
 ## Reactions to your work
 
@@ -46,6 +63,7 @@ It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks
 - **Foxel: Show Companion** / **Hide Companion** / **Toggle Companion**
 - **Foxel: Throw a Ball**
 - **Foxel: Give a Treat**
+- **Foxel: Fill the Bowl**
 - **Foxel: Say Hello**
 
 ## Settings
@@ -60,6 +78,11 @@ It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks
 | `foxel.reactToTyping` | `true` | Tap along when you type |
 | `foxel.reactToErrors` | `true` | React to errors appearing and being fixed |
 | `foxel.sleepAfterSeconds` | `30` | Inactivity before it falls asleep |
+| `foxel.name` | `""` | Your fox's name, shown as the title of its view |
+| `foxel.dayNight` | `true` | Live by the local clock: greetings, light, bedtime, party days |
+| `foxel.meals` | `true` | Get hungry at meal times |
+| `foxel.breakReminderMinutes` | `50` | Minutes of work before it asks for a break, `0` = off |
+| `foxel.hydrationReminderMinutes` | `60` | Minutes between drinks, `0` = off |
 
 ## Roadmap
 
@@ -74,10 +97,11 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 
 ### 1.2 — Living with you
 
-- Day and night rhythm from the local clock: stretches in the morning, yawns in the evening, sleeps more easily at night
-- Break reminder (`foxel.breakReminderMinutes`, 0 = off): after a long stretch of coding it brings the ball and asks to play
-- Name (`foxel.name`) shown in a bubble on hover
-- Position remembered across sessions
+- Day and night rhythm from the local clock: greetings, morning stretches, afternoon naps, evening zoomies, a basket and nightcap at night
+- Meals with a bowl to fill, water breaks, and a break reminder when you work too long
+- Party hat and confetti on Fridays and on the install anniversary
+- Name (`foxel.name`) shown as the view title
+- Everything told through emotions and picture bubbles, no text or gauges
 
 ### 1.3 — Following your work
 

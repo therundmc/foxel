@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- Day and night: the fox lives by your local clock. It says good morning or good night when it comes in, stretches at dawn, dozes in the afternoon, gets the zoomies in the evening and is drowsy at night. Its fur takes a soft golden light at sunrise and sunset and a blue one at night, when a rare shooting star may cross the view. Turn it off with `foxel.dayNight`.
+- Bedtime: at night it trots to a little basket, puts its nightcap on and falls asleep twice as fast. Typing late at night, it taps along half asleep.
+- Meals (`foxel.meals`): it gets hungry at breakfast, lunch, snack time and dinner, pushes out its empty bowl and begs with a rumbling tummy. Click the bowl or use the new **Fill the Bowl** command and it eats kibble by kibble. Left hungry too long, it gets sad.
+- Water (`foxel.hydrationReminderMinutes`): every hour it has a drink from its water bowl, a reminder for you to drink too.
+- Breaks (`foxel.breakReminderMinutes`): after 50 minutes of work without a pause, it brings its ball and waits with a little cup bubble; ignored, it flops down and sighs.
+- Party days: a party hat and confetti on Friday afternoons, plus a cake on the anniversary of the install.
+- Name: `foxel.name` becomes the title of its view.
+- No text and no gauges: it shows what it feels with its face, its pose and small picture bubbles.
+
 ## 1.1.0
 
 - Touch: the fox reacts to where you click it, with three different reactions each for the nose, head, back, paws and tail (blep, nuzzle, head tilt, play bow, high five, twirl, startled jump, puffed-up tail and more). Clicking again does not restart the reaction; keep clicking and it gets the zoomies.
