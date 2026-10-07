@@ -1,6 +1,5 @@
-import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
-import { ellipse, limb, outline, rect, type Grid } from '../grid';
-import { TRANSPARENT } from '../palette';
+import type { Animation, Frame, Point } from '../frames';
+import { ellipse, filledAt, limb, newGrid, outline, rect, type Grid } from '../grid';
 import { GROUND_ROW } from './anchors';
 import { drawFront, type FrontPose } from './front';
 import { drawHead, drawHeadBehind, type HeadPose } from './head';
@@ -134,7 +133,7 @@ function raisedPaw(g: Grid, from: Point, to: Point): void {
 function drawTail(g: Grid, tail: Tail, b: number, outlined = false): void {
   const parts = TAILS[tail];
   if (outlined) {
-    const overBody = (x: number, y: number): boolean => g[y]?.[x] !== TRANSPARENT;
+    const overBody = (x: number, y: number): boolean => filledAt(g, x, y);
     parts.forEach(([cx, cy, r]) => ellipse(g, cx, cy + b, r + 1, r + 1, 'K', overBody));
   }
   parts.forEach(([cx, cy, r], i) => ellipse(g, cx, cy + b, r, r, i === parts.length - 1 ? 'c' : 'O'));
@@ -211,9 +210,7 @@ function drawBehind(g: Grid, b: number, tail: Tail): Point {
 }
 
 export function frame(p: Pose): Frame {
-  const g: Grid = Array.from({ length: SPRITE_SIZE }, () =>
-    Array<string>(SPRITE_SIZE).fill(TRANSPARENT),
-  );
+  const g = newGrid();
   const body = p.body ?? 'stand';
   const b = p.bob ?? 0;
   const tail = p.tail ?? DEFAULT_TAIL[body];

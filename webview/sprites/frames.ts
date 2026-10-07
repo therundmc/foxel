@@ -1,4 +1,10 @@
 export const SPRITE_SIZE = 32;
+/**
+ * A frame is drawn with a margin all round the sprite: a tail streaming behind it, an ear or a nose may reach a
+ * little past its box, and must not be cut off there.
+ */
+export const FRAME_PAD = 4;
+export const FRAME_SIZE = SPRITE_SIZE + FRAME_PAD * 2;
 
 export type Point = readonly [number, number];
 
@@ -11,6 +17,7 @@ export interface Overlay {
 }
 
 export interface Frame {
+  /** `FRAME_SIZE` rows of as many letters: the sprite starts `FRAME_PAD` in from the left and from the top. */
   readonly pixels: readonly string[];
   readonly overlays: readonly Overlay[];
   /** Top-left of the 2x3 open-eye block, when the eye is open. */

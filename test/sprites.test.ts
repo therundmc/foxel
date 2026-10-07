@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { touchZone } from '../webview/sprites/fox/anchors';
 import { ANIMATIONS } from '../webview/sprites/fox/animations';
-import { SPRITE_SIZE, frameAt, totalDuration } from '../webview/sprites/frames';
+import { FRAME_PAD, FRAME_SIZE, SPRITE_SIZE, frameAt, totalDuration } from '../webview/sprites/frames';
 import { COATS, PALETTE, TRANSPARENT } from '../webview/sprites/palette';
 import {
   BALL_FRAMES,
@@ -37,10 +37,18 @@ describe('sprites', () => {
 
       it('has square frames using only palette colors', () => {
         for (const frame of animation.frames) {
-          expect(frame.pixels).toHaveLength(SPRITE_SIZE);
-          frame.pixels.forEach((line) => expect(line).toHaveLength(SPRITE_SIZE));
+          expect(frame.pixels).toHaveLength(FRAME_SIZE);
+          frame.pixels.forEach((line) => expect(line).toHaveLength(FRAME_SIZE));
           expect(usesPalette(frame.pixels)).toBe(true);
         }
+      });
+
+      it('fits in its frame, outline and all: nothing of the fox is cut off at an edge', () => {
+        const fur = (c: string): boolean => c !== TRANSPARENT && c !== 'K';
+        animation.frames.forEach((frame, i) => {
+          const edge = [frame.pixels[0], frame.pixels[FRAME_SIZE - 1], ...frame.pixels.map((line) => line[0] + line[FRAME_SIZE - 1])].join('');
+          expect(`frame ${i}: ${[...edge].filter(fur).join('')}`).toBe(`frame ${i}: `);
+        });
       });
 
       it('keeps overlays inside the sprite and in the palette', () => {
@@ -94,7 +102,7 @@ describe('sprites', () => {
         const [ex, ey] = frame.eye!;
         for (let y = ey - 1; y <= ey + 2; y++) {
           for (let x = ex - 1; x <= ex + 2; x++) {
-            expect(`${name}:${frame.pixels[y][x]}`).toMatch(new RegExp(`^${name}:[OEW]$`));
+            expect(`${name}:${frame.pixels[y + FRAME_PAD][x + FRAME_PAD]}`).toMatch(new RegExp(`^${name}:[OEW]$`));
           }
         }
       }

@@ -1,5 +1,5 @@
 import { TRANSPARENT } from '../palette';
-import type { Frame } from '../frames';
+import { FRAME_PAD, type Frame } from '../frames';
 
 // Where things sit on the fox sprite when it faces right: columns from the left, rows from the top,
 // heights above the ground. The simulation only knows the fox through these and its animations.
@@ -36,7 +36,7 @@ export function touchZone(frame: Frame, x: number, y: number): TouchZone | undef
   const px = Math.floor(x);
   const py = Math.floor(y);
   const near = (match: (c: string) => boolean): boolean =>
-    [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => match(frame.pixels[py + dy]?.[px + dx] ?? TRANSPARENT));
+    [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => match(frame.pixels[py + dy + FRAME_PAD]?.[px + dx + FRAME_PAD] ?? TRANSPARENT));
   if (!near((c) => c !== TRANSPARENT)) {
     return undefined;
   }

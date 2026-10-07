@@ -3,7 +3,7 @@ import { foxShown, type Session } from '../session';
 import type { Buddy } from '../sim/buddy';
 import type { Bowl } from '../sim/props/bowl';
 import { ANIMATIONS } from '../sprites/fox/animations';
-import { SPRITE_SIZE, frameAt, type Frame, type Glyph } from '../sprites/frames';
+import { FRAME_PAD, FRAME_SIZE, SPRITE_SIZE, frameAt, type Frame, type Glyph } from '../sprites/frames';
 import {
   BALL_FRAMES,
   BALL_SIZE,
@@ -182,15 +182,18 @@ export class Renderer {
     this.drawShadow(rect.x + rect.w / 2, 16 - Math.min(buddy.y, 8));
 
     const flip = buddy.dir === -1;
+    // A frame is the sprite and a margin round it, for what reaches past its box.
     const img = this.bitmaps.get(frame.pixels);
+    const pad = FRAME_PAD * s;
+    const size = FRAME_SIZE * s;
     if (flip) {
       ctx.save();
-      ctx.translate(rect.x + rect.w, rect.y);
+      ctx.translate(rect.x + rect.w + pad, rect.y - pad);
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0, rect.w, rect.h);
+      ctx.drawImage(img, 0, 0, size, size);
       ctx.restore();
     } else {
-      ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
+      ctx.drawImage(img, rect.x - pad, rect.y - pad, size, size);
     }
     this.eyes.draw(this.stage, this.bitmaps, buddy, frame, rect, flip, now);
     this.drawHat(frame, rect, flip);

@@ -3,6 +3,7 @@
 ## 1.2.1
 
 - Light themes: the pale things around the fox (soap bubbles, sparkles, Zzz, question marks, the rim of its picture bubbles, drops) are drawn in deeper colours on a light background, where they could hardly be seen. The view follows the theme when you change it.
+- Whole at last: its tail when it runs, the tips of its ears and its nose in a few poses reached the edge of the box the fox is drawn in and were cut off there, outline included, which showed badly on a light background. It is now drawn with a margin all round.
 - Always in the frame: when its view is too small to show the whole fox at the size you chose, it is drawn smaller instead of being cut off, and what floats around its head stays inside the view when it stands at the very edge.
 
 ## 1.2.0

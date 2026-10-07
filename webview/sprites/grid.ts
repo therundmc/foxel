@@ -1,13 +1,26 @@
-import { SPRITE_SIZE, type Glyph, type Point } from './frames';
+import { FRAME_PAD, FRAME_SIZE, type Glyph, type Point } from './frames';
 import { TRANSPARENT } from './palette';
 
-/** A sprite being drawn: rows of palette letters. */
+/**
+ * A sprite being drawn: rows of palette letters, with a margin round it. Everything here takes the sprite's own
+ * coordinates, (0, 0) being its top left corner: what falls a little outside lands in the margin.
+ */
 export type Grid = string[][];
 
+export function newGrid(): Grid {
+  return Array.from({ length: FRAME_SIZE }, () => Array<string>(FRAME_SIZE).fill(TRANSPARENT));
+}
+
 export function set(g: Grid, x: number, y: number, c: string): void {
-  if (x >= 0 && x < SPRITE_SIZE && y >= 0 && y < SPRITE_SIZE) {
-    g[y][x] = c;
+  const row = g[y + FRAME_PAD];
+  if (row && x >= -FRAME_PAD && x < FRAME_SIZE - FRAME_PAD) {
+    row[x + FRAME_PAD] = c;
   }
+}
+
+/** Whether something is drawn at this place of the sprite. */
+export function filledAt(g: Grid, x: number, y: number): boolean {
+  return (g[y + FRAME_PAD]?.[x + FRAME_PAD] ?? TRANSPARENT) !== TRANSPARENT;
 }
 
 export function rect(g: Grid, x0: number, y0: number, x1: number, y1: number, c: string): void {
@@ -80,8 +93,8 @@ export function limb(g: Grid, from: Point, to: Point, c: string): void {
 export function outline(g: Grid): void {
   const filled = g.map((r) => r.map((c) => c !== TRANSPARENT));
   const isFilled = (x: number, y: number): boolean => filled[y]?.[x] === true;
-  for (let y = 0; y < SPRITE_SIZE; y++) {
-    for (let x = 0; x < SPRITE_SIZE; x++) {
+  for (let y = 0; y < FRAME_SIZE; y++) {
+    for (let x = 0; x < FRAME_SIZE; x++) {
       if (
         !filled[y][x] &&
         (isFilled(x - 1, y) || isFilled(x + 1, y) || isFilled(x, y - 1) || isFilled(x, y + 1))
