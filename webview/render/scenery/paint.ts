@@ -29,11 +29,6 @@ export function ramp(t: number, from: number, to: number): number {
   return p * p * (3 - 2 * p);
 }
 
-/** The land no longer moves: only clouds drift. Kept at zero until every painter has dropped its calls. */
-export function parallax(_view: VistaView, _depth: number): number {
-  return 0;
-}
-
 /** A repeatable stream of numbers from 0 to 1: the same seed always paints the same sky. */
 export function seeded(seed: number): () => number {
   let s = seed | 0;
