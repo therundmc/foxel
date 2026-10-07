@@ -76,8 +76,9 @@ describe('memory of its contemplations', () => {
     const after = spawn(fixed(0.5));
     recall(after, memory, 1000 + 60 * MINUTE);
     expect(after.contemplate.waitMs).toBe(30 * MINUTE);
+    // Long overdue: it still settles in for a few minutes first.
     recall(after, memory, 1000 + 200 * MINUTE);
-    expect(after.contemplate.waitMs).toBe(0);
+    expect(after.contemplate.waitMs).toBe(3 * MINUTE);
   });
 
   it('is the same memory while the wait just runs down, and a new one once it has contemplated', () => {

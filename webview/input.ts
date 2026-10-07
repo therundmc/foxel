@@ -3,6 +3,7 @@ import { currentFrame } from './render/renderer';
 import { foxShown, type Session } from './session';
 import { grabBall, moveHeldBall, spawnBall, throwBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
+import { callOver } from './sim/features/pointer';
 import { pet, touch } from './sim/features/touch';
 import { grabTreat, moveHeldTreat, releaseTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
@@ -223,6 +224,8 @@ export class Input {
     if (zone) {
       // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
+      this.onInteraction();
+    } else if (!this.overBuddy(e.clientX, e.clientY) && callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x)) {
       this.onInteraction();
     }
   }

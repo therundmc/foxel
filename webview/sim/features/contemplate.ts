@@ -19,6 +19,8 @@ const MIN_WIDTH = 64;
 const WAIT_MIN_MS = 2 * 3_600_000;
 const WAIT_MAX_MS = 3.5 * 3_600_000;
 const FIRST_WAIT_MS = 15 * 60_000;
+/** Coming back to a view that was closed, it first settles in, however long it has been. */
+export const AFTER_OPEN_MS = 3 * 60_000;
 /** Some days, in clouds weather, it rains instead. */
 const RAIN_CHANCE = 0.3;
 /** Under the rain it holds a leaf over its head, until this long after the sky clears. */

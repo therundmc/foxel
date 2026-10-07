@@ -51,6 +51,20 @@ export function nuzzleAnimation(body: 'stand' | 'lie'): Animation {
   ]);
 }
 
+// Your hand is resting on it: without moving from where it is, it looks up and gently presses its head into it,
+// toward its nose (`lean` 1) or toward its back (-1).
+export function nudgeAnimation(body: 'sit' | 'lie', lean: 1 | -1): Animation {
+  const rest: [number, number] = lean === 1 ? [0, 1] : [-1, 1];
+  const press: [number, number] = lean === 1 ? [1, 0] : [-2, 0];
+  return anim([
+    [{ body, head: rest, eye: 'up', tail: 'sitA' }, 650],
+    [{ body, head: press, eye: 'closed', tail: 'sitA' }, 560],
+    [{ body, head: rest, eye: 'closed', tail: 'sitB' }, 460],
+    [{ body, head: press, eye: 'closed', tail: 'sitB' }, 560],
+    [{ body, head: rest, eye: 'happy', tail: 'sitA' }, 760],
+  ]);
+}
+
 // A long sleepy loop: slow breathing with rising Zzz, little twitches and dreams of the ball, a treat and a butterfly.
 export function sleepAnimation(): Animation {
   const SLEEP = { body: 'curl', eye: 'closed', ears: 'back' } as const;

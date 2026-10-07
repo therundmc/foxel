@@ -19,7 +19,7 @@ import {
   anim,
   type Pose,
 } from './pose';
-import { eatAnimation, nuzzleAnimation, patAnimation, sleepAnimation } from './sequences';
+import { eatAnimation, nudgeAnimation, nuzzleAnimation, patAnimation, sleepAnimation } from './sequences';
 
 // Timings the simulation needs to line its movement up with the frames below.
 export const TWIRL_CROUCH_MS = 120;
@@ -191,15 +191,10 @@ export const ANIMATIONS = {
     [{ body: 'lie', eye: 'happy', tail: 'sitA', extras: ['heartsA'] }, 450],
     [{ body: 'lie', eye: 'happy', bob: 1, tail: 'sitB', extras: ['heartsB'] }, 450],
   ]),
-  // Your hand is right there: it looks up at it, paws at it and pushes its head under it.
-  nudge: anim([
-    [{ ...SIT, head: [0, 1], eye: 'up', tail: 'sitA' }, 340],
-    [{ ...SIT, head: [0, 1], eye: 'up', paw: 'beg', tail: 'sitB' }, 260],
-    [{ ...SIT, head: [1, 0], eye: 'closed', paw: 'beg', tail: 'sitA' }, 240],
-    [{ ...SIT, head: [0, 1], eye: 'closed', tail: 'sitB' }, 200],
-    [{ ...SIT, head: [1, 0], eye: 'closed', paw: 'beg', tail: 'sitA' }, 240],
-    [{ ...SIT, head: [0, 1], eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 420],
-  ]),
+  nudge: nudgeAnimation('sit', 1),
+  nudgeBack: nudgeAnimation('sit', -1),
+  nudgeLie: nudgeAnimation('lie', 1),
+  nudgeLieBack: nudgeAnimation('lie', -1),
   watch: anim([
     [{ ...SIT, tail: 'sitA', mouth: 'tongue' }, 160],
     [{ ...SIT, tail: 'sitB', mouth: 'tongue', bob: 1 }, 160],

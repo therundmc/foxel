@@ -1,5 +1,6 @@
 import type { BuddyMemory } from '../../shared/protocol';
 import type { Buddy } from './buddy';
+import { AFTER_OPEN_MS } from './features/contemplate';
 
 /** The wait before the next contemplation runs down by itself: it is the same memory until it shifts by this much. */
 const VISTA_SLACK_MS = 60_000;
@@ -39,5 +40,5 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.rest.breakWanted = memory.breakWanted;
   b.rest.breakAsks = memory.breakAsks;
   b.intro.greeted = { ...memory.greeted };
-  b.contemplate.waitMs = Math.max(0, memory.vistaInMs - Math.max(0, now - memory.savedAt));
+  b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, memory.vistaInMs - Math.max(0, now - memory.savedAt));
 }
