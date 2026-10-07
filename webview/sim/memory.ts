@@ -40,5 +40,6 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.rest.breakWanted = memory.breakWanted;
   b.rest.breakAsks = memory.breakAsks;
   b.intro.greeted = { ...memory.greeted };
-  b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, memory.vistaInMs - Math.max(0, now - memory.savedAt));
+  // A memory noted by a view from before contemplations knows nothing of the wait.
+  b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, (memory.vistaInMs ?? 0) - Math.max(0, now - memory.savedAt));
 }

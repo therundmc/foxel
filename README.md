@@ -37,13 +37,13 @@ A few times a day at most, the fox stops for the sky. It sits, pricks its ears, 
 
 | When | What it watches |
 | --- | --- |
-| Early morning | The sunrise: the night pales, the sun comes up big and slow over the misty hills |
-| Daytime | Mountains and enormous summer clouds piling up behind them |
-| Some days | A storm far away: heavy clouds, soft lightning, rain on the big leaf it holds over its head, then the sky clearing |
+| Early morning | The sunrise: the night pales, the great peak catches the first light and the sun comes up big and slow beside it |
+| Daytime | The great peak of its valley and an enormous summer cloud piling up behind the mountains |
+| Some days | A soft autumn rain over the valley: mist between the russet hills, leaves coming down, rain on the big leaf it holds over its head, then the mist lifting off the peak |
 | Evening | The sunset over the water, and the colours that come once the sun is gone |
-| Night | The stars lighting up one by one, the moon climbing, the Milky Way drawing itself, a shooting star |
+| Night | The stars lighting up one by one over the peak, the moon climbing, the Milky Way drawing itself, a shooting star |
 
-Hours go by between two of these moments, and they need `foxel.dayNight` (on by default).
+It is always the same place: its lookout over its valley, at different hours. Hours go by between two of these moments, and they need `foxel.dayNight` (on by default).
 
 ## Its day
 
@@ -119,7 +119,7 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 - Name (`foxel.name`) shown as the view title
 - Passers-by: butterflies and a little bird come and go on their own, and it has a go at them
 - New things it does on its own: mouse hunts in the tall grass, digging, rolling on its back, rubbing and licking the glass of its view
-- Contemplation: a few times a day it sits with its back to you and watches the sunrise, the clouds, a far storm, the sunset or the stars
+- Contemplation: a few times a day it sits with its back to you and watches the sunrise, the mountains and clouds, an autumn rain, the sunset or the stars
 - It comes to your pointer, runs when you click, and asks for a stroke when you rest your hand on it
 - Everything told through emotions and picture bubbles, no text or gauges
 
