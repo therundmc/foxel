@@ -24,7 +24,9 @@ export class ActivityWatcher implements vscode.Disposable {
   asleep = false;
   /** Start of the current stretch of work without a real break. */
   workingSince = Date.now();
+  /** Last sign that you are there, and last sign that you are working: time spent with the fox is only the first. */
   private lastActivity = Date.now();
+  private lastWork = Date.now();
   private lastTyping = 0;
   private lastBlur = 0;
   private errorCount = countErrors();
@@ -52,7 +54,7 @@ export class ActivityWatcher implements vscode.Disposable {
 
   /** Doing something with the fox is being there too, even with the editor left alone. */
   interacted(): void {
-    this.touch();
+    this.present();
   }
 
   /** Playing with the fox is a break from work. */
@@ -143,10 +145,16 @@ export class ActivityWatcher implements vscode.Disposable {
 
   private touch(): void {
     const now = Date.now();
-    if (now - this.lastActivity >= BREAK_GAP_MS) {
+    if (now - this.lastWork >= BREAK_GAP_MS) {
       this.workingSince = now;
     }
-    this.lastActivity = now;
+    this.lastWork = now;
+    this.present();
+  }
+
+  // You are there, whatever you are doing: the fox does not fall asleep, or wakes up.
+  private present(): void {
+    this.lastActivity = Date.now();
     if (this.asleep) {
       this.asleep = false;
       this.react('wake');

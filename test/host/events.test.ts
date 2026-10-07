@@ -151,6 +151,20 @@ describe('ActivityWatcher', () => {
     expect(watcher.workingSince).toBe(start + 51 * SECOND);
   });
 
+  it('counts time spent with the fox as a break, not as work', () => {
+    editor.fire('selection');
+    const start = watcher.workingSince;
+    // Six minutes of nothing but the fox: it stays awake, and it was a break.
+    for (let n = 0; n < 18; n++) {
+      pass(20 * SECOND);
+      watcher.interacted();
+    }
+    expect(reactions).not.toContain('sleep');
+    expect(watcher.workingSince).toBe(start);
+    editor.fire('selection');
+    expect(watcher.workingSince).toBe(Date.now());
+  });
+
   it('starts a new stretch of work after a real break only', () => {
     const start = watcher.workingSince;
     pass(4 * MINUTE);

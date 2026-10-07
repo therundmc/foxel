@@ -27,21 +27,38 @@ const speck = (x: number, y: number): number => {
 /** A cloud of leaves: rounded above, flatter under, its edge ragged, lit from above on the side of the light. */
 export function drawMass(brush: Brush, cx: number, cy: number, rx: number, ry: number, seed: number): void {
   const grain = brush.grain;
+  const left = Math.floor(cx - rx - 1);
+  const right = Math.floor(cx + rx + 1);
   for (let y = Math.floor(cy - ry - 1); y <= cy + ry; y++) {
-    for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
-      // A leaf is `grain` pixels across: its pixels share one throw of the dice.
-      const lx = Math.floor(x / grain);
-      const ly = Math.floor(y / grain);
-      const u = (x + 0.5 - cx) / rx;
-      const v = ((y + 0.5 - cy) / ry) * (y > cy ? 1.5 : 1);
-      if (u * u + v * v + (speck(lx + seed, ly) - 0.5) * 0.5 >= 1) {
-        continue;
+    const ly = Math.floor(y / grain);
+    const below = y > cy ? 1.5 : 1;
+    // Painted a stretch of one tone at a time rather than a pixel at a time: there are thousands of these clouds.
+    let from = left;
+    let tone = -1;
+    for (let x = left; x <= right + 1; x++) {
+      let now = -1;
+      if (x <= right) {
+        // A leaf is `grain` pixels across: its pixels share one throw of the dice.
+        const lx = Math.floor(x / grain);
+        const u = (x + 0.5 - cx) / rx;
+        const v = ((y + 0.5 - cy) / ry) * below;
+        if (u * u + v * v + (speck(lx + seed, ly) - 0.5) * 0.5 < 1) {
+          const lit = v - 0.45 * brush.light * u + (speck(lx, ly + seed) - 0.5) * 0.5;
+          now = lit < -0.3 ? 2 : lit > 0.5 ? 0 : 1;
+          if (now > 0 && speck(x + 3, y + 5) < 0.02) {
+            brush.shiver?.(x, y, now - 1);
+          }
+        }
       }
-      const lit = v - 0.45 * brush.light * u + (speck(lx, ly + seed) - 0.5) * 0.5;
-      const tone = lit < -0.3 ? 2 : lit > 0.5 ? 0 : 1;
-      brush.inks.forEach((ink, k) => px(ink, x, y, brush.leaves[k][tone]));
-      if (tone > 0 && speck(x + 3, y + 5) < 0.02) {
-        brush.shiver?.(x, y, tone - 1);
+      if (now !== tone) {
+        if (tone >= 0) {
+          for (let k = 0; k < brush.inks.length; k++) {
+            brush.inks[k].fillStyle = brush.leaves[k][tone];
+            brush.inks[k].fillRect(from, y, x - from, 1);
+          }
+        }
+        from = x;
+        tone = now;
       }
     }
   }

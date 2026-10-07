@@ -11,13 +11,14 @@ export interface Depth {
   readonly tall: number;
   readonly speed: number;
   readonly strength: number;
-  /** Square pixels of view for each drop: the nearer, the fewer. */
+  /** Square pixels of view for each drop: the nearer, the fewer. And the most drops there ever are. */
   readonly area: number;
+  readonly most: number;
 }
 
 /** Far ones are short, faint and slower; near ones long and quick. */
-export const FAR: Depth = { seed: 1, tall: 4, speed: 72, strength: 0.42, area: 95 };
-export const NEAR: Depth = { seed: 2, tall: 7, speed: 122, strength: 0.6, area: 270 };
+export const FAR: Depth = { seed: 1, tall: 4, speed: 72, strength: 0.4, area: 95, most: 700 };
+export const NEAR: Depth = { seed: 2, tall: 7, speed: 122, strength: 0.56, area: 270, most: 260 };
 const DROP = '#f4f5f2';
 
 /** The fox's leaf: half its width, the row of its top above the ground, how much lower its edges are. */
@@ -34,8 +35,10 @@ export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, de
   const wind = dir * plan.slant;
   // Room on the windward side for the drops the wind brings in from outside the view.
   const slack = h * SLANT_MOST;
-  const count = Math.ceil(((w + slack) * h) / depth.area);
+  // A very large view gets no more drops than this: they would cost more than they show.
+  const count = Math.min(depth.most, Math.ceil(((w + slack) * h) / depth.area));
   ctx.fillStyle = DROP;
+  ctx.globalAlpha = depth.strength;
   for (let i = 0; i < count; i++) {
     const cycle = (h + depth.tall) / depth.speed + 0.15 + hash(i, depth.seed) * 0.5;
     const at = t + hash(i, depth.seed + 10) * cycle;
@@ -53,14 +56,18 @@ export function paintRain({ ctx, w, h, t, foxX, dir }: VistaView, plan: Plan, de
     } else if (Math.abs(top + wind * (h - FOX_TALL / 2) - foxX) < (plan.leafUp ? FOX_HALF : FOX_HALF_BARE)) {
       continue;
     }
-    // The streak leans with the wind, pixel by pixel, and its tail is fainter.
+    // The streak leans with the wind: it is a few short upright strokes, each a step aside from the one above.
     const head = Math.round(since * depth.speed);
-    for (let k = 0; k < depth.tall; k++) {
-      const y = head - k;
-      if (y >= 0 && y < lands) {
-        ctx.globalAlpha = depth.strength * (k < depth.tall / 2 ? 1 : 0.55);
-        ctx.fillRect(Math.round(top + wind * y), y, 1, 1);
+    let from = Math.min(head, lands - 1);
+    const end = Math.max(0, head - depth.tall + 1);
+    while (from >= end) {
+      const x = Math.round(top + wind * from);
+      let to = from;
+      while (to - 1 >= end && Math.round(top + wind * (to - 1)) === x) {
+        to--;
       }
+      ctx.fillRect(x, to, 1, from - to + 1);
+      from = to - 1;
     }
   }
   ctx.globalAlpha = 1;
