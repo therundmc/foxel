@@ -38,7 +38,7 @@ Every feature is judged against these three, before any technical consideration:
 | `webview/sim/state.ts` | `BuddyState`, `StateDef`, `Feature` types |
 | `webview/sim/registry.ts` | `FEATURES` and `STATES`, gathered from the features |
 | `webview/sim/features/*.ts` | One file per group of states: their definitions, logic, memory and commands |
-| `webview/sim/props/` | Ball, butterfly, bird, treat, bowl, grass, mouse, scenery: physics only |
+| `webview/sim/props/` | Ball, butterfly, bird, treat, bowl, basket, grass, mouse, scenery: physics only |
 | `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
 | `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |

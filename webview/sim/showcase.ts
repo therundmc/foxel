@@ -162,7 +162,7 @@ const SCRIPTS: Record<Scene, Script> = {
   fireflies: { hour: 22.92, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'fireflies')]] },
   snow: { hour: 22.95, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'snow')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },
-  bedtime: { hour: 23.5, ms: 15_000, cues: [[0, (b) => act(b, 'bedtime')], [11_000, (b) => react(b, 'wake')]] },
+  bedtime: { hour: 23.5, ms: 22_000, cues: [[0, (b) => act(b, 'bedtime')], [15_000, (b) => react(b, 'wake')]] },
 };
 
 /** Plays daily moments back to back, each at its own pretend time of day. */

@@ -7,6 +7,7 @@ import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
 import { Grass } from './props/grass';
 import { Mouse } from './props/mouse';
+import { Basket } from './props/basket';
 import { Scenery } from './props/scenery';
 import { Treat } from './props/treat';
 
@@ -32,8 +33,7 @@ export class World {
   readonly treat = new Treat();
   readonly foodBowl = new Bowl();
   readonly waterBowl = new Bowl();
-  /** Fox x while it sleeps in its basket at night; undefined when there is no basket out. */
-  bed: number | undefined;
+  readonly basket = new Basket();
   readonly effects: Effect[] = [];
   /** Where the user's pointer is, while it is around. */
   pointer: WorldPoint | undefined;
@@ -53,7 +53,7 @@ export class World {
     const ballMoving = this.ball.state === 'held' || (this.ball.state === 'free' && !this.ball.resting);
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
     const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
-    return !ballMoving && !treatMoving && !critters && this.buddies.every((b) => b.restful);
+    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
   setClock(now: Date, dayLife: boolean): void {
@@ -76,6 +76,7 @@ export class World {
     this.grass.update(dtMs);
     this.mouse.update(dt, this.width);
     this.scenery.update(dtMs);
+    this.basket.update(dt);
     this.treat.update(dt, this.width);
     this.foodBowl.update(dtMs);
     this.waterBowl.update(dtMs);

@@ -14,7 +14,7 @@ const COME_SPEED = 11;
 const COME_RUN_SPEED = 42;
 const COME_MAX_MS = 40_000;
 /** Once there, it does not trail after the pointer again for this long. */
-const COME_REST_MS = 5000;
+const COME_REST_MS = 12_000;
 /** Wagging its tail at you once it got there. */
 const ARRIVED_MS = 1100;
 const HOVER_MS = 450;
@@ -188,7 +188,8 @@ export const pointerFeature = {
       if (m.sinceNudgeMs >= NUDGE_REST_MS) {
         startNudge(b);
       }
-    } else if (m.hereMs >= NOTICE_MS && m.sinceComeMs >= COME_REST_MS && !over(b, pointer)) {
+    } else if (m.hereMs >= NOTICE_MS && m.sinceComeMs >= COME_REST_MS && !over(b, pointer) && b.state !== 'lie') {
+      // Lying down, it is comfortable: it watches the pointer, and only gets up if you call it.
       if (Math.abs(standingUnder(b, pointer.x).at - b.x) > COME_MIN) {
         startCome(b, pointer.x);
       }

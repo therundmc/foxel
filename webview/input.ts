@@ -4,6 +4,7 @@ import { foxShown, type Session } from './session';
 import { grabBall, moveHeldBall, spawnBall, throwBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
+import { asleep } from './sim/features/rest';
 import { pet, touch } from './sim/features/touch';
 import { grabTreat, moveHeldTreat, releaseTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
@@ -167,7 +168,10 @@ export class Input {
     const pressed = this.pressedOnBuddy;
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
     // A pointer moving in its view is you being there: it would not come to it, or ask for a stroke, half asleep.
-    this.onInteraction();
+    // But it takes more than that to wake it once it has gone to sleep.
+    if (!asleep(buddy)) {
+      this.onInteraction();
+    }
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
@@ -227,7 +231,8 @@ export class Input {
       // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
       this.onInteraction();
-    } else if (!this.overBuddy(e.clientX, e.clientY) && callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x)) {
+    } else if (!this.overBuddy(e.clientX, e.clientY) && (callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x) || asleep(buddy))) {
+      // A click in its view calls it over, or wakes it.
       this.onInteraction();
     }
   }

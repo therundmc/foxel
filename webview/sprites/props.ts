@@ -148,6 +148,9 @@ function emoteBubble(icon: Glyph): Glyph {
   return [...rows.map((r) => r.join('')), tail.join('')];
 }
 
+/** A bubble as it first appears: small and empty, before its picture comes. */
+export const EMOTE_BUD: Glyph = ['.ZZZ.', 'ZWWWZ', '.ZZZ.', '..Z..'];
+
 export const EMOTES: Record<Emote, Glyph> = {
   sun: emoteBubble(EMOTE_ICONS.sun),
   moon: emoteBubble(EMOTE_ICONS.moon),
@@ -156,11 +159,13 @@ export const EMOTES: Record<Emote, Glyph> = {
   bowl: emoteBubble(EMOTE_ICONS.bowl),
 };
 
-export type Hat = 'party' | 'nightcap' | 'leaf' | 'scarf' | 'scarfSnow' | 'snowcap' | 'cloak' | 'cloakWind';
+export type Hat = 'party' | 'nightcap' | 'leaf' | 'leafAside' | 'scarf' | 'scarfDust' | 'scarfSnow' | 'snowcap' | 'cloak' | 'cloakWind';
 
 // A red scarf round its neck, seen from behind, one end hanging down its back; and the snow that piles up on its head.
 const SCARF: Glyph = outlined(['AAAAAAAAAAAA', 'aAaAaAaAaAaA', '.........AA.', '.........Aa.', '.........aA.']);
 const SNOW_PILE: Glyph = outlined(['.WWW.', 'WWWWW']);
+/** The first of it to settle: the pile grows from this. */
+const SNOW_DUST: Glyph = outlined(['WWW']);
 /** Rows between the top of the pile on its head and the top of the scarf, and how far in from the scarf's edge the pile sits. */
 const PILE_ABOVE_SCARF = 14;
 const PILE_INSET = 3;
@@ -188,17 +193,8 @@ const CLOAK_WIND: Glyph = outlined([
   '.NNnNNN.NNNN.NNnN.....',
 ]);
 
-/** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
-export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
-  party: { glyph: outlined(['..W..', '..L..', '.LSL.', '.SLS.', 'LSLSL']), x: -4, y: -12 },
-  nightcap: {
-    glyph: outlined(['WW......', 'WIi.....', '.IiIi...', '..IiIiII', '..IIIIII']),
-    x: -8,
-    y: -9,
-  },
-  // A big leaf held over its head in the rain, seen from behind: the stalk comes down between the ears.
-  leaf: {
-    glyph: outlined([
+// A big leaf held over its head in the rain, seen from behind: the stalk comes down between the ears.
+const LEAF: Glyph = outlined([
       '.....FFFFFFFFF.....',
       '...FFFFFFfFFFFFF...',
       '.FFFFFFFFfFFFFFFFF.',
@@ -208,11 +204,29 @@ export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
       '.........f.........',
       '.........f.........',
       '.........f.........',
-    ]),
-    x: -10,
-    y: -19,
+    ]);
+
+/** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
+export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
+  party: { glyph: outlined(['..W..', '..L..', '.LSL.', '.SLS.', 'LSLSL']), x: -4, y: -12 },
+  nightcap: {
+    glyph: outlined(['WW......', 'WIi.....', '.IiIi...', '..IiIiII', '..IIIIII']),
+    x: -8,
+    y: -9,
   },
+  leaf: { glyph: LEAF, x: -10, y: -19 },
+  // The same leaf as it puts it away: swung down to its side.
+  leafAside: { glyph: LEAF, x: -1, y: -13 },
   scarf: { glyph: SCARF, x: -7, y: 4 },
+  scarfDust: {
+    glyph: [
+      ...SNOW_DUST.map((line) => line.padStart(line.length + PILE_INSET + 1, TRANSPARENT).padEnd(SCARF[0].length, TRANSPARENT)),
+      ...Array.from({ length: PILE_ABOVE_SCARF - 1 - SNOW_DUST.length }, () => TRANSPARENT.repeat(SCARF[0].length)),
+      ...SCARF,
+    ],
+    x: -7,
+    y: 4 - PILE_ABOVE_SCARF + 1,
+  },
   // The scarf, and the snow that has settled between its ears by now: one picture, with clear air between the two.
   scarfSnow: {
     glyph: [

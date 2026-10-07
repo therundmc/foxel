@@ -7,6 +7,7 @@ import { react } from '../../webview/sim/features/reactions';
 import { recall, remember } from '../../webview/sim/memory';
 import type { BuddyState } from '../../webview/sim/state';
 import type { AnimName } from '../../webview/sprites/fox/animations';
+import { SPRITE_SIZE } from '../../webview/sprites/frames';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('living with you', () => {
@@ -47,6 +48,24 @@ describe('living with you', () => {
     simulate(b, 2000);
     expect(b.world.foodBowl.active).toBe(false);
     expect(b.state).not.toBe('hungry');
+  });
+
+  it('has its bowl set down from above, and taken back up once it is empty', () => {
+    const b = fox(at(12));
+    const bowl = b.world.foodBowl;
+    react(b, 'hungry');
+    expect(bowl.y).toBe(b.world.height);
+    simulate(b, 3000, () => !bowl.moving);
+    expect(bowl.y).toBe(0);
+    fillBowl(b);
+    simulate(b, 10_000, () => b.world.effects.includes('fed'));
+    simulate(b, 3000, () => !bowl.active);
+    // It is no longer there to eat from, but still to be seen on its way up.
+    expect(bowl.visible).toBe(true);
+    simulate(b, 60);
+    expect(bowl.y).toBeGreaterThan(0);
+    simulate(b, 2000);
+    expect(bowl.visible).toBe(false);
   });
 
   it('serves a smaller portion at snack time', () => {
@@ -102,26 +121,63 @@ describe('living with you', () => {
     expect(b.current().anim).toBe('sigh');
   });
 
-  it('trots to its basket with a nightcap at night, and leaves it in the morning', () => {
+  it('pulls its basket in at night, and sleeps in it with the nightcap that was waiting there', () => {
     const b = fox(at(23));
+    const { basket } = b.world;
     react(b, 'sleep');
     expect(b.state).toBe('toBed');
-    expect(b.world.bed).toBe(0);
-    expect(b.hat()).toBe('nightcap');
+    // The basket waits just out of view, the nightcap in it.
+    expect(basket.home).toBe(0);
+    expect(basket.x).toBeLessThan(-SPRITE_SIZE);
+    expect(basket.cap).toBe(true);
+    expect(b.hat()).toBeUndefined();
+    simulate(b, 30_000, () => b.current().anim === 'tug');
+    expect(b.x).toBeGreaterThan(basket.home);
+    expect(b.dir).toBe(-1);
     simulate(b, 30_000, () => b.state === 'sleep');
-    expect(b.x).toBe(b.world.bed);
+    expect(basket.x).toBe(0);
+    expect(b.x).toBe(0);
+    expect(basket.cap).toBe(false);
     expect(b.hat()).toBe('nightcap');
+  });
+
+  it('stretches when woken, leaves its nightcap in the basket and pushes it out of the view', () => {
+    const b = fox(at(23));
+    const { basket } = b.world;
+    react(b, 'sleep');
+    simulate(b, 30_000, () => b.state === 'sleep');
     react(b, 'wake');
-    expect(b.world.bed).toBeDefined();
-    simulate(b, 5000, () => b.state !== 'stretch');
-    expect(b.world.bed).toBeUndefined();
+    expect(b.state).toBe('tidyBed');
+    expect(b.current().anim).toBe('stretch');
+    expect(b.hat()).toBe('nightcap');
+    simulate(b, 10_000, () => b.current().anim === 'shove');
+    expect(basket.cap).toBe(true);
+    expect(b.hat()).toBeUndefined();
+    expect(b.dir).toBe(-1);
+    expect(basket.x).toBe(0);
+    simulate(b, 10_000, () => b.state !== 'tidyBed');
+    simulate(b, 1500);
+    expect(basket.active).toBe(false);
+    expect(basket.cap).toBe(false);
+  });
+
+  it('lets its basket slide off by itself when it is drawn out of bed', () => {
+    const b = fox(at(23));
+    const { basket } = b.world;
+    react(b, 'sleep');
+    simulate(b, 30_000, () => b.state === 'sleep');
+    react(b, 'hungry');
+    expect(b.state).not.toBe('sleep');
+    expect(basket.active).toBe(true);
+    simulate(b, 1500);
+    expect(basket.active).toBe(false);
   });
 
   it('naps where it is during the day, and when day and night are turned off', () => {
     const day = fox(at(14));
     react(day, 'sleep');
     expect(day.state).toBe('sleep');
-    expect(day.world.bed).toBeUndefined();
+    expect(day.world.basket.active).toBe(false);
     const off = fox(at(23));
     off.world.setClock(at(23), false);
     react(off, 'sleep');
@@ -213,7 +269,8 @@ describe('living with you', () => {
     react(b, 'wake');
     simulate(b, 100);
     expect(b.state).not.toBe('toBed');
-    expect(b.world.bed).toBeUndefined();
+    simulate(b, 1500);
+    expect(b.world.basket.active).toBe(false);
   });
 
   it('takes a game of fetch as the break it asked for', () => {

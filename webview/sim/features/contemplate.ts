@@ -24,8 +24,11 @@ const FIRST_WAIT_MS = 45 * 60_000;
 export const AFTER_OPEN_MS = 3 * 60_000;
 /** Under the rain it holds a leaf over its head, until this long after the sky clears. */
 const LEAF_DOWN_MS = 7000;
+const LEAF_ASIDE_MS = 500;
 /** In the snow, this long with its back to us before there is a little pile of it on its head. */
 const SNOW_SETTLES_MS = 12_000;
+/** A first dusting shows this long before the pile. */
+const SNOW_DUST_MS = 4000;
 /** In the desert, how long the loose end of its neck cloth stays up, or down, in the wind. */
 const CLOTH_FLAPS_MS = 500;
 /** What it does when it gets up from under the rain or the snow. */
@@ -175,14 +178,18 @@ export const contemplateFeature = {
         if (vista === 'snow') {
           // A scarf round its neck while its back is to us, and after a while snow on its head, which stays there.
           const settled = b.elapsed >= FACING_MS + SNOW_SETTLES_MS;
-          return facing ? (settled ? 'scarfSnow' : 'scarf') : settled ? 'snowcap' : 'none';
+          const dusted = b.elapsed >= FACING_MS + SNOW_SETTLES_MS - SNOW_DUST_MS;
+          return facing ? (settled ? 'scarfSnow' : dusted ? 'scarfDust' : 'scarf') : settled ? 'snowcap' : 'none';
         }
         if (vista === 'dunes') {
           // Dressed for the deep desert while it watches, the end of its neck cloth in the wind.
           return facing ? (Math.floor(b.elapsed / CLOTH_FLAPS_MS) % 2 === 0 ? 'cloak' : 'cloakWind') : 'none';
         }
-        // A leaf over its head while it rains.
-        return facing && vista === 'rain' && b.elapsed < momentAt + LEAF_DOWN_MS ? 'leaf' : 'none';
+        // A leaf over its head while it rains, which it swings down to its side before letting it go.
+        if (!facing || vista !== 'rain' || b.elapsed >= momentAt + LEAF_DOWN_MS + LEAF_ASIDE_MS) {
+          return 'none';
+        }
+        return b.elapsed < momentAt + LEAF_DOWN_MS ? 'leaf' : 'leafAside';
       },
     },
   },

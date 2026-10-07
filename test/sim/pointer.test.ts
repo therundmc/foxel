@@ -82,7 +82,7 @@ describe('coming to the pointer', () => {
     b.world.pointer = { x: 150, y: 20 };
     simulate(b, 2000);
     expect(b.state).not.toBe('come');
-    simulate(b, 5000, () => b.state === 'come');
+    simulate(b, 13_000, () => b.state === 'come');
     expect(b.state).toBe('come');
   });
 

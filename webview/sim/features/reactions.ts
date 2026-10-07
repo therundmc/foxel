@@ -2,7 +2,7 @@ import type { Reaction } from '../../../shared/protocol';
 import type { Buddy } from '../buddy';
 import type { Feature } from '../state';
 import { startDrink, startHungry } from './meals';
-import { goToSleep, startBreak } from './rest';
+import { goToSleep, startBreak, wakeUp } from './rest';
 
 type TimedReaction = 'alert' | 'wave' | 'love' | 'happy' | 'celebrate' | 'sad' | 'panic';
 
@@ -27,9 +27,7 @@ const HANDLERS: Record<Reaction, (b: Buddy) => void> = {
   wake(b) {
     b.rest.sleepy = false;
     b.rest.breakAsks = 0;
-    if (b.state === 'sleep') {
-      b.enter('stretch', b.ambientDuration('stretch'));
-    }
+    wakeUp(b);
   },
   sleep(b) {
     b.rest.sleepy = true;

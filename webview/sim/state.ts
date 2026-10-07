@@ -47,6 +47,7 @@ export type BuddyState =
   | 'doze'
   | 'drowsy'
   | 'toBed'
+  | 'tidyBed'
   | 'hungry'
   | 'feast'
   | 'drink'

@@ -29,7 +29,7 @@ export class MealsMemory {
 export function fillBowl(b: Buddy): void {
   const bowl = b.world.foodBowl;
   if (!bowl.active) {
-    bowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width);
+    bowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height);
   }
   if (bowl.amount === 0) {
     bowl.fill(mealAt(b.world.now) === 'snack' ? SNACK_PORTION : BOWL_CAPACITY);
@@ -39,7 +39,7 @@ export function fillBowl(b: Buddy): void {
 
 export function startHungry(b: Buddy): void {
   if (!b.world.foodBowl.active) {
-    b.world.foodBowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width);
+    b.world.foodBowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height);
   }
   if (b.world.foodBowl.amount > 0) {
     startFeast(b);
@@ -101,7 +101,7 @@ function updateFeast(b: Buddy, dt: number): void {
 export function startDrink(b: Buddy): void {
   const water = b.world.waterBowl;
   if (!water.active) {
-    water.show(b.x + b.offsetFor(BOWL_EAT_X) + b.dir * WATER_WALK, b.world.width);
+    water.show(b.x + b.offsetFor(BOWL_EAT_X) + b.dir * WATER_WALK, b.world.width, b.world.height);
     water.fill(SIPS);
   }
   b.moving = false;

@@ -89,6 +89,23 @@ export const ANIMATIONS = {
     [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 700],
     [{ eye: 'happy' }, 300],
   ]),
+  // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
+  tug: anim([
+    [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
+    [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highL' }, 240],
+    [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
+    [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highR' }, 240],
+    [{ eye: 'sleepy', tail: 'wagL' }, 240],
+  ]),
+  shove: anim([
+    [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
+    [{ legs: STEP_A, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
+    [{ eye: 'open' }, 160],
+    [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
+    [{ legs: STEP_B, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
+    [{ eye: 'happy', tail: 'wagL' }, 280],
+    [{ eye: 'happy', tail: 'wagR' }, 280],
+  ]),
   yawn: anim([
     [SIT, 300],
     [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 900],

@@ -13,7 +13,9 @@ import {
   BIRD_FRAMES,
   BUG_FRAMES,
   CAKE,
+  EMOTE_BUD,
   EMOTES,
+  type Emote,
   FOOD_BOWL,
   GRASS,
   GRASS_H,
@@ -33,6 +35,7 @@ import type { Sky } from './sky';
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.25)';
 // Above the ear tips, where the picture bubble sits.
 const EMOTE_ABOVE_HEAD = 13;
+const EMOTE_BUD_MS = 130;
 const CAKE_FLICKER_MS = 300;
 const mirrored = (glyph: Glyph): Glyph => glyph.map((line) => [...line].reverse().join(''));
 const TREAT_STAGES_FACING_LEFT = TREAT_STAGES.map(mirrored);
@@ -49,6 +52,7 @@ export function currentFrame(buddy: Buddy): Frame {
 export class Renderer {
   private readonly eyes = new Eyes();
   private readonly scenery = new SceneryLayers();
+  private emote: { shown: Emote; since: number } | undefined;
 
   constructor(
     private readonly stage: Stage,
@@ -81,7 +85,7 @@ export class Renderer {
     this.drawMouse();
     this.drawGrass();
     if (fox) {
-      this.drawEmote(stage.buddyRect(buddy), frame);
+      this.drawEmote(stage.buddyRect(buddy), frame, now);
     }
     this.drawBall();
     this.drawBug();
@@ -93,17 +97,23 @@ export class Renderer {
   // The basket sits under the curled-up fox: back rim and cushion behind it, front rim in front.
   private drawBasket(glyph: Glyph, topAboveGround: number): void {
     const { ctx, scale } = this.stage;
-    const bed = this.session.world.bed;
-    if (bed === undefined) {
+    const { basket } = this.session.world;
+    if (basket.x === undefined) {
       return;
     }
-    const x = Math.round((bed + (SPRITE_SIZE - BASKET_W) / 2) * scale);
+    const x = Math.round((basket.x + (SPRITE_SIZE - BASKET_W) / 2) * scale);
     const y = Math.round(this.stage.screenY(topAboveGround));
+    if (glyph === BASKET_FRONT && basket.cap) {
+      // Its nightcap, left on the cushion.
+      const cap = HATS.nightcap.glyph;
+      const capX = x + Math.round(((BASKET_W - cap[0].length) / 2) * scale);
+      ctx.drawImage(this.bitmaps.get(cap), capX, y - (cap.length - 2) * scale, cap[0].length * scale, cap.length * scale);
+    }
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
   }
 
   private drawBowl(bowl: Bowl, stages: readonly Glyph[]): void {
-    if (!bowl.active) {
+    if (!bowl.visible) {
       return;
     }
     const r = this.stage.rect(bowl.box);
@@ -124,14 +134,18 @@ export class Renderer {
   }
 
   // A little picture bubble above the head: what it feels or wants, never words.
-  private drawEmote(rect: Rect, frame: Frame): void {
+  private drawEmote(rect: Rect, frame: Frame, now: number): void {
     const { ctx, scale } = this.stage;
     const buddy = this.session.buddy;
     const emote = buddy.emote();
-    if (!emote) {
+    if (emote !== this.emote?.shown) {
+      this.emote = emote && { shown: emote, since: now };
+    }
+    if (!emote || !this.emote) {
       return;
     }
-    const glyph = EMOTES[emote];
+    // It swells up before its picture shows.
+    const glyph = now - this.emote.since < EMOTE_BUD_MS ? EMOTE_BUD : EMOTES[emote];
     const [hx, hy] = frame.head;
     const w = glyph[0].length;
     const left = buddy.dir === 1 ? hx + 1 : SPRITE_SIZE - hx - 1 - w;
