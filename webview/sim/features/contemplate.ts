@@ -1,4 +1,4 @@
-import { vistaAt, type Vista } from '../../../shared/day';
+import { vistasAt, type Vista } from '../../../shared/day';
 import { ANIMATIONS, type AnimName } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
@@ -16,15 +16,12 @@ const FACING_MS = PRELUDE_MS + TURN_MS;
 const LEAVE_MS = RETURN_MS + SETTLE_MS;
 /** There has to be room for a sky. */
 const MIN_WIDTH = 64;
-/** A moment like this stays special: hours go by before the next one. */
-const WAIT_MIN_MS = 2 * 3_600_000;
-const WAIT_MAX_MS = 3.5 * 3_600_000;
-const FIRST_WAIT_MS = 15 * 60_000;
+/** A moment like this stays special: one or two in a day, hours apart. */
+const WAIT_MIN_MS = 4.5 * 3_600_000;
+const WAIT_MAX_MS = 7.5 * 3_600_000;
+const FIRST_WAIT_MS = 45 * 60_000;
 /** Coming back to a view that was closed, it first settles in, however long it has been. */
 export const AFTER_OPEN_MS = 3 * 60_000;
-/** Some days, in clouds weather, it rains instead; and some nights it snows. */
-const RAIN_CHANCE = 0.3;
-const SNOW_CHANCE = 0.3;
 /** Under the rain it holds a leaf over its head, until this long after the sky clears. */
 const LEAF_DOWN_MS = 7000;
 /** In the snow, this long with its back to us before there is a little pile of it on its head. */
@@ -35,7 +32,7 @@ const SHAKES: Partial<Record<Vista, TouchReaction>> = {
   snow: { anim: 'shakeSnow', then: 'sit' },
 };
 /** On a fine day a bird sometimes comes and sits beside it, a few seconds after it has turned to the sky. */
-const COMPANY: readonly Vista[] = ['sunrise', 'clouds', 'sunset'];
+const COMPANY: readonly Vista[] = ['sunrise', 'cloudsea', 'clouds', 'blossom', 'wheat', 'sunset', 'train'];
 const COMPANY_CHANCE = 0.45;
 const COMPANY_AFTER_MS = 5000;
 const COMPANY_ASIDE = 21;
@@ -43,10 +40,15 @@ const COMPANY_MIN_WIDTH = 100;
 /** The sleep in which it dreams of a sky it watched, and how long it has to sleep for the dream to be had. */
 const DREAMS: Record<Vista, AnimName> = {
   sunrise: 'sleepSunrise',
+  cloudsea: 'sleepCloudsea',
   clouds: 'sleepClouds',
-  sunset: 'sleepSunset',
-  stars: 'sleepStars',
+  blossom: 'sleepBlossom',
+  wheat: 'sleepWheat',
   rain: 'sleepRain',
+  sunset: 'sleepSunset',
+  train: 'sleepTrain',
+  stars: 'sleepStars',
+  fireflies: 'sleepFireflies',
   snow: 'sleepSnow',
 };
 const DREAMT_MS = 20_000;
@@ -58,6 +60,8 @@ export class ContemplateMemory {
   hadMoment = false;
   /** Time left before it feels like contemplating again. */
   waitMs = FIRST_WAIT_MS;
+  /** The last sky it stopped for by itself: it does not pick the same one twice running. */
+  last: Vista | undefined;
   /** Whether it was already settled if a bird joins it this time. */
   companySettled = false;
   /** The sky it will dream of the next time it sleeps, and how long it has slept since. */
@@ -90,19 +94,23 @@ function sendCompanyOff(b: Buddy): void {
   }
 }
 
-function vistaNow(b: Buddy): Vista | undefined {
-  const { phase, now, scenery, width } = b.world;
-  return phase !== undefined && !scenery.active && width >= MIN_WIDTH ? vistaAt(now) : undefined;
+/** Whether this is a moment and a place for a sky at all. */
+function skyPossible(b: Buddy): boolean {
+  const { phase, scenery, width } = b.world;
+  return phase !== undefined && !scenery.active && width >= MIN_WIDTH;
 }
 
-// Once in a long while, at the right time of day, the sky is worth stopping for.
+// Once in a long while the sky is worth stopping for: one of those of the hour, by its odds, never the last one again.
 function startDueContemplation(b: Buddy): void {
-  const vista = vistaNow(b);
-  if (vista) {
-    b.contemplate.waitMs = b.between(WAIT_MIN_MS, WAIT_MAX_MS);
-    const weather = vista === 'clouds' ? (['rain', RAIN_CHANCE] as const) : vista === 'stars' ? (['snow', SNOW_CHANCE] as const) : undefined;
-    startContemplate(b, weather && b.world.random() < weather[1] ? weather[0] : vista);
-  }
+  const m = b.contemplate;
+  const all = vistasAt(b.world.now);
+  const fresh = all.filter(([vista]) => vista !== m.last);
+  const skies = fresh.length > 0 ? fresh : all;
+  let roll = b.world.random() * skies.reduce((sum, [, odds]) => sum + odds, 0);
+  const vista = (skies.find(([, odds]) => (roll -= odds) < 0) ?? skies[skies.length - 1])[0];
+  m.waitMs = b.between(WAIT_MIN_MS, WAIT_MAX_MS);
+  m.last = vista;
+  startContemplate(b, vista);
 }
 
 export const contemplateFeature = {
@@ -175,7 +183,7 @@ export const contemplateFeature = {
       },
     },
   },
-  urges: [urge((b) => b.contemplate.waitMs <= 0 && vistaNow(b) !== undefined, startDueContemplation)],
+  urges: [urge((b) => b.contemplate.waitMs <= 0 && skyPossible(b), startDueContemplation)],
   tick(b, dtMs) {
     const m = b.contemplate;
     m.waitMs = Math.max(0, m.waitMs - dtMs);

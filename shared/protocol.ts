@@ -46,8 +46,9 @@ export interface BuddyMemory {
   greeted: Partial<Record<Greeting, number>>;
   /** Time left, when this was noted, before it feels like contemplating the sky again. */
   vistaInMs: number;
-  /** The sky it watched and has not dreamt of yet. */
+  /** The sky it watched and has not dreamt of yet, and the last one it stopped for. */
   dream?: Vista;
+  lastVista?: Vista;
   /** Whether a mouse has made friends with it. */
   mouseFriend: boolean;
 }
@@ -69,10 +70,15 @@ export const SCENES = [
   'typing',
   'drowsy',
   'sunrise',
+  'cloudsea',
   'rain',
+  'blossom',
   'daydream',
+  'wheat',
   'sunset',
+  'train',
   'stargaze',
+  'fireflies',
   'snow',
   'goodNight',
   'bedtime',

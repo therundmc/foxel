@@ -18,6 +18,11 @@ export type Extra =
   | 'dreamStars'
   | 'dreamLeaf'
   | 'dreamLights'
+  | 'dreamWhale'
+  | 'dreamBlossom'
+  | 'dreamWheat'
+  | 'dreamTrain'
+  | 'dreamFirefly'
   | 'heartsA'
   | 'heartsB'
   | 'smallHeartA'
@@ -109,6 +114,12 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   dreamStars: dream(['S...S', '..S..', '.SSS.', '..S..']),
   dreamLeaf: dream(['A.A.A', '.AAA.', 'AAAAA', '..k..']),
   dreamLights: dream(['.F..F..', 'FFwFFwF', '.wV.wV.']),
+  // And: a whale made of cloud, a cherry blossom, an ear of wheat, a little train with lit windows, a firefly.
+  dreamWhale: dream(['.ZZZZ.Z', 'ZZEZZZZ', '.ZZZZ..']),
+  dreamBlossom: dream(['.p.p.', 'ppSpp', '.p.p.']),
+  dreamWheat: dream(['.X.', 'XxX', 'XxX', '.k.', '.k.']),
+  dreamTrain: dream(['.AAAAAA', '.AXAXAA', 'KK.KK.K']),
+  dreamFirefly: dream(['..g..', '.gBg.', '..g..']),
   heartsA: [{ x: 26, y: 4, glyph: GLYPHS.heart }],
   heartsB: [{ x: 27, y: 1, glyph: GLYPHS.heart }, { x: 29, y: 7, glyph: GLYPHS.smallHeart }],
   smallHeartA: [{ x: 27, y: 3, glyph: GLYPHS.smallHeart }],

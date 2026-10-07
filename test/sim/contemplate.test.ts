@@ -191,8 +191,11 @@ describe('company', () => {
 });
 
 describe('when it contemplates', () => {
-  function skyAfter(clock: Date, ms: number, random = 0.5): Vista | undefined {
+  const MINUTE = 60_000;
+
+  function skyAfter(clock: Date, ms: number, random = 0.5, last?: Vista): Vista | undefined {
     const b = fox(20, clock, random);
+    b.contemplate.last = last;
     let seen: Vista | undefined;
     simulate(b, ms, () => {
       seen ??= b.world.scenery.vista;
@@ -201,25 +204,28 @@ describe('when it contemplates', () => {
     return seen;
   }
 
-  it('waits a while after its view opens, then stops for the sky of the hour', () => {
-    expect(skyAfter(at(14), 10 * 60_000)).toBeUndefined();
-    expect(skyAfter(at(14), 20 * 60_000)).toBe('clouds');
-    expect(skyAfter(at(6, 30), 20 * 60_000)).toBe('sunrise');
-    expect(skyAfter(at(19, 30), 20 * 60_000)).toBe('sunset');
-    expect(skyAfter(at(23), 20 * 60_000)).toBe('stars');
+  it('waits a good while after its view opens, then stops for one of the skies of the hour', () => {
+    expect(skyAfter(at(14), 40 * MINUTE)).toBeUndefined();
+    expect(['clouds', 'blossom', 'wheat', 'rain']).toContain(skyAfter(at(14), 50 * MINUTE));
+    expect(['sunrise', 'cloudsea']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
+    expect(['sunset', 'train']).toContain(skyAfter(at(19, 30), 50 * MINUTE));
+    expect(['stars', 'fireflies', 'snow']).toContain(skyAfter(at(23), 50 * MINUTE));
   });
 
-  it('gets rain instead of clouds some days and snow instead of stars some nights, never instead of a sunset', () => {
-    expect(skyAfter(at(14), 20 * 60_000, 0.1)).toBe('rain');
-    expect(skyAfter(at(23), 20 * 60_000, 0.1)).toBe('snow');
-    expect(skyAfter(at(19, 30), 20 * 60_000, 0.1)).toBe('sunset');
+  it('draws among them, and never the one it stopped for last', () => {
+    expect(skyAfter(at(14), 50 * MINUTE, 0.01)).toBe('clouds');
+    expect(skyAfter(at(14), 50 * MINUTE, 0.99)).toBe('rain');
+    expect(skyAfter(at(23), 50 * MINUTE, 0.99)).toBe('snow');
+    expect(skyAfter(at(19, 30), 50 * MINUTE, 0.9)).toBe('train');
+    expect(skyAfter(at(14), 50 * MINUTE, 0.01, 'clouds')).toBe('blossom');
+    expect(skyAfter(at(19, 30), 50 * MINUTE, 0.01, 'sunset')).toBe('train');
   });
 
-  it('keeps it rare: hours go by before the next one', () => {
+  it('keeps it rare: one or two in a day', () => {
     const b = fox(20, at(14));
     let count = 0;
     let was = false;
-    simulate(b, 5 * HOUR, () => {
+    simulate(b, 10 * HOUR, () => {
       const now = b.state === 'contemplate';
       count += now && !was ? 1 : 0;
       was = now;
@@ -230,12 +236,12 @@ describe('when it contemplates', () => {
   it('does not when day and night are turned off, nor where there is no room for a sky', () => {
     const off = fox(20, at(14));
     off.world.setClock(at(14), false);
-    simulate(off, 30 * 60_000, () => off.state === 'contemplate');
+    simulate(off, 60 * MINUTE, () => off.state === 'contemplate');
     expect(off.state).not.toBe('contemplate');
     const narrow = spawn(fixed(0.5));
     narrow.world.resize(48, 60);
     narrow.world.setClock(at(14), true);
-    simulate(narrow, 30 * 60_000, () => narrow.state === 'contemplate');
+    simulate(narrow, 60 * MINUTE, () => narrow.state === 'contemplate');
     expect(narrow.state).not.toBe('contemplate');
   });
 });

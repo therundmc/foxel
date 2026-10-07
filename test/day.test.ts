@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockAt, dateKey, dayPhase, lightTint, mealAt, partyKind, vistaAt } from '../shared/day';
+import { clockAt, dateKey, dayPhase, lightTint, mealAt, partyKind, vistasAt } from '../shared/day';
 
 const at = (hours: number, minutes = 0, day = 7): Date => new Date(2026, 9, day, hours, minutes);
 
@@ -14,13 +14,17 @@ describe('day', () => {
     expect(dayPhase(at(23))).toBe('night');
   });
 
-  it('knows which sky there is to look at', () => {
-    expect(vistaAt(at(3))).toBe('stars');
-    expect(vistaAt(at(6, 30))).toBe('sunrise');
-    expect(vistaAt(at(9))).toBe('clouds');
-    expect(vistaAt(at(17))).toBe('clouds');
-    expect(vistaAt(at(19))).toBe('sunset');
-    expect(vistaAt(at(21))).toBe('stars');
+  it('knows which skies there are to look at, weather being the less likely', () => {
+    const skies = (hours: number, minutes = 0): string[] => vistasAt(at(hours, minutes)).map(([vista]) => vista);
+    expect(skies(3)).toEqual(['stars', 'fireflies', 'snow']);
+    expect(skies(6, 30)).toEqual(['sunrise', 'cloudsea']);
+    expect(skies(9)).toEqual(['clouds', 'blossom', 'wheat', 'rain']);
+    expect(skies(17)).toEqual(['clouds', 'blossom', 'wheat', 'rain']);
+    expect(skies(19)).toEqual(['sunset', 'train']);
+    expect(skies(21)).toEqual(['stars', 'fireflies', 'snow']);
+    for (const [vista, odds] of [...vistasAt(at(12)), ...vistasAt(at(23))]) {
+      expect(odds, vista).toBe(vista === 'rain' || vista === 'snow' ? 0.6 : 1);
+    }
   });
 
   it('knows the four meal times', () => {

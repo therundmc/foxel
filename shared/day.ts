@@ -41,20 +41,34 @@ export function lightTint(date: Date): LightTint {
   return m < at(7, 30) || m >= at(18, 30) ? 'golden' : 'day';
 }
 
-/** A sky the fox may sit down and contemplate. Rain and snow are not on the clock: they come some days instead of clouds, some nights instead of stars. */
-export type Vista = 'sunrise' | 'clouds' | 'sunset' | 'stars' | 'rain' | 'snow';
+/** A sky the fox may sit down and contemplate. */
+export type Vista =
+  | 'sunrise'
+  | 'cloudsea'
+  | 'clouds'
+  | 'blossom'
+  | 'wheat'
+  | 'rain'
+  | 'sunset'
+  | 'train'
+  | 'stars'
+  | 'fireflies'
+  | 'snow';
 
-const VISTAS: readonly (readonly [Exclude<Vista, 'rain' | 'snow'>, number])[] = [
-  ['stars', at(6)],
-  ['sunrise', at(9)],
-  ['clouds', at(17, 30)],
-  ['sunset', at(21)],
+/** The skies of each time of day, each with its odds: weather comes less often than a clear sky. */
+export type VistaOdds = readonly (readonly [Vista, number])[];
+const NIGHT_SKIES: VistaOdds = [['stars', 1], ['fireflies', 1], ['snow', 0.6]];
+const VISTAS: readonly (readonly [number, VistaOdds])[] = [
+  [at(6), NIGHT_SKIES],
+  [at(9), [['sunrise', 1], ['cloudsea', 1]]],
+  [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['rain', 0.6]]],
+  [at(21), [['sunset', 1], ['train', 1]]],
 ];
 
-/** The sky there is to look at, at this time of day. */
-export function vistaAt(date: Date): Exclude<Vista, 'rain' | 'snow'> {
+/** The skies there are to look at, at this time of day. */
+export function vistasAt(date: Date): VistaOdds {
   const m = minuteOfDay(date);
-  return VISTAS.find(([, until]) => m < until)?.[0] ?? 'stars';
+  return VISTAS.find(([until]) => m < until)?.[1] ?? NIGHT_SKIES;
 }
 
 export function dateKey(date: Date): string {

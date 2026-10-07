@@ -115,6 +115,11 @@ export const ANIMATIONS = {
   sleepStars: sleepAnimation('dreamStars'),
   sleepRain: sleepAnimation('dreamLeaf'),
   sleepSnow: sleepAnimation('dreamLights'),
+  sleepCloudsea: sleepAnimation('dreamWhale'),
+  sleepBlossom: sleepAnimation('dreamBlossom'),
+  sleepWheat: sleepAnimation('dreamWheat'),
+  sleepTrain: sleepAnimation('dreamTrain'),
+  sleepFireflies: sleepAnimation('dreamFirefly'),
   typing: anim([
     [{ ...SIT, paw: 'tapNear', eye: 'down', mouth: 'flat' }, 180],
     [{ ...SIT, paw: 'tapFar', eye: 'down', mouth: 'flat' }, 180],
