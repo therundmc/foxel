@@ -4,13 +4,13 @@ import type { Feature } from '../state';
 import { startHunt, type Prey } from './hunt';
 
 /** How long between two butterflies, and how long one stays when nothing chases it. */
-const BUTTERFLY_GAP_MS = [50_000, 130_000] as const;
+const BUTTERFLY_GAP_MS = [4 * 60_000, 9 * 60_000] as const;
 const BUTTERFLY_STAY_S = [9, 16] as const;
-const BIRD_GAP_MS = [90_000, 240_000] as const;
+const BIRD_GAP_MS = [7 * 60_000, 15 * 60_000] as const;
 const BIRD_STAY_S = [6, 10] as const;
 /** The first ones do not show up the moment the view opens. */
-const FIRST_BUTTERFLY_MS = 25_000;
-const FIRST_BIRD_MS = 70_000;
+const FIRST_BUTTERFLY_MS = 2 * 60_000;
+const FIRST_BIRD_MS = 5 * 60_000;
 /** A bird only comes down where it can land well away from the fox. */
 const LAND_MIN_WIDTH = 110;
 const LAND_AWAY = [38, 80] as const;

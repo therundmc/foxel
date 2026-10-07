@@ -32,7 +32,7 @@ describe('visitors', () => {
     let cameAt: number | undefined;
     let leftAt: number | undefined;
     let ms = 0;
-    sitThrough(b, 120_000, () => {
+    sitThrough(b, 240_000, () => {
       ms += 16;
       if (bug.active) {
         cameAt ??= ms;
@@ -41,8 +41,8 @@ describe('visitors', () => {
       }
       return leftAt !== undefined;
     });
-    expect(cameAt).toBeGreaterThan(20_000);
-    expect(cameAt).toBeLessThan(40_000);
+    expect(cameAt).toBeGreaterThan(100_000);
+    expect(cameAt).toBeLessThan(140_000);
     expect(leftAt! - cameAt!).toBeGreaterThan(9000);
     expect(b.state).toBe('sit');
   });
@@ -50,7 +50,7 @@ describe('visitors', () => {
   it('sometimes cannot resist: it goes after the butterfly that is passing, not another one', () => {
     const b = fox(0.2);
     const { bug } = b.world;
-    sitThrough(b, 60_000, () => b.state === 'hunt');
+    sitThrough(b, 180_000, () => b.state === 'hunt');
     expect(b.state).toBe('hunt');
     expect(b.hunt.prey).toBe('bug');
     expect(bug.active).toBe(true);
@@ -67,7 +67,7 @@ describe('visitors', () => {
     const { bird } = b.world;
     let landedAt: number | undefined;
     let ms = 0;
-    sitThrough(b, 200_000, () => {
+    sitThrough(b, 400_000, () => {
       ms += 16;
       if (bird.state === 'pecking') {
         landedAt ??= ms;
@@ -75,7 +75,7 @@ describe('visitors', () => {
       }
       return landedAt !== undefined && !bird.active;
     });
-    expect(landedAt).toBeGreaterThan(60_000);
+    expect(landedAt).toBeGreaterThan(290_000);
     expect(bird.active).toBe(false);
     expect(ms - landedAt!).toBeGreaterThan(6000);
   });
@@ -104,7 +104,7 @@ describe('visitors', () => {
     const b = fox(0.1, 90);
     b.visitors.butterflyInMs = Infinity;
     const states = new Set<string>();
-    sitThrough(b, 100_000, () => {
+    sitThrough(b, 340_000, () => {
       states.add(b.world.bird.state);
     });
     expect(states).toContain('crossing');
@@ -114,7 +114,7 @@ describe('visitors', () => {
 
   it('nobody comes at night, nor over a sky it is contemplating', () => {
     const night = fox(0.9, 240, at(23));
-    simulate(night, 300_000, () => night.world.bug.active || night.world.bird.active);
+    simulate(night, 900_000, () => night.world.bug.active || night.world.bird.active);
     expect(night.world.bug.active || night.world.bird.active).toBe(false);
 
     const gazing = fox(0.9);
@@ -123,5 +123,32 @@ describe('visitors', () => {
     startContemplate(gazing, 'clouds');
     simulate(gazing, 30_000, () => gazing.world.bug.active || gazing.world.bird.active);
     expect(gazing.world.bug.active || gazing.world.bird.active).toBe(false);
+  });
+});
+
+describe('how often visitors come', () => {
+  it('stays occasional: a handful of butterflies and a couple of birds in half an hour', () => {
+    const b = spawn(fixed(0.9));
+    b.world.resize(240, 70);
+    b.restore(40, 1);
+    b.world.setClock(new Date(2026, 9, 7, 14), true);
+    let butterflies = 0;
+    let birds = 0;
+    let bugWas = false;
+    let birdWas = false;
+    simulate(b, 30 * 60_000, () => {
+      if (b.state !== 'sit') {
+        b.enter('sit', 60_000);
+      }
+      const { bug, bird } = b.world;
+      butterflies += bug.active && !bugWas ? 1 : 0;
+      birds += bird.active && !birdWas ? 1 : 0;
+      bugWas = bug.active;
+      birdWas = bird.active;
+    });
+    expect(butterflies).toBeGreaterThanOrEqual(3);
+    expect(butterflies).toBeLessThanOrEqual(8);
+    expect(birds).toBeGreaterThanOrEqual(1);
+    expect(birds).toBeLessThanOrEqual(4);
   });
 });
