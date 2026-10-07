@@ -2,6 +2,7 @@ import type { Scene } from '../../shared/protocol';
 import { SPRITE_SIZE } from '../sprites/frames';
 import type { Buddy } from './buddy';
 import { startContemplate } from './features/contemplate';
+import { blowBubbles } from './features/bubbles';
 import { startHunt } from './features/hunt';
 import { HUNGRY_SAD_MS, fillBowl } from './features/meals';
 import { startMousing } from './features/mousing';
@@ -22,7 +23,6 @@ type Act =
   | 'typing'
   | 'bedtime'
   | 'party'
-  | 'roll'
   | 'dig'
   | 'glass'
   | 'stargaze'
@@ -142,10 +142,10 @@ const SCRIPTS: Record<Scene, Script> = {
   daydream: { hour: 14.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'daydream')]] },
   doze: { hour: 15.25, ms: 9000, cues: [[0, (b) => act(b, 'doze')]] },
   dig: { hour: 15.5, ms: 5000, cues: [[0, (b) => act(b, 'dig')]] },
-  roll: { hour: 15.75, ms: 6000, cues: [[0, (b) => act(b, 'roll')]] },
   glass: { hour: 16, ms: 8000, cues: [[0, (b) => act(b, 'glass')]] },
   party: { hour: 16.25, ms: 6000, party: true, cues: [[0, (b) => act(b, 'party')]] },
   bird: { hour: 18.5, ms: 17_000, cues: [[0, landBird], [3200, (b) => startHunt(b, 'bird')]] },
+  bubbles: { hour: 17, ms: 26_000, cues: [[0, blowBubbles], [2500, blowBubbles]] },
   mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
   sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },
   typing: {

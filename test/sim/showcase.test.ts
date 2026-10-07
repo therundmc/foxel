@@ -38,7 +38,6 @@ describe('Showcase', () => {
       'drowsy',
       'goodNight',
       'dig',
-      'roll',
       'glass',
       'gaze',
       'gazeAwe',

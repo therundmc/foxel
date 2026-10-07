@@ -75,7 +75,7 @@ export const ambientFeature = {
       restful: true,
       facesTarget: true,
       duration: between(8000, 20_000),
-      next: [['stretch', 30], ['sit', 25], ['idle', 20], ['groom', 10], ['walk', 10], ['roll', 12]],
+      next: [['stretch', 30], ['sit', 25], ['idle', 20], ['groom', 10], ['walk', 10]],
     },
     groom: {
       calm: true,
@@ -124,10 +124,6 @@ export const ambientFeature = {
       duration: between(5000, 9000),
       next: [['lie', 50], ['yawn', 30], ['sit', 20]],
       emote: () => 'moon',
-    },
-    roll: {
-      duration: () => totalDuration(ANIMATIONS.roll),
-      next: [['lie', 50], ['sit', 30], ['idle', 20]],
     },
     dig: {
       duration: () => totalDuration(ANIMATIONS.dig),

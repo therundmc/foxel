@@ -48,7 +48,6 @@ const TOUCH_REACTIONS: Record<TouchZone, readonly TouchReaction[]> = {
     { anim: 'scratch' },
     { anim: 'playBow', then: 'zoomies' },
     { anim: 'flop', then: 'lie' },
-    { anim: 'roll', then: 'lie' },
   ],
   paw: [
     { anim: 'shake', then: 'sit' },

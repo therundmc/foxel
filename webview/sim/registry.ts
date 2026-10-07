@@ -1,4 +1,5 @@
 import { ambientFeature } from './features/ambient';
+import { bubblesFeature } from './features/bubbles';
 import { contemplateFeature } from './features/contemplate';
 import { fetchFeature } from './features/fetch';
 import { huntFeature } from './features/hunt';
@@ -23,6 +24,7 @@ export const FEATURES: readonly Feature[] = [
   visitorsFeature,
   mousingFeature,
   fetchFeature,
+  bubblesFeature,
   tricksFeature,
   playFeature,
   touchFeature,
@@ -42,6 +44,7 @@ export const STATES: StateDefs = {
   ...visitorsFeature.states,
   ...mousingFeature.states,
   ...fetchFeature.states,
+  ...bubblesFeature.states,
   ...tricksFeature.states,
   ...playFeature.states,
   ...touchFeature.states,

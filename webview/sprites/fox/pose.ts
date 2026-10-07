@@ -1,12 +1,12 @@
 import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
-import { ellipse, inEllipse, limb, outline, rect, set, type Grid } from '../grid';
+import { ellipse, limb, outline, rect, type Grid } from '../grid';
 import { TRANSPARENT } from '../palette';
 import { GROUND_ROW } from './anchors';
 import { drawFront, type FrontPose } from './front';
 import { drawHead, drawHeadBehind, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
-type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back' | 'behind' | 'front';
+type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'behind' | 'front';
 type Tail =
   | 'up'
   | 'wagL'
@@ -22,8 +22,6 @@ type Tail =
   | 'highL'
   | 'highR'
   | 'poof'
-  | 'backA'
-  | 'backB'
   | 'behindL'
   | 'behindMidL'
   | 'behindMidR'
@@ -70,9 +68,6 @@ export const HOP_LAND: Legs = [[-2, 3], [-1, 3], [1, 0], [2, 0]];
 export const HOP_GATHER: Legs = [[2, 1], [3, 1], [-1, 1], [0, 1]];
 export const TUCK: Legs = [[1, 3], [1, 3], [-1, 3], [-1, 3]];
 export const THUMP: Legs = [[0, 0], [3, 3], [0, 0], [0, 0]];
-// On its back: back feet kicking one after the other while the front paws pat the air.
-export const KICK_A: Legs = [[-1, 0], [1, 2], [0, 1], [0, 0]];
-export const KICK_B: Legs = [[1, 2], [-1, 0], [0, 0], [0, 1]];
 
 const STAND_LEG_X = [8, 11, 16, 19] as const;
 const LEG_TOP_Y = 24;
@@ -108,8 +103,6 @@ const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
   highL: [[6, 16, 2], [3.5, 12, 2.6], [2.5, 8, 3], [3.5, 4.5, 2.6], [3.5, 3.5, 2]],
   highR: [[6, 16, 2], [4.5, 12, 2.6], [5.5, 8, 3], [8, 5, 2.6], [8, 4, 2]],
   poof: [[7, 21, 2.6], [5, 17.5, 3.3], [4.2, 13.5, 3.8], [5, 9.5, 3.4], [5, 8.5, 2.6]],
-  backA: [[4.5, 27, 2.2], [2.8, 25.6, 2.1], [2, 23.8, 1.8], [2, 23, 1.4]],
-  backB: [[4.5, 27, 2.2], [2.5, 26.8, 2.1], [1.6, 26, 1.8], [1.2, 25.6, 1.4]],
   behindL: [[14, 27.4, 2.2], [11, 27.9, 2.3], [8, 27.6, 2.2], [6.2, 27, 1.7]],
   behindMidL: [[15, 27.4, 2.2], [13, 28, 2.2], [11.6, 28.2, 1.7]],
   behindMidR: [[17, 27.4, 2.2], [19, 28, 2.2], [20.4, 28.2, 1.7]],
@@ -124,7 +117,6 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   curl: 'curl',
   bow: 'high',
   lie: 'sitA',
-  back: 'backA',
   behind: 'behindR',
   front: 'frontA',
 };
@@ -207,32 +199,6 @@ function drawLie(g: Grid, b: number): Point {
   return [22, 18 + b];
 }
 
-// Belly up like an otter: round tummy, bunny feet in the air, paws on its chest. `legs` moves them as it wriggles.
-function drawBack(g: Grid, b: number, legs: Legs): Point {
-  const at = (i: number, x: number, y: number): Point => [x + legs[i][0], y + b - legs[i][1]];
-  const foot = (i: number, x: number, fur: string, pad: boolean): void => {
-    const [fx, fy] = at(i, x, 17.5);
-    limb(g, [x, 22 + b], [fx - 0.5, fy + 1], fur);
-    ellipse(g, fx + 0.5, fy, 1.7, 1.7, 'c');
-    if (pad) {
-      set(g, Math.floor(fx + 0.5), Math.floor(fy), 'p');
-    }
-  };
-  const mitt = (i: number, x: number, y: number, fur: string): void => {
-    const [fx, fy] = at(i, x, y);
-    limb(g, [x - 0.5, 22 + b], [fx - 0.5, fy + 0.5], fur);
-    ellipse(g, fx + 0.5, fy, 1.6, 1.4, 'c');
-  };
-  foot(0, 9.5, 'o', false);
-  mitt(2, 12, 19.6, 'o');
-  ellipse(g, 12, 25 + b, 9, 4.6, 'O');
-  ellipse(g, 12.5, 22.6 + b, 6.5, 2.4, 'c', (x, y) => inEllipse(x, y, 12, 25 + b, 9, 4.6));
-  ellipse(g, 6, 22.8 + b, 2.8, 2.6, 'O');
-  foot(1, 5.5, 'O', true);
-  mitt(3, 14.5, 19.4, 'O');
-  return [23, 21 + b];
-}
-
 // Sitting with its back to us, looking away into the picture, its tail lying our way.
 function drawBehind(g: Grid, b: number, tail: Tail): Point {
   rect(g, 8, 29, 9, 29, 'c');
@@ -269,9 +235,6 @@ export function frame(p: Pose): Frame {
       break;
     case 'lie':
       head = drawLie(g, b);
-      break;
-    case 'back':
-      head = drawBack(g, b, p.legs ?? STILL);
       break;
     case 'behind':
       head = drawBehind(g, b, tail);

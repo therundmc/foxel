@@ -27,11 +27,11 @@ const SCENE_LABELS: Record<Scene, string> = {
   starving: 'Starving',
   doze: 'Afternoon nap',
   dig: 'Digging',
-  roll: 'Rolling on its back',
   glass: 'Rubbing and licking the glass',
   party: 'Party',
   mouse: 'Mouse hunt in the tall grass',
   bird: 'A bird lands, it pounces and misses',
+  bubbles: 'Soap bubbles to jump at and burst',
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',
@@ -137,6 +137,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('foxel.wave', withFox(() => react('wave'))),
     vscode.commands.registerCommand('foxel.throwBall', withFox(() => broadcast({ type: 'spawnBall' }))),
     vscode.commands.registerCommand('foxel.giveTreat', withFox(() => broadcast({ type: 'giveTreat' }))),
+    vscode.commands.registerCommand('foxel.blowBubbles', withFox(() => broadcast({ type: 'blowBubbles' }))),
     vscode.commands.registerCommand('foxel.fillBowl', withFox(() => broadcast({ type: 'fillBowl' }))),
     vscode.commands.registerCommand('foxel.playScene', async () => {
       const picks = [

@@ -62,11 +62,11 @@ export const SCENES = [
   'starving',
   'doze',
   'dig',
-  'roll',
   'glass',
   'party',
   'mouse',
   'bird',
+  'bubbles',
   'typing',
   'drowsy',
   'sunrise',
@@ -91,6 +91,7 @@ export type HostMessage =
   | { type: 'memory'; memory: BuddyMemory }
   | { type: 'spawnBall' }
   | { type: 'giveTreat' }
+  | { type: 'blowBubbles' }
   | { type: 'fillBowl' }
   | { type: 'play'; scenes: readonly Scene[] }
   | { type: 'shown' };

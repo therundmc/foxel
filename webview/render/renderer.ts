@@ -31,6 +31,7 @@ import {
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
+import { drawBubbles } from './bubbles';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
@@ -92,6 +93,7 @@ export class Renderer {
     this.drawBall();
     this.drawBug();
     this.drawBird(false);
+    drawBubbles(stage, world.bubbles);
     this.scenery.drawFront(stage, world.scenery);
     sky.drawConfetti(stage, dt);
   }

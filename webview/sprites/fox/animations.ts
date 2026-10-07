@@ -8,8 +8,6 @@ import {
   HOP_GATHER,
   HOP_KICK,
   HOP_LAND,
-  KICK_A,
-  KICK_B,
   RUN_GATHER,
   RUN_REACH,
   STEP_A,
@@ -105,6 +103,59 @@ export const ANIMATIONS = {
     [{ legs: STEP_B, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
     [{ eye: 'happy', tail: 'wagL' }, 280],
     [{ eye: 'happy', tail: 'wagR' }, 280],
+  ]),
+  // Soap bubbles: looking up at them, jumping nose first at one, sneezing at the soap, and holding the last one on its nose.
+  bubbleWatch: anim([
+    [{ head: [0, -1], eye: 'up', mouth: 'open', tail: 'wagL' }, 200],
+    [{ head: [0, -1], eye: 'up', mouth: 'open', tail: 'wagR' }, 200],
+  ]),
+  popLeap: anim([
+    [{ legs: RUN_REACH, head: [1, -1], eye: 'up', mouth: 'open', tail: 'flat' }, 150],
+    [{ legs: TUCK, head: [1, -2], eye: 'up', mouth: 'open', snoutUp: 1, tail: 'up' }, 330],
+  ]),
+  sneeze: anim([
+    [{ head: [-1, -1], eye: 'closed', ears: 'back', mouth: 'open' }, 240],
+    [{ bob: 1, head: [1, 2], eye: 'closed', ears: 'back', mouth: 'open', extras: ['sniffB'] }, 150],
+    [{ head: [0, 1], eye: 'closed' }, 160],
+    [{ eye: 'happy', tail: 'wagL' }, 220],
+  ]),
+  // The other ways it bursts them: snapping at one (and the face it pulls at the taste), batting one with a
+  // paw, whipping its tail up through one, and jumping curled into a spinning ball.
+  chomp: anim([
+    [{ head: [-1, 0], eye: 'wide', mouth: 'open' }, 150],
+    [{ head: [2, 0], eye: 'closed', mouth: 'flat', tail: 'up' }, 190],
+    [{ eye: 'wide', mouth: 'flat' }, 180],
+  ]),
+  bleh: anim([
+    [{ eye: 'closed', mouth: 'blep', ears: 'back' }, 420],
+    [{ head: [0, 1], eye: 'closed', mouth: 'blep', ears: 'back' }, 200],
+    [{ eye: 'happy', mouth: 'blep', tail: 'wagL' }, 220],
+  ]),
+  swat: anim([
+    [{ ...SIT, eye: 'up', tail: 'sitA' }, 140],
+    [{ ...SIT, paw: 'beg', eye: 'wide', tail: 'sitB' }, 160],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitA' }, 180],
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', tail: 'sitB' }, 160],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 180],
+  ]),
+  tailWhip: anim([
+    [{ head: [-1, 0], eye: 'up', tail: 'wagL' }, 130],
+    [{ bob: 1, head: [-1, 1], eye: 'closed', tail: 'flat' }, 130],
+    [{ eye: 'happy', mouth: 'open', tail: 'high' }, 120],
+    [{ eye: 'happy', mouth: 'open', tail: 'highL' }, 110],
+    [{ eye: 'happy', mouth: 'open', tail: 'highR' }, 110],
+    [{ eye: 'happy', mouth: 'open', tail: 'highL' }, 110],
+    [{ eye: 'happy', tail: 'wagR' }, 170],
+  ]),
+  spinBall: anim([
+    [{ bob: 2, eye: 'closed', tail: 'flat' }, 140],
+    [{ legs: TUCK, head: [-1, 2], eye: 'closed', tail: 'flat' }, 620],
+    [{ bob: 1, eye: 'dizzy', tail: 'poof' }, 220],
+    [{ eye: 'happy', tail: 'wagL', extras: ['sparkleA'] }, 240],
+  ]),
+  bubbleNose: anim([
+    [{ ...SIT, snoutUp: 1, eye: 'up', tail: 'sitA' }, 420],
+    [{ ...SIT, snoutUp: 1, eye: 'up', tail: 'sitB' }, 420],
   ]),
   // Sitting by its empty bowl: it looks at it, lifts a paw, and bats it away.
   bat: anim([
@@ -451,20 +502,6 @@ export const ANIMATIONS = {
   typingSleepy: anim([
     [{ ...SIT, paw: 'tapNear', eye: 'sleepy', mouth: 'flat' }, 320],
     [{ ...SIT, paw: 'tapFar', eye: 'sleepy', mouth: 'flat' }, 320],
-  ]),
-  // Flops onto its back, wriggles with its feet in the air, melts for a moment, then rolls back over.
-  roll: anim([
-    [{ body: 'lie', eye: 'happy', tail: 'sitA' }, 240],
-    [{ body: 'lie', tilt: 0.3, eye: 'closed', tail: 'sitB' }, 160],
-    [{ body: 'back', tilt: 0.2, eye: 'wide', tail: 'backA' }, 200],
-    ...Array.from({ length: 5 }, (_, i): [Pose, number][] => [
-      [{ body: 'back', legs: KICK_A, tilt: 0.3, eye: 'happy', mouth: 'open', tail: 'backA', extras: i >= 3 ? ['smallHeartA'] : [] }, 180],
-      [{ body: 'back', legs: KICK_B, tilt: 0.45, eye: 'happy', mouth: 'tongue', tail: 'backB', extras: i >= 3 ? ['smallHeartB'] : [] }, 180],
-    ]).flat(),
-    [{ body: 'back', tilt: 0.5, eye: 'closed', mouth: 'tongue', tail: 'backA' }, 650],
-    [{ body: 'back', bob: 1, tilt: 0.5, eye: 'closed', mouth: 'tongue', tail: 'backB' }, 650],
-    [{ body: 'back', tilt: 0.3, eye: 'happy', tail: 'backA' }, 300],
-    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 450],
   ]),
   // Comes right up to the glass of its view, facing us: it rubs it with both front paws, gives it a few licks and is proud of the shine.
   glass: anim([

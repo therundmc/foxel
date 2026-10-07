@@ -6,6 +6,7 @@ import { Renderer } from './render/renderer';
 import { Sky } from './render/sky';
 import type { Session } from './session';
 import { Buddy } from './sim/buddy';
+import { blowBubbles } from './sim/features/bubbles';
 import { spawnBall } from './sim/features/fetch';
 import { startIntro } from './sim/features/intro';
 import { fillBowl } from './sim/features/meals';
@@ -155,6 +156,9 @@ function onMessage(msg: HostMessage): void {
       break;
     case 'fillBowl':
       fillBowl(buddy);
+      break;
+    case 'blowBubbles':
+      blowBubbles(buddy);
       break;
     case 'spawnBall': {
       const x = worldWidth * (0.2 + 0.6 * Math.random());

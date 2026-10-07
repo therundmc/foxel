@@ -3,6 +3,7 @@ import type { AnimName } from '../sprites/fox/animations';
 import { SPRITE_SIZE } from '../sprites/frames';
 import { BALL_SIZE, type Emote, type Hat } from '../sprites/props';
 import { DEFAULT_NEXT, NIGHT_DAMPING, PHASE_NEXT } from './features/ambient';
+import { BubblesMemory } from './features/bubbles';
 import { ContemplateMemory } from './features/contemplate';
 import { FetchMemory } from './features/fetch';
 import { HuntMemory } from './features/hunt';
@@ -52,6 +53,7 @@ export class Buddy {
   placed = false;
   // What each feature remembers from one frame to the next.
   readonly hunt = new HuntMemory();
+  readonly bubbles = new BubblesMemory();
   readonly visitors = new VisitorsMemory();
   readonly mousing = new MousingMemory();
   readonly fetch = new FetchMemory();

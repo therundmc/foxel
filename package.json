@@ -100,6 +100,12 @@
         "icon": "$(circle-filled)"
       },
       {
+        "command": "foxel.blowBubbles",
+        "title": "Blow Bubbles",
+        "category": "Foxel",
+        "icon": "$(circle-large-outline)"
+      },
+      {
         "command": "foxel.giveTreat",
         "title": "Give a Treat",
         "category": "Foxel",
@@ -130,14 +136,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "foxel.giveTreat",
+          "command": "foxel.blowBubbles",
           "when": "view == foxel.panelView || view == foxel.explorerView",
           "group": "navigation@2"
         },
         {
-          "command": "foxel.wave",
+          "command": "foxel.giveTreat",
           "when": "view == foxel.panelView || view == foxel.explorerView",
           "group": "navigation@3"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@4"
         }
       ]
     },

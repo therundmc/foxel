@@ -2,7 +2,7 @@
 
 A cute pixel-art fox cub that lives in your editor.
 
-![The fox sitting, waving, pawing at the glass, rolling over, in love, asleep and gazing away](media/readme/fox.png)
+![The fox sitting, waving, pawing at the glass, flicking its tail, in love, asleep and gazing away](media/readme/fox.png)
 
 It is a pet, not a tool. It lives by your clock, has its moods and its needs, and there is not a word, a number or a gauge in its view: you read how it feels from what it does.
 
@@ -26,6 +26,7 @@ That is all this page will tell you. The rest is yours to find: it has more habi
 
 - **Foxel: Show Companion** / **Hide Companion** / **Toggle Companion**
 - **Foxel: Throw a Ball**
+- **Foxel: Blow Bubbles**
 - **Foxel: Give a Treat**
 - **Foxel: Fill the Bowl**
 - **Foxel: Say Hello**
