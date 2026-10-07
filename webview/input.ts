@@ -5,6 +5,7 @@ import { grabBall, moveHeldBall, spawnBall, throwBall } from './sim/features/fet
 import { fillBowl } from './sim/features/meals';
 import { pet, touch } from './sim/features/touch';
 import { grabTreat, moveHeldTreat, releaseTreat } from './sim/features/treat';
+import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
@@ -15,10 +16,43 @@ const STROKE_MIN_TRAVEL = 3;
 const EXIT_THROW_SPEED = 90;
 const CLICK_SLOP = 2;
 
+/** Something lying in the view that the user can pick up and drag around. */
+interface Draggable {
+  /** Lying there, ready to be picked up. */
+  free(): boolean;
+  box(): Box;
+  grab(p: WorldPoint): void;
+  move(p: WorldPoint): void;
+  /** Let go at `p`, the hand moving at velocity `v`. */
+  release(p: WorldPoint, v: WorldPoint): void;
+}
+
+// Checked in this order when two of them overlap. A new draggable toy only needs an entry here.
+function draggables({ world, buddy }: Session): Draggable[] {
+  const { ball, treat } = world;
+  return [
+    {
+      free: () => ball.state === 'free',
+      box: () => ball.box,
+      grab: (p) => grabBall(buddy, p.x, p.y),
+      move: (p) => moveHeldBall(buddy, p.x, p.y),
+      release: (p, v) => throwBall(buddy, v.x, v.y, p.x),
+    },
+    {
+      free: () => treat.state === 'free',
+      box: () => treat.box,
+      grab: (p) => grabTreat(buddy, p.x, p.y),
+      move: (p) => moveHeldTreat(buddy, p.x, p.y),
+      release: () => releaseTreat(buddy),
+    },
+  ];
+}
+
 /** Turns what the mouse does on the canvas into what happens to the buddy and its toys. */
 export class Input {
   /** What the user is dragging around. */
-  holding: 'ball' | 'treat' | undefined;
+  holding: Draggable | undefined;
+  private readonly draggables: readonly Draggable[];
   private pointer: { x: number; y: number; time: number } | undefined;
   private dragged = false;
   private pressedOnBuddy: { x: number; y: number } | undefined;
@@ -29,6 +63,7 @@ export class Input {
     private readonly stage: Stage,
     private readonly session: Session,
   ) {
+    this.draggables = draggables(session);
     const canvas = stage.canvas;
     canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
     window.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -61,41 +96,37 @@ export class Input {
     return touchZone(currentFrame(buddy), buddy.dir === 1 ? lx : SPRITE_SIZE - lx, (y - r.y) / scale);
   }
 
-  private overBall(x: number, y: number): boolean {
-    const ball = this.session.world.ball;
-    return ball.state === 'free' && inside(this.stage.ballRect(ball), x, y, this.stage.scale * 2);
+  // Toys are small, so the pointer may be a little off.
+  private over(box: Box, x: number, y: number): boolean {
+    return inside(this.stage.rect(box), x, y, this.stage.scale * 2);
   }
 
-  private overTreat(x: number, y: number): boolean {
-    const treat = this.session.world.treat;
-    return treat.state === 'free' && inside(this.stage.treatRect(treat), x, y, this.stage.scale * 2);
+  private draggableAt(x: number, y: number): Draggable | undefined {
+    return this.draggables.find((d) => d.free() && this.over(d.box(), x, y));
   }
 
   private overFoodBowl(x: number, y: number): boolean {
     const bowl = this.session.world.foodBowl;
-    return bowl.active && inside(this.stage.bowlRect(bowl), x, y, this.stage.scale * 2);
+    return bowl.active && this.over(bowl.box, x, y);
   }
 
   private releaseHeld(cssX: number, cssY: number, minSpeed = 0): void {
-    const { buddy } = this.session;
-    if (this.holding === 'ball') {
-      this.holding = undefined;
-      const { stage } = this;
-      const out = stage.toWorld(cssX, cssY);
-      const away = { x: out.x - stage.width / stage.scale / 2, y: 1 };
-      const v = this.throwing.velocity(performance.now(), minSpeed, away);
-      throwBall(buddy, v.x, v.y, out.x);
-    } else if (this.holding === 'treat') {
-      this.holding = undefined;
-      releaseTreat(buddy);
+    const held = this.holding;
+    if (!held) {
+      return;
     }
+    this.holding = undefined;
+    const { stage } = this;
+    const out = stage.toWorld(cssX, cssY);
+    const away = { x: out.x - stage.width / stage.scale / 2, y: 1 };
+    held.release(out, this.throwing.velocity(performance.now(), minSpeed, away));
   }
 
   private updateCursor(x: number, y: number): void {
     let cursor = 'default';
     if (this.holding || (this.pressedOnBuddy && this.dragged)) {
       cursor = 'grabbing';
-    } else if (this.overBall(x, y) || this.overTreat(x, y)) {
+    } else if (this.draggableAt(x, y)) {
       cursor = 'grab';
     } else if (this.zoneAt(x, y) || this.overFoodBowl(x, y)) {
       cursor = 'pointer';
@@ -104,18 +135,15 @@ export class Input {
   }
 
   private onMouseDown(e: MouseEvent): void {
-    const { buddy } = this.session;
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
     this.dragged = false;
     const p = this.stage.toWorld(e.clientX, e.clientY);
-    if (this.overBall(e.clientX, e.clientY)) {
-      this.holding = 'ball';
+    const picked = this.draggableAt(e.clientX, e.clientY);
+    if (picked) {
+      this.holding = picked;
       this.throwing.reset();
-      grabBall(buddy, p.x, p.y);
+      picked.grab(p);
       this.throwing.sample(p, performance.now());
-    } else if (this.overTreat(e.clientX, e.clientY)) {
-      this.holding = 'treat';
-      grabTreat(buddy, p.x, p.y);
     } else if (this.zoneAt(e.clientX, e.clientY)) {
       this.pressedOnBuddy = { x: e.clientX, y: e.clientY };
       this.stroke.reset();
@@ -137,12 +165,8 @@ export class Input {
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
-      if (this.holding === 'ball') {
-        moveHeldBall(buddy, p.x, p.y);
-        this.throwing.sample(p, performance.now());
-      } else {
-        moveHeldTreat(buddy, p.x, p.y);
-      }
+      this.holding.move(p);
+      this.throwing.sample(p, performance.now());
     } else if (pressed && (e.buttons & 1) !== 0) {
       if (Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) > CLICK_SLOP * this.stage.scale) {
         this.dragged = true;

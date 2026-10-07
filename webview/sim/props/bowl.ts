@@ -1,5 +1,5 @@
-import { BOWL_W } from '../../sprites/props';
-import { clamp } from '../math';
+import { BOWL_H, BOWL_W } from '../../sprites/props';
+import { clamp, type Box } from '../math';
 
 /** A food or water bowl that only shows up when the fox needs it. */
 export class Bowl {
@@ -8,6 +8,10 @@ export class Bowl {
   /** Kibble or sips left. */
   amount = 0;
   private vanishMs = 0;
+
+  get box(): Box {
+    return { x: this.x, y: 0, w: BOWL_W, h: BOWL_H };
+  }
 
   get centerX(): number {
     return this.x + BOWL_W / 2;

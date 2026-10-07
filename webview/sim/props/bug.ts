@@ -1,5 +1,5 @@
 import { BUG_H, BUG_W } from '../../sprites/props';
-import { clamp } from '../math';
+import { clamp, type Box } from '../math';
 
 const MIN_HEIGHT = 14;
 const HEIGHT_RANGE = 8;
@@ -18,6 +18,10 @@ export class Bug {
   private vx = 0;
   private fleeing = false;
   private frozen = false;
+
+  get box(): Box {
+    return { x: this.x, y: this.y, w: BUG_W, h: BUG_H };
+  }
 
   get wingsUp(): boolean {
     return Math.floor(this.t * 8) % 2 === 0;

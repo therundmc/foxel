@@ -1,5 +1,5 @@
 import { BALL_SIZE } from '../../sprites/props';
-import { clamp } from '../math';
+import { clamp, type Box } from '../math';
 
 export const BALL_GRAVITY = 140;
 const FRICTION = 30;
@@ -18,6 +18,10 @@ export class Ball {
   vx = 0;
   vy = 0;
   spin = 0;
+
+  get box(): Box {
+    return { x: this.x, y: this.y, w: BALL_SIZE, h: BALL_SIZE };
+  }
 
   get center(): number {
     return this.x + BALL_SIZE / 2;

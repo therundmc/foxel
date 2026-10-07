@@ -1,10 +1,7 @@
 import type { Buddy } from './sim/buddy';
-import type { Ball } from './sim/props/ball';
-import type { Bowl } from './sim/props/bowl';
-import type { Treat } from './sim/props/treat';
+import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { SPRITE_SIZE } from './sprites/frames';
-import { BALL_SIZE, BOWL_H, BOWL_W, TREAT_H, TREAT_W } from './sprites/props';
 
 export const DEFAULT_SCALE = 4;
 
@@ -64,31 +61,13 @@ export class Stage {
     };
   }
 
-  ballRect(ball: Ball): Rect {
-    const size = BALL_SIZE * this.scale;
+  /** Where a box of the world lands on the canvas. */
+  rect(box: Box): Rect {
     return {
-      x: Math.round(ball.x * this.scale),
-      y: Math.round(this.screenY(ball.y + BALL_SIZE)),
-      w: size,
-      h: size,
-    };
-  }
-
-  treatRect(treat: Treat): Rect {
-    return {
-      x: Math.round(treat.x * this.scale),
-      y: Math.round(this.screenY(treat.y + TREAT_H)),
-      w: TREAT_W * this.scale,
-      h: TREAT_H * this.scale,
-    };
-  }
-
-  bowlRect(bowl: Bowl): Rect {
-    return {
-      x: Math.round(bowl.x * this.scale),
-      y: Math.round(this.screenY(BOWL_H)),
-      w: BOWL_W * this.scale,
-      h: BOWL_H * this.scale,
+      x: Math.round(box.x * this.scale),
+      y: Math.round(this.screenY(box.y + box.h)),
+      w: box.w * this.scale,
+      h: box.h * this.scale,
     };
   }
 }

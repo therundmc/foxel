@@ -30,7 +30,7 @@ Every feature is judged against these three, before any technical consideration:
 | `src/config.ts` | Reading settings; `SENT` lists those forwarded to the view |
 | `webview/main.ts` | Wiring: loop, clock, host messages |
 | `webview/input.ts`, `gestures.ts` | Mouse → commands; throw and stroke detection (pure) |
-| `webview/stage.ts` | Canvas size and world ↔ screen coordinates |
+| `webview/stage.ts` | Canvas size and world ↔ screen coordinates (`rect` places any prop's `box`) |
 | `webview/render/` | Drawing: `renderer.ts` (scene), `eyes.ts`, `bitmaps.ts` (coat, light), `sky.ts` |
 | `webview/sim/world.ts` | Ground, toys, bowls, pointer, time of day; updates the buddies |
 | `webview/sim/buddy.ts` | One pet: position, current state, the state machine engine, movement helpers |
@@ -54,7 +54,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
 - **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameNeeds` and `recall` in `sim/memory.ts`. The host needs no change.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Document it in the README.
-- **New toy**: still several places: class in `sim/props/`, field and update in `World`, glyph in `sprites/props.ts`, rect in `stage.ts`, drawing in `render/renderer.ts`, hit test in `input.ts`.
+- **New toy**: a class in `sim/props/` exposing its `box`, a field and its update in `World`, its glyph in `sprites/props.ts` and a draw method in `render/renderer.ts`. If it can be dragged, one entry in `draggables` (`webview/input.ts`). What the fox does with it is a feature like any other.
 
 ## Rules
 

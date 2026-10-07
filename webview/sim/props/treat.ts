@@ -1,5 +1,5 @@
 import { TREAT_H, TREAT_W } from '../../sprites/props';
-import { clamp } from '../math';
+import { clamp, type Box } from '../math';
 
 const GRAVITY = 140;
 const BOUNCE = 0.3;
@@ -17,6 +17,10 @@ export class Treat {
   stage = 0;
   /** Side the bitten end points to, so a half-eaten treat looks the same once dropped. */
   facing: 1 | -1 = 1;
+
+  get box(): Box {
+    return { x: this.x, y: this.y, w: TREAT_W, h: TREAT_H };
+  }
 
   get active(): boolean {
     return this.state !== 'none';

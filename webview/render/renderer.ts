@@ -11,8 +11,6 @@ import {
   BASKET_FRONT,
   BASKET_W,
   BUG_FRAMES,
-  BUG_H,
-  BUG_W,
   CAKE,
   EMOTES,
   FOOD_BOWL,
@@ -95,7 +93,7 @@ export class Renderer {
     if (!bowl.active) {
       return;
     }
-    const r = this.stage.bowlRect(bowl);
+    const r = this.stage.rect(bowl.box);
     const glyph = stages[Math.min(bowl.amount, stages.length - 1)];
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
   }
@@ -193,7 +191,7 @@ export class Renderer {
     if (ball.state !== 'free' && ball.state !== 'held') {
       return;
     }
-    const r = this.stage.ballRect(ball);
+    const r = this.stage.rect(ball.box);
     this.drawShadow(r.x + r.w / 2, BALL_SIZE - Math.min(ball.y / 6, 4));
     const n = BALL_FRAMES.length;
     const step = (Math.PI * BALL_SIZE) / n;
@@ -214,20 +212,17 @@ export class Renderer {
     if (!glyph) {
       return;
     }
-    const r = this.stage.treatRect(treat);
+    const r = this.stage.rect(treat.box);
     this.drawShadow(r.x + r.w / 2, TREAT_W - Math.min(treat.y / 6, 4));
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
   }
 
   private drawBug(): void {
-    const { ctx, scale: s } = this.stage;
     const bug = this.session.world.bug;
     if (!bug.active) {
       return;
     }
-    const glyph = this.bitmaps.get(BUG_FRAMES[bug.wingsUp ? 0 : 1]);
-    const x = Math.round(bug.x * s);
-    const y = Math.round(this.stage.screenY(bug.y + BUG_H));
-    ctx.drawImage(glyph, x, y, BUG_W * s, BUG_H * s);
+    const r = this.stage.rect(bug.box);
+    this.stage.ctx.drawImage(this.bitmaps.get(BUG_FRAMES[bug.wingsUp ? 0 : 1]), r.x, r.y, r.w, r.h);
   }
 }
