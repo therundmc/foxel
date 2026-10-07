@@ -166,6 +166,8 @@ export class Input {
     const { buddy } = this.session;
     const pressed = this.pressedOnBuddy;
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
+    // A pointer moving in its view is you being there: it would not come to it, or ask for a stroke, half asleep.
+    this.onInteraction();
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);

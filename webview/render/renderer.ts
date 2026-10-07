@@ -64,7 +64,8 @@ export class Renderer {
     const { world, buddy } = session;
     stage.ctx.clearRect(0, 0, stage.width, stage.height);
     this.scenery.drawBack(stage, world.scenery);
-    if (session.settings.dayNight) {
+    // A sky it contemplates has its own shooting stars.
+    if (session.settings.dayNight && !world.scenery.active) {
       sky.draw(stage, session.clock, now);
     }
     this.drawCake(now);

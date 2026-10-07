@@ -34,7 +34,7 @@ export const ambientFeature = {
       calm: true,
       restful: true,
       facesTarget: true,
-      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['leave', 4], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3]],
+      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['leave', 4], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3]],
     },
     walk: {
       speed: WALK_SPEED,
@@ -68,7 +68,7 @@ export const ambientFeature = {
       restful: true,
       facesTarget: true,
       duration: between(6000, 14_000),
-      next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8]],
+      next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8], ['glass', 5]],
     },
     lie: {
       calm: true,
@@ -132,6 +132,11 @@ export const ambientFeature = {
     dig: {
       duration: () => totalDuration(ANIMATIONS.dig),
       next: [['sniff', 40], ['sit', 30], ['idle', 30]],
+    },
+    glass: {
+      nightDamped: true,
+      duration: () => totalDuration(ANIMATIONS.glass),
+      next: [['sit', 50], ['idle', 30], ['groom', 20]],
     },
   },
 } satisfies Feature;

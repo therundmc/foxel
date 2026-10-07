@@ -43,6 +43,7 @@ export const JUMP_LAND_MS = 120;
 
 const SIT = { body: 'sit' } as const;
 const BEHIND = { body: 'behind' } as const;
+const FRONT = { body: 'front' } as const;
 
 const EAT = eatAnimation();
 /** Where to pick the eat animation back up for a treat already eaten down to a given TREAT_STAGES index. */
@@ -428,6 +429,26 @@ export const ANIMATIONS = {
     [{ body: 'back', bob: 1, tilt: 0.5, eye: 'closed', mouth: 'tongue', tail: 'backB' }, 650],
     [{ body: 'back', tilt: 0.3, eye: 'happy', tail: 'backA' }, 300],
     [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB' }, 450],
+  ]),
+  // Comes right up to the glass of its view, facing us: it rubs it with both front paws, gives it a few licks and is proud of the shine.
+  glass: anim([
+    [{ ...SIT, tail: 'sitA' }, 350],
+    [{ ...FRONT, tail: 'frontA' }, 600],
+    [{ ...FRONT, head: [0, 1], tail: 'frontB' }, 350],
+    [{ ...FRONT, pads: [0, 0], tail: 'frontA' }, 400],
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ ...FRONT, pads: [2, 0], eye: 'closed', tail: 'frontB' }, 150],
+      [{ ...FRONT, pads: [0, 2], eye: 'closed', tail: 'frontA' }, 150],
+    ]).flat(),
+    [{ ...FRONT, pads: [1, 1], tail: 'frontA' }, 450],
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ ...FRONT, pads: [1, 1], eye: 'happy', lick: 3, tail: 'frontB' }, 170],
+      [{ ...FRONT, pads: [1, 1], eye: 'happy', lick: 2, head: [0, -1], tail: 'frontA' }, 170],
+    ]).flat(),
+    [{ ...FRONT, pads: [1, 1], eye: 'happy', tail: 'frontB', extras: ['sparkleA'] }, 420],
+    [{ ...FRONT, pads: [1, 1], eye: 'happy', tail: 'frontA', extras: ['sparkleB'] }, 420],
+    [{ ...FRONT, eye: 'happy', tail: 'frontB' }, 500],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 350],
   ]),
   // Digs with its front paws, stops to look at the hole, digs some more and is rather pleased.
   dig: anim([

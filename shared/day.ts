@@ -21,7 +21,7 @@ export function dayPhase(date: Date): DayPhase {
 }
 
 /** Meal windows, in minutes of the day. */
-export const MEALS: readonly (readonly [Meal, number, number])[] = [
+const MEALS: readonly (readonly [Meal, number, number])[] = [
   ['breakfast', at(7), at(9, 30)],
   ['lunch', at(11, 30), at(14)],
   ['snack', at(16), at(17)],

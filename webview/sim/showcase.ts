@@ -7,7 +7,7 @@ import { REACTION_MS, react } from './features/reactions';
 import { startBedtime } from './features/rest';
 import { GOOD_NIGHT, MORNING, SIGH, perform } from './features/touch';
 
-export type Act =
+type Act =
   | 'morning'
   | 'goodNight'
   | 'hungry'
@@ -22,6 +22,7 @@ export type Act =
   | 'party'
   | 'roll'
   | 'dig'
+  | 'glass'
   | 'stargaze'
   | 'sunrise'
   | 'daydream'
@@ -119,6 +120,7 @@ const SCRIPTS: Record<Scene, Script> = {
   doze: { hour: 15.25, ms: 9000, cues: [[0, (b) => act(b, 'doze')]] },
   dig: { hour: 15.5, ms: 5000, cues: [[0, (b) => act(b, 'dig')]] },
   roll: { hour: 15.75, ms: 6000, cues: [[0, (b) => act(b, 'roll')]] },
+  glass: { hour: 16, ms: 8000, cues: [[0, (b) => act(b, 'glass')]] },
   party: { hour: 16.25, ms: 6000, party: true, cues: [[0, (b) => act(b, 'party')]] },
   mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
   sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },

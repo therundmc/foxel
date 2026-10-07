@@ -2,10 +2,11 @@ import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
 import { ellipse, inEllipse, limb, outline, rect, set, type Grid } from '../grid';
 import { TRANSPARENT } from '../palette';
 import { GROUND_ROW } from './anchors';
+import { drawFront, type FrontPose } from './front';
 import { drawHead, drawHeadBehind, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
-type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back' | 'behind';
+type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back' | 'behind' | 'front';
 type Tail =
   | 'up'
   | 'wagL'
@@ -26,13 +27,15 @@ type Tail =
   | 'behindL'
   | 'behindMidL'
   | 'behindMidR'
-  | 'behindR';
+  | 'behindR'
+  | 'frontA'
+  | 'frontB';
 type Paw = 'none' | 'wave1' | 'wave2' | 'lick' | 'tapNear' | 'tapFar' | 'beg';
 
 // [foot x offset, foot lift] for back-far, back-near, front-far, front-near legs.
 type Legs = readonly [Point, Point, Point, Point];
 
-export interface Pose extends HeadPose {
+export interface Pose extends HeadPose, FrontPose {
   body?: Body;
   bob?: number;
   head?: Point;
@@ -50,7 +53,7 @@ export interface Pose extends HeadPose {
   extras?: readonly Extra[];
 }
 
-export const STILL: Legs = [[0, 0], [0, 0], [0, 0], [0, 0]];
+const STILL: Legs = [[0, 0], [0, 0], [0, 0], [0, 0]];
 export const STEP_A: Legs = [[-1, 0], [1, 1], [1, 1], [-1, 0]];
 export const STEP_B: Legs = [[1, 1], [-1, 0], [-1, 0], [1, 1]];
 export const RUN_REACH: Legs = [[-3, 1], [-2, 0], [2, 0], [3, 1]];
@@ -111,6 +114,8 @@ const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
   behindMidL: [[15, 27.4, 2.2], [13, 28, 2.2], [11.6, 28.2, 1.7]],
   behindMidR: [[17, 27.4, 2.2], [19, 28, 2.2], [20.4, 28.2, 1.7]],
   behindR: [[18, 27.4, 2.2], [21, 27.9, 2.3], [24, 27.6, 2.2], [25.8, 27, 1.7]],
+  frontA: [[21, 26.5, 2.2], [23.8, 25.2, 2.3], [25.6, 23, 2.1], [26, 21.8, 1.6]],
+  frontB: [[21, 26.5, 2.2], [24, 26, 2.3], [26.4, 24.6, 2.1], [27.2, 23.6, 1.6]],
 };
 
 const DEFAULT_TAIL: Record<Body, Tail> = {
@@ -121,6 +126,7 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   lie: 'sitA',
   back: 'backA',
   behind: 'behindR',
+  front: 'frontA',
 };
 
 function leg(g: Grid, top: Point, foot: Point, c: string): void {
@@ -270,16 +276,21 @@ export function frame(p: Pose): Frame {
     case 'behind':
       head = drawBehind(g, b, tail);
       break;
+    case 'front':
+      head = [16, 12 + b];
+      break;
     default:
       head = drawStand(g, b, p.legs ?? STILL, p.pitch ?? 0);
   }
   const hx = head[0] + (p.head?.[0] ?? 0);
   const hy = head[1] + (p.head?.[1] ?? 0);
   const away = body === 'behind' || p.away === true;
-  if (away) {
+  if (body === 'front') {
+    drawFront(g, b, [hx, hy], p.eye === 'closed' || p.eye === 'happy' ? p.eye : 'open', p);
+  } else if (away) {
     drawHeadBehind(g, hx, hy, p.ears ?? 'up');
   }
-  const eye = away ? undefined : drawHead(g, hx, hy, p);
+  const eye = away || body === 'front' ? undefined : drawHead(g, hx, hy, p);
 
   if (paw === 'wave1') {
     raisedPaw(g, [19, 21 + b], [25.5, 21]);

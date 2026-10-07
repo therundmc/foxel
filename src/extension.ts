@@ -28,6 +28,7 @@ const SCENE_LABELS: Record<Scene, string> = {
   doze: 'Afternoon nap',
   dig: 'Digging',
   roll: 'Rolling on its back',
+  glass: 'Rubbing and licking the glass',
   party: 'Party',
   mouse: 'Mouse hunt in the tall grass',
   typing: 'Sleepy typing',

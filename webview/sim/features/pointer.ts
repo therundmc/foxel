@@ -64,7 +64,7 @@ function atLeisure(b: Buddy): boolean {
 }
 
 /** Walks over to where the pointer is, and wags its tail once there. */
-export function startCome(b: Buddy, x: number): void {
+function startCome(b: Buddy, x: number): void {
   b.pointer.goalX = x;
   b.pointer.called = false;
   b.pointer.arrived = false;
@@ -87,7 +87,7 @@ export function callOver(b: Buddy, x: number): boolean {
 }
 
 /** Looks up at the pointer resting on it and presses its head into it: it would like to be petted. */
-export function startNudge(b: Buddy): void {
+function startNudge(b: Buddy): void {
   b.pointer.lying = b.state === 'lie';
   b.pointer.lean = 1;
   b.pointer.offMs = 0;

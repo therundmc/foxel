@@ -56,6 +56,7 @@ export const SCENES = [
   'doze',
   'dig',
   'roll',
+  'glass',
   'party',
   'mouse',
   'typing',

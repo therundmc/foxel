@@ -53,6 +53,7 @@ export type BuddyState =
   | 'askBreak'
   | 'roll'
   | 'dig'
+  | 'glass'
   | 'contemplate'
   | 'come'
   | 'nudge'

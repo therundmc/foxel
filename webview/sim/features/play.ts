@@ -56,7 +56,7 @@ function arrived(b: Buddy): void {
   }
 }
 
-export function startPlay(b: Buddy): void {
+function startPlay(b: Buddy): void {
   b.play.kicks = 0;
   b.play.kicksWanted = 2 + Math.floor(b.world.random() * 3);
   b.play.pounceMs = 0;
