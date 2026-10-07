@@ -54,7 +54,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry.
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
 - **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameMemory` and `recall` in `sim/memory.ts`. The host needs no change.
-- **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Document it in the README.
+- **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Add it to the settings table of the README.
 - **New sky to contemplate**: add it to `Vista` (`shared/day.ts`), and to `vistaAt` if it comes at a time of day; the compiler asks for its painter in `render/scenery/index.ts`. A painter keeps nothing between frames: it paints from its `VistaView` (size, time since it appeared, time since its great moment), in sprite pixels. What the fox does in front of it is `features/contemplate.ts`, the same for every sky.
 - **New toy**: a class in `sim/props/` exposing its `box`, a field and its update in `World`, its glyph in `sprites/props.ts` and a draw method in `render/renderer.ts`. If it can be dragged, one entry in `draggables` (`webview/input.ts`). What the fox does with it is a feature like any other.
 
@@ -73,3 +73,4 @@ Not checked, just as important:
 - Units: positions in sprite pixels, `y` is the height above the ground, durations in ms (`...Ms`), `dt` in seconds.
 - A state machine change needs a test in `test/sim/`.
 - commits message, please do not add more than one line per commit message, keep it trimmed !
+- The README is not kept in step with the code, and neither is the changelog: do not touch them for every change. The README says what Foxel is, how to start, a few things to try, and lists the commands and settings; it shows a little and leaves the rest for people to discover by themselves. Only a new command or setting belongs there without being asked. Its pictures are in `media/readme/`.
