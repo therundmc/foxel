@@ -52,3 +52,7 @@ That is all this page will tell you. The rest is yours to find: it has more habi
 ## Privacy
 
 Foxel collects no telemetry and makes no network requests. It only counts the number of errors and listens to editor events to pick its reactions. It never reads or stores your code.
+
+---
+
+Made with ❤️ by anca.
