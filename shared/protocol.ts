@@ -42,6 +42,8 @@ export interface BuddyMemory {
   breakAsks: number;
   /** When it last gave each welcome, in ms since the epoch. */
   greeted: Partial<Record<Greeting, number>>;
+  /** Time left, when this was noted, before it feels like contemplating the sky again. */
+  vistaInMs: number;
 }
 
 export const SCENES = [
@@ -58,6 +60,10 @@ export const SCENES = [
   'mouse',
   'typing',
   'drowsy',
+  'sunrise',
+  'rain',
+  'daydream',
+  'sunset',
   'stargaze',
   'goodNight',
   'bedtime',

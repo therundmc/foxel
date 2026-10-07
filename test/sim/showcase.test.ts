@@ -15,7 +15,7 @@ describe('Showcase', () => {
     const anims = new Set<AnimName>();
     const hats = new Set<Hat | undefined>();
     const effects = new Set<string>();
-    for (let t = 0; t < 200_000 && showcase.active; t += 16) {
+    for (let t = 0; t < 600_000 && showcase.active; t += 16) {
       b.world.setClock(clockAt(showcase.hour, new Date(2026, 9, 7, 14)), true);
       b.world.party = showcase.party ? 'friday' : undefined;
       showcase.update(16, b);
@@ -39,13 +39,16 @@ describe('Showcase', () => {
       'goodNight',
       'dig',
       'roll',
-      'stargaze',
+      'gaze',
+      'gazeAwe',
+      'gazeSettle',
       'lurk',
     ] as const) {
       expect(anims, anim).toContain(anim);
     }
     expect(hats).toContain('party');
     expect(hats).toContain('nightcap');
+    expect(hats).toContain('leaf');
     expect(effects).toContain('confetti');
     expect(effects).toContain('fed');
   });

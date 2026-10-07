@@ -14,6 +14,8 @@ export interface HeadPose {
   snoutUp?: number;
   /** Tips the whole head back by this angle in radians, nose in the air. */
   tilt?: number;
+  /** Head turned away from us: we see the back of it, whichever way the body is. */
+  away?: boolean;
 }
 
 const EARS_BACK_RAD = -0.55;
@@ -34,6 +36,23 @@ function drawEar(g: Grid, base1: Point, apex: Point, base2: Point, inner: boolea
     poly(g, [lerp(base1, centroid, 0.45), lerp(apex, centroid, 0.45), lerp(base2, centroid, 0.45)], 'p');
   }
   poly(g, [lerp(apex, base1, 0.3), apex, lerp(apex, base2, 0.3)], 'd');
+}
+
+/** The head seen from behind: both ears, the back of the skull and a bit of cheek fluff on each side. */
+export function drawHeadBehind(g: Grid, hx: number, hy: number, ears: Ears): void {
+  // Ears laid back spread outwards and sit lower.
+  const flat = ears === 'up' ? 0 : 1;
+  for (const side of [-1, 1]) {
+    const outer: Point = [hx + side * 6.2, hy - 2.5 + flat];
+    const apex: Point = [hx + side * (5.6 + flat * 2.4), hy - 11.5 + flat * 3.5];
+    const inner: Point = [hx + side * 2.6, hy - 5.5 + flat];
+    poly(g, [outer, apex, inner], 'O');
+    poly(g, [lerp(apex, outer, 0.5), apex, lerp(apex, inner, 0.5)], 'd');
+  }
+  ellipse(g, hx, hy - 0.5, 6.2, 5.8, 'O');
+  ellipse(g, hx, hy + 2, 7.2, 3.8, 'O');
+  rect(g, hx - 8, hy + 2, hx - 7, hy + 3, 'c');
+  rect(g, hx + 6, hy + 2, hx + 7, hy + 3, 'c');
 }
 
 /** Draws the head centred on (hx, hy) and returns where its open eye is. */

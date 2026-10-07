@@ -36,7 +36,7 @@ describe('memory', () => {
 
   it('still wants the drink and the break it could not get to', () => {
     const after = fox();
-    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {} }, MINUTE);
+    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0 }, MINUTE);
     simulate(after, 3000, () => after.state === 'drink');
     expect(after.state).toBe('drink');
   });
@@ -63,5 +63,30 @@ describe('memory', () => {
     expect(sameMemory(calm, remember(fox(), 99))).toBe(true);
     expect(sameMemory(calm, hungry)).toBe(false);
     expect(sameMemory(hungry, remember(b, 5010))).toBe(true);
+  });
+});
+
+describe('memory of its contemplations', () => {
+  const MINUTE = 60_000;
+
+  it('keeps counting down to the next one while its view is closed', () => {
+    const before = spawn(fixed(0.5));
+    before.contemplate.waitMs = 90 * MINUTE;
+    const memory = remember(before, 1000);
+    const after = spawn(fixed(0.5));
+    recall(after, memory, 1000 + 60 * MINUTE);
+    expect(after.contemplate.waitMs).toBe(30 * MINUTE);
+    recall(after, memory, 1000 + 200 * MINUTE);
+    expect(after.contemplate.waitMs).toBe(0);
+  });
+
+  it('is the same memory while the wait just runs down, and a new one once it has contemplated', () => {
+    const b = spawn(fixed(0.5));
+    b.contemplate.waitMs = 90 * MINUTE;
+    const first = remember(b, 0);
+    b.contemplate.waitMs = 80 * MINUTE;
+    expect(sameMemory(first, remember(b, 10 * MINUTE))).toBe(true);
+    b.contemplate.waitMs = 180 * MINUTE;
+    expect(sameMemory(first, remember(b, 10 * MINUTE))).toBe(false);
   });
 });

@@ -12,9 +12,7 @@ import {
   GRASS,
   GRASS_H,
   GRASS_W,
-  MOON,
-  MOON_H,
-  MOON_W,
+  HATS,
   MOUSE_FACE,
   MOUSE_FRAMES,
   TREAT_GLYPH,
@@ -118,14 +116,14 @@ describe('sprites', () => {
     }
   });
 
-  it('moon uses the palette and matches the declared size', () => {
-    expect(usesPalette(MOON)).toBe(true);
-    expect(MOON).toHaveLength(MOON_H);
-    MOON.forEach((line) => expect(line).toHaveLength(MOON_W));
+  it('hats use the palette', () => {
+    for (const { glyph } of Object.values(HATS)) {
+      expect(usesPalette(glyph)).toBe(true);
+    }
   });
 
   it('shows no face when it sits with its back to us', () => {
-    for (const frame of ANIMATIONS.stargaze.frames) {
+    for (const frame of ANIMATIONS.gaze.frames) {
       expect(frame.eye).toBeUndefined();
       expect(frame.pixels.join('')).not.toContain('E');
     }

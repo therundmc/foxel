@@ -1,8 +1,8 @@
 import { SPRITE_SIZE, type Animation, type Frame, type Point } from '../frames';
-import { ellipse, inEllipse, lerp, limb, outline, poly, rect, set, type Grid } from '../grid';
+import { ellipse, inEllipse, limb, outline, rect, set, type Grid } from '../grid';
 import { TRANSPARENT } from '../palette';
 import { GROUND_ROW } from './anchors';
-import { drawHead, type HeadPose } from './head';
+import { drawHead, drawHeadBehind, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
 type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'back' | 'behind';
@@ -228,28 +228,12 @@ function drawBack(g: Grid, b: number, legs: Legs): Point {
 }
 
 // Sitting with its back to us, looking away into the picture, its tail lying our way.
-function drawBehind(g: Grid, b: number, p: Pose, tail: Tail): Point {
-  const hx = 16 + (p.head?.[0] ?? 0);
-  const hy = 12 + b + (p.head?.[1] ?? 0);
-  // Ears laid back spread outwards and sit lower.
-  const flat = (p.ears ?? 'up') === 'up' ? 0 : 1;
-  for (const side of [-1, 1]) {
-    const outer: Point = [hx + side * 6.2, hy - 2.5 + flat];
-    const apex: Point = [hx + side * (5.6 + flat * 2.4), hy - 11.5 + flat * 3.5];
-    const inner: Point = [hx + side * 2.6, hy - 5.5 + flat];
-    poly(g, [outer, apex, inner], 'O');
-    poly(g, [lerp(apex, outer, 0.5), apex, lerp(apex, inner, 0.5)], 'd');
-  }
+function drawBehind(g: Grid, b: number, tail: Tail): Point {
   rect(g, 8, 29, 9, 29, 'c');
   rect(g, 22, 29, 23, 29, 'c');
   ellipse(g, 16, 22.5 + b, 6, 6, 'O');
   ellipse(g, 16, 26, 7.5, 3.6, 'O');
   ellipse(g, 16, 18.6 + b, 4.4, 1.2, 'o');
-  ellipse(g, hx, hy - 0.5, 6.2, 5.8, 'O');
-  ellipse(g, hx, hy + 2, 7.2, 3.8, 'O');
-  // Cheek fluff showing on both sides.
-  rect(g, hx - 8, hy + 2, hx - 7, hy + 3, 'c');
-  rect(g, hx + 6, hy + 2, hx + 7, hy + 3, 'c');
   drawTail(g, tail, 0, true);
   return [16, 12 + b];
 }
@@ -284,14 +268,18 @@ export function frame(p: Pose): Frame {
       head = drawBack(g, b, p.legs ?? STILL);
       break;
     case 'behind':
-      head = drawBehind(g, b, p, tail);
+      head = drawBehind(g, b, tail);
       break;
     default:
       head = drawStand(g, b, p.legs ?? STILL, p.pitch ?? 0);
   }
   const hx = head[0] + (p.head?.[0] ?? 0);
   const hy = head[1] + (p.head?.[1] ?? 0);
-  const eye = body === 'behind' ? undefined : drawHead(g, hx, hy, p);
+  const away = body === 'behind' || p.away === true;
+  if (away) {
+    drawHeadBehind(g, hx, hy, p.ears ?? 'up');
+  }
+  const eye = away ? undefined : drawHead(g, hx, hy, p);
 
   if (paw === 'wave1') {
     raisedPaw(g, [19, 21 + b], [25.5, 21]);

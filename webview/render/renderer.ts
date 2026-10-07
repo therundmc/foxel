@@ -18,7 +18,6 @@ import {
   GRASS_H,
   GRASS_W,
   HATS,
-  MOON,
   MOUSE_FRAMES,
   TREAT_STAGES,
   TREAT_W,
@@ -27,13 +26,13 @@ import {
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
+import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.25)';
 // Above the ear tips, where the picture bubble sits.
 const EMOTE_ABOVE_HEAD = 13;
 const CAKE_FLICKER_MS = 300;
-const MOON_RISE = 5;
 const mirrored = (glyph: Glyph): Glyph => glyph.map((line) => [...line].reverse().join(''));
 const TREAT_STAGES_FACING_LEFT = TREAT_STAGES.map(mirrored);
 const MOUSE_FRAMES_FACING_LEFT = MOUSE_FRAMES.map(mirrored);
@@ -47,6 +46,7 @@ export function currentFrame(buddy: Buddy): Frame {
 /** Paints one frame of the scene, back to front. */
 export class Renderer {
   private readonly eyes = new Eyes();
+  private readonly scenery = new SceneryLayers();
 
   constructor(
     private readonly stage: Stage,
@@ -63,8 +63,7 @@ export class Renderer {
     const { stage, sky, session } = this;
     const { world, buddy } = session;
     stage.ctx.clearRect(0, 0, stage.width, stage.height);
-    sky.drawNight(stage, world.stars, now);
-    this.drawMoon();
+    this.scenery.drawBack(stage, world.scenery);
     if (session.settings.dayNight) {
       sky.draw(stage, session.clock, now);
     }
@@ -86,6 +85,7 @@ export class Renderer {
     }
     this.drawBall();
     this.drawBug();
+    this.scenery.drawFront(stage, world.scenery);
     sky.drawConfetti(stage, dt);
   }
 
@@ -227,19 +227,6 @@ export class Renderer {
     const r = this.stage.rect(treat.box);
     this.drawShadow(r.x + r.w / 2, TREAT_W - Math.min(treat.y / 6, 4));
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
-  }
-
-  // It rises a little as the sky comes out.
-  private drawMoon(): void {
-    const { ctx, scale } = this.stage;
-    const stars = this.session.world.stars;
-    if (stars.glow <= 0) {
-      return;
-    }
-    const r = this.stage.rect(stars.moon);
-    ctx.globalAlpha = stars.glow;
-    ctx.drawImage(this.bitmaps.get(MOON), r.x, r.y + Math.round((1 - stars.glow) * MOON_RISE) * scale, r.w, r.h);
-    ctx.globalAlpha = 1;
   }
 
   private drawMouse(): void {

@@ -1,4 +1,5 @@
 import { ambientFeature } from './features/ambient';
+import { contemplateFeature } from './features/contemplate';
 import { fetchFeature } from './features/fetch';
 import { huntFeature } from './features/hunt';
 import { introFeature } from './features/intro';
@@ -8,7 +9,6 @@ import { playFeature } from './features/play';
 import { pointerFeature } from './features/pointer';
 import { reactionsFeature } from './features/reactions';
 import { restFeature } from './features/rest';
-import { stargazeFeature } from './features/stargaze';
 import { touchFeature } from './features/touch';
 import { treatFeature } from './features/treat';
 import { tricksFeature } from './features/tricks';
@@ -28,7 +28,7 @@ export const FEATURES: readonly Feature[] = [
   treatFeature,
   mealsFeature,
   restFeature,
-  stargazeFeature,
+  contemplateFeature,
   introFeature,
 ];
 
@@ -46,7 +46,7 @@ export const STATES: StateDefs = {
   ...treatFeature.states,
   ...mealsFeature.states,
   ...restFeature.states,
-  ...stargazeFeature.states,
+  ...contemplateFeature.states,
   ...introFeature.states,
 };
 

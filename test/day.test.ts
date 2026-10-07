@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockAt, dateKey, dayPhase, lightTint, mealAt, partyKind } from '../shared/day';
+import { clockAt, dateKey, dayPhase, lightTint, mealAt, partyKind, vistaAt } from '../shared/day';
 
 const at = (hours: number, minutes = 0, day = 7): Date => new Date(2026, 9, day, hours, minutes);
 
@@ -12,6 +12,15 @@ describe('day', () => {
     expect(dayPhase(at(15))).toBe('afternoon');
     expect(dayPhase(at(19))).toBe('evening');
     expect(dayPhase(at(23))).toBe('night');
+  });
+
+  it('knows which sky there is to look at', () => {
+    expect(vistaAt(at(3))).toBe('stars');
+    expect(vistaAt(at(6, 30))).toBe('sunrise');
+    expect(vistaAt(at(9))).toBe('clouds');
+    expect(vistaAt(at(17))).toBe('clouds');
+    expect(vistaAt(at(19))).toBe('sunset');
+    expect(vistaAt(at(21))).toBe('stars');
   });
 
   it('knows the four meal times', () => {

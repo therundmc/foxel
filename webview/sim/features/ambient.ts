@@ -16,8 +16,8 @@ export const DEFAULT_NEXT: Weights = [['idle', 40], ['sit', 40], ['walk', 20]];
 export const PHASE_NEXT: Partial<Record<DayPhase, Weights>> = {
   dawn: [['stretch', 12], ['yawn', 12]],
   afternoon: [['doze', 20], ['yawn', 8]],
-  evening: [['zoomies', 6], ['mousing', 6], ['stargaze', 5]],
-  night: [['drowsy', 25], ['yawn', 12], ['stargaze', 10]],
+  evening: [['zoomies', 6], ['mousing', 6]],
+  night: [['drowsy', 25], ['yawn', 12]],
 };
 /** How much less likely the `nightDamped` states get at night. */
 export const NIGHT_DAMPING = 0.25;

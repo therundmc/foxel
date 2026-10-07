@@ -32,12 +32,13 @@ Every feature is judged against these three, before any technical consideration:
 | `webview/input.ts`, `gestures.ts` | Mouse → commands; throw and stroke detection (pure) |
 | `webview/stage.ts` | Canvas size and world ↔ screen coordinates (`rect` places any prop's `box`) |
 | `webview/render/` | Drawing: `renderer.ts` (scene), `eyes.ts`, `bitmaps.ts` (coat, light), `sky.ts` |
+| `webview/render/scenery/` | The skies it contemplates: one painter per `Vista`, `paint.ts` (what a painter is given, helpers), `index.ts` (layers) |
 | `webview/sim/world.ts` | Ground, toys, bowls, pointer, time of day; updates the buddies |
 | `webview/sim/buddy.ts` | One pet: position, current state, the state machine engine, movement helpers |
 | `webview/sim/state.ts` | `BuddyState`, `StateDef`, `Feature` types |
 | `webview/sim/registry.ts` | `FEATURES` and `STATES`, gathered from the features |
 | `webview/sim/features/*.ts` | One file per group of states: their definitions, logic, memory and commands |
-| `webview/sim/props/` | Ball, butterfly, treat, bowl, grass, mouse, night sky: physics only |
+| `webview/sim/props/` | Ball, butterfly, treat, bowl, grass, mouse, scenery: physics only |
 | `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
 | `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
@@ -54,6 +55,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
 - **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameMemory` and `recall` in `sim/memory.ts`. The host needs no change.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Document it in the README.
+- **New sky to contemplate**: add it to `Vista` (`shared/day.ts`), and to `vistaAt` if it comes at a time of day; the compiler asks for its painter in `render/scenery/index.ts`. A painter keeps nothing between frames: it paints from its `VistaView` (size, time since it appeared, time since its great moment), in sprite pixels. What the fox does in front of it is `features/contemplate.ts`, the same for every sky.
 - **New toy**: a class in `sim/props/` exposing its `box`, a field and its update in `World`, its glyph in `sprites/props.ts` and a draw method in `render/renderer.ts`. If it can be dragged, one entry in `draggables` (`webview/input.ts`). What the fox does with it is a feature like any other.
 
 ## Rules

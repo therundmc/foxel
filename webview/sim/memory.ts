@@ -1,6 +1,9 @@
 import type { BuddyMemory } from '../../shared/protocol';
 import type { Buddy } from './buddy';
 
+/** The wait before the next contemplation runs down by itself: it is the same memory until it shifts by this much. */
+const VISTA_SLACK_MS = 60_000;
+
 /** What it carries over, as of `now` (ms since the epoch). */
 export function remember(b: Buddy, now: number): BuddyMemory {
   return {
@@ -10,6 +13,7 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     breakWanted: b.rest.breakWanted,
     breakAsks: b.rest.breakAsks,
     greeted: { ...b.intro.greeted },
+    vistaInMs: b.contemplate.waitMs,
   };
 }
 
@@ -20,7 +24,8 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     a.thirsty === b.thirsty &&
     a.breakWanted === b.breakWanted &&
     a.breakAsks === b.breakAsks &&
-    JSON.stringify(a.greeted) === JSON.stringify(b.greeted)
+    JSON.stringify(a.greeted) === JSON.stringify(b.greeted) &&
+    Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
 }
 
@@ -34,4 +39,5 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.rest.breakWanted = memory.breakWanted;
   b.rest.breakAsks = memory.breakAsks;
   b.intro.greeted = { ...memory.greeted };
+  b.contemplate.waitMs = Math.max(0, memory.vistaInMs - Math.max(0, now - memory.savedAt));
 }

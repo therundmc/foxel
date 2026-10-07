@@ -14,7 +14,7 @@ const LAYERS: readonly (readonly [string, readonly string[]])[] = [
   ['shared/', ['shared/']],
   ['src/', ['src/', 'shared/', 'vscode', 'crypto']],
   ['webview/sprites/', ['webview/sprites/', 'shared/']],
-  ['webview/sim/props/', ['webview/sim/props/', 'webview/sim/math', 'webview/sprites/']],
+  ['webview/sim/props/', ['webview/sim/props/', 'webview/sim/math', 'webview/sprites/', 'shared/']],
   ['webview/sim/', ['webview/sim/', 'webview/sprites/', 'shared/']],
   ['webview/', ['webview/', 'shared/']],
 ];

@@ -32,7 +32,11 @@ const SCENE_LABELS: Record<Scene, string> = {
   mouse: 'Mouse hunt in the tall grass',
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
-  stargaze: 'Stargazing',
+  stargaze: 'Contemplating the stars',
+  sunrise: 'Contemplating the sunrise',
+  daydream: 'Contemplating mountains and clouds',
+  sunset: 'Contemplating the sunset',
+  rain: 'Contemplating the rain',
   goodNight: 'Good night',
   bedtime: 'Bedtime in the basket',
 };

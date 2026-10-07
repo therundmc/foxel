@@ -448,47 +448,74 @@ export const ANIMATIONS = {
     [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['sparkleA'] }, 450],
     [{ ...SIT, eye: 'happy', mouth: 'tongue', tail: 'sitB', extras: ['sparkleB'] }, 450],
   ]),
-  // Looks up, then turns its back to us to face the sky.
-  gazeUp: anim([
-    [{ ...SIT, eye: 'up', tail: 'sitA' }, 600],
-    [{ ...SIT, eye: 'up', head: [-1, 0], tail: 'sitB' }, 300],
-    [{ ...BEHIND, tail: 'behindMidR' }, 500],
+  // Before a sky worth watching: it sits, pricks its ears, looks up, shuts its eyes and breathes it in.
+  gazePrelude: anim([
+    [{ ...SIT, tail: 'sitA' }, 900],
+    [{ ...SIT, ears: 'back', tail: 'sitA' }, 150],
+    [{ ...SIT, tail: 'sitA' }, 260],
+    [{ ...SIT, ears: 'back', tail: 'sitB' }, 150],
+    [{ ...SIT, eye: 'up', tail: 'sitB' }, 1300],
+    [{ ...SIT, eye: 'up', head: [0, -1], tail: 'sitA' }, 900],
+    [{ ...SIT, eye: 'closed', head: [0, -1], tail: 'sitA' }, 1100],
+    [{ ...SIT, eye: 'closed', tail: 'sitB', bob: 1 }, 1200],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 900],
   ]),
-  // Lost in the stars: it breathes slowly, its head drifts and its tail sweeps the ground behind it.
-  stargaze: anim([
-    [{ ...BEHIND, tail: 'behindR' }, 1500],
-    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindMidL', bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindL', head: [-1, 0] }, 1700],
-    [{ ...BEHIND, tail: 'behindMidL', head: [-1, 0], bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindR', head: [1, 0] }, 1700],
-    [{ ...BEHIND, tail: 'behindR', head: [1, -1] }, 1300],
-    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindMidL', bob: 1 }, 450],
-    [{ ...BEHIND, tail: 'behindL' }, 1500],
-    [{ ...BEHIND, tail: 'behindMidL' }, 450],
-    [{ ...BEHIND, tail: 'behindMidR' }, 450],
+  // It turns away: first its head, then all of it, and its tail settles behind it.
+  gazeTurn: anim([
+    [{ ...SIT, away: true, tail: 'sitA' }, 420],
+    [{ ...SIT, away: true, head: [-2, 0], tail: 'sitB' }, 380],
+    [{ ...BEHIND, tail: 'behindMidL' }, 420],
+    [{ ...BEHIND, tail: 'behindMidR' }, 380],
   ]),
-  // A shooting star: it sits up, follows it across the sky, bows its head to make a wish, and wags at the thought.
-  starWish: anim([
-    [{ ...BEHIND, head: [0, -1], tail: 'behindMidR' }, 450],
-    [{ ...BEHIND, head: [1, -1], tail: 'behindMidR' }, 450],
-    [{ ...BEHIND, head: [2, 0], tail: 'behindR' }, 600],
-    [{ ...BEHIND, head: [0, 1], ears: 'back', tail: 'behindMidR' }, 1000],
-    [{ ...BEHIND, head: [0, 1], ears: 'back', tail: 'behindMidR', bob: 1 }, 900],
-    ...Array.from({ length: 3 }, (): [Pose, number][] => [
-      [{ ...BEHIND, tail: 'behindL', extras: ['smallHeartA'] }, 200],
-      [{ ...BEHIND, tail: 'behindR', extras: ['smallHeartB'] }, 200],
+  // Lost in the sky, its back to us: it breathes slowly, its head drifts and its tail sweeps the ground behind it.
+  gaze: anim([
+    [{ ...BEHIND, tail: 'behindR' }, 1700],
+    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindMidL', bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindL', head: [-1, 0] }, 1900],
+    [{ ...BEHIND, tail: 'behindMidL', head: [-1, 0], bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindR', head: [1, 0] }, 1900],
+    [{ ...BEHIND, tail: 'behindR', head: [1, -1] }, 1500],
+    [{ ...BEHIND, tail: 'behindR', head: [1, -1], ears: 'back' }, 140],
+    [{ ...BEHIND, tail: 'behindR', head: [1, -1] }, 900],
+    [{ ...BEHIND, tail: 'behindMidR', bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindMidL', bob: 1 }, 480],
+    [{ ...BEHIND, tail: 'behindL' }, 1700],
+    [{ ...BEHIND, tail: 'behindMidL' }, 480],
+    [{ ...BEHIND, tail: 'behindMidR' }, 480],
+  ]),
+  // The sky's great moment: it sits up, follows it across, bows its head over a wish, and wags at the thought.
+  gazeAwe: anim([
+    [{ ...BEHIND, head: [0, -1], tail: 'behindMidR' }, 500],
+    [{ ...BEHIND, head: [1, -1], tail: 'behindMidR' }, 600],
+    [{ ...BEHIND, head: [2, 0], tail: 'behindR' }, 900],
+    [{ ...BEHIND, head: [1, 0], tail: 'behindR' }, 500],
+    [{ ...BEHIND, head: [0, 1], ears: 'back', tail: 'behindMidR' }, 1200],
+    [{ ...BEHIND, head: [0, 1], ears: 'back', tail: 'behindMidR', bob: 1 }, 1100],
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ ...BEHIND, tail: 'behindL', extras: ['smallHeartA'] }, 210],
+      [{ ...BEHIND, tail: 'behindR', extras: ['smallHeartB'] }, 210],
     ]).flat(),
   ]),
-  // Its head grows heavy and nods.
-  stargazeDrowsy: anim([
-    [{ ...BEHIND, head: [0, 1], tail: 'behindR' }, 1200],
-    [{ ...BEHIND, head: [0, 2], ears: 'back', tail: 'behindR', bob: 1 }, 1100],
-    [{ ...BEHIND, tail: 'behindMidR' }, 500],
-    [{ ...BEHIND, head: [0, 1], tail: 'behindR' }, 1000],
-    [{ ...BEHIND, head: [0, 2], ears: 'back', tail: 'behindR', bob: 1 }, 1400],
+  // It has had its fill: its head comes round first, then it faces our way again.
+  gazeReturn: anim([
+    [{ ...BEHIND, head: [0, 1], tail: 'behindMidR' }, 700],
+    [{ ...BEHIND, tail: 'behindMidL' }, 400],
+    [{ ...SIT, away: true, head: [-2, 0], tail: 'sitB' }, 400],
+    [{ ...SIT, away: true, tail: 'sitA' }, 400],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 700],
+  ]),
+  // Full of it, it sighs, lies down and lets its eyes close.
+  gazeSettle: anim([
+    [{ ...SIT, eye: 'happy', tail: 'sitB' }, 900],
+    [{ ...SIT, eye: 'closed', tail: 'sitB', bob: 1 }, 1000],
+    [{ ...SIT, eye: 'happy', head: [0, 1], tail: 'sitA' }, 700],
+    [{ body: 'lie', eye: 'happy', tail: 'sitA' }, 1100],
+    [{ body: 'lie', eye: 'sleepy', tail: 'sitB' }, 1200],
+    [{ body: 'lie', eye: 'closed', tail: 'sitB', bob: 1 }, 1000],
+    [{ body: 'lie', eye: 'sleepy', tail: 'sitA' }, 900],
+    [{ body: 'lie', eye: 'closed', tail: 'sitA' }, 1400],
   ]),
   // Flat in the tall grass, watching.
   lurk: anim([

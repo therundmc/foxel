@@ -1,10 +1,10 @@
 import type { Scene } from '../../shared/protocol';
 import type { Buddy } from './buddy';
+import { startContemplate } from './features/contemplate';
 import { HUNGRY_SAD_MS, fillBowl } from './features/meals';
 import { startMousing } from './features/mousing';
 import { REACTION_MS, react } from './features/reactions';
 import { startBedtime } from './features/rest';
-import { startStargaze } from './features/stargaze';
 import { GOOD_NIGHT, MORNING, SIGH, perform } from './features/touch';
 
 export type Act =
@@ -23,6 +23,10 @@ export type Act =
   | 'roll'
   | 'dig'
   | 'stargaze'
+  | 'sunrise'
+  | 'daydream'
+  | 'sunset'
+  | 'rain'
   | 'mouse';
 
 /** Jumps straight into one of its daily moments, whatever it was doing: for the showcase. */
@@ -68,7 +72,15 @@ export function act(b: Buddy, name: Act): void {
       startMousing(b);
       return;
     case 'stargaze':
-      startStargaze(b);
+      startContemplate(b, 'stars');
+      return;
+    case 'daydream':
+      startContemplate(b, 'clouds');
+      return;
+    case 'sunrise':
+    case 'sunset':
+    case 'rain':
+      startContemplate(b, name);
       return;
     case 'bedtime':
       b.rest.sleepy = true;
@@ -83,6 +95,9 @@ export function act(b: Buddy, name: Act): void {
   }
 }
 
+/** Long enough for a whole contemplation and for the sky to fade afterwards. */
+const CONTEMPLATE_MS = 72_000;
+
 interface Script {
   /** Hour it pretends it is; the fraction is the minutes. */
   hour: number;
@@ -92,24 +107,28 @@ interface Script {
 }
 
 const SCRIPTS: Record<Scene, Script> = {
+  sunrise: { hour: 6.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunrise')]] },
   morning: { hour: 7.5, ms: 6000, cues: [[0, (b) => act(b, 'morning')]] },
   breakfast: { hour: 8.25, ms: 14_000, cues: [[0, (b) => act(b, 'hungry')], [4000, fillBowl]] },
   drink: { hour: 10.25, ms: 9000, cues: [[0, (b) => act(b, 'drink')]] },
+  rain: { hour: 10.75, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'rain')]] },
   askBreak: { hour: 11.25, ms: 20_000, cues: [[0, (b) => act(b, 'askBreak')]] },
   sigh: { hour: 11.5, ms: 5000, cues: [[0, (b) => act(b, 'sigh')]] },
   starving: { hour: 12.5, ms: 14_000, cues: [[0, (b) => act(b, 'starving')], [5000, fillBowl]] },
+  daydream: { hour: 14.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'daydream')]] },
   doze: { hour: 15.25, ms: 9000, cues: [[0, (b) => act(b, 'doze')]] },
   dig: { hour: 15.5, ms: 5000, cues: [[0, (b) => act(b, 'dig')]] },
   roll: { hour: 15.75, ms: 6000, cues: [[0, (b) => act(b, 'roll')]] },
   party: { hour: 16.25, ms: 6000, party: true, cues: [[0, (b) => act(b, 'party')]] },
   mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
+  sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },
   typing: {
     hour: 22.5,
     ms: 5000,
     cues: [[0, (b) => act(b, 'typing')], [1500, (b) => react(b, 'typing')], [3000, (b) => react(b, 'typing')]],
   },
   drowsy: { hour: 22.75, ms: 7000, cues: [[0, (b) => act(b, 'drowsy')]] },
-  stargaze: { hour: 22.9, ms: 41_000, cues: [[0, (b) => act(b, 'stargaze')]] },
+  stargaze: { hour: 22.9, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'stargaze')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },
   bedtime: { hour: 23.5, ms: 15_000, cues: [[0, (b) => act(b, 'bedtime')], [11_000, (b) => react(b, 'wake')]] },
 };

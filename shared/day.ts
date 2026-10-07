@@ -41,6 +41,22 @@ export function lightTint(date: Date): LightTint {
   return m < at(7, 30) || m >= at(18, 30) ? 'golden' : 'day';
 }
 
+/** A sky the fox may sit down and contemplate. Rain is not on the clock: it comes on some days instead of clouds. */
+export type Vista = 'sunrise' | 'clouds' | 'sunset' | 'stars' | 'rain';
+
+const VISTAS: readonly (readonly [Exclude<Vista, 'rain'>, number])[] = [
+  ['stars', at(6)],
+  ['sunrise', at(9)],
+  ['clouds', at(17, 30)],
+  ['sunset', at(21)],
+];
+
+/** The sky there is to look at, at this time of day. */
+export function vistaAt(date: Date): Exclude<Vista, 'rain'> {
+  const m = minuteOfDay(date);
+  return VISTAS.find(([, until]) => m < until)?.[0] ?? 'stars';
+}
+
 export function dateKey(date: Date): string {
   const pad = (n: number): string => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;

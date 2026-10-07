@@ -6,7 +6,7 @@ import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
 import { Grass } from './props/grass';
 import { Mouse } from './props/mouse';
-import { Stars } from './props/stars';
+import { Scenery } from './props/scenery';
 import { Treat } from './props/treat';
 
 export interface WorldPoint {
@@ -26,7 +26,7 @@ export class World {
   readonly bug = new Bug();
   readonly grass = new Grass();
   readonly mouse = new Mouse();
-  readonly stars = new Stars();
+  readonly scenery = new Scenery();
   readonly treat = new Treat();
   readonly foodBowl = new Bowl();
   readonly waterBowl = new Bowl();
@@ -50,7 +50,7 @@ export class World {
   get restful(): boolean {
     const ballMoving = this.ball.state === 'held' || (this.ball.state === 'free' && !this.ball.resting);
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
-    const critters = this.bug.active || this.mouse.active || this.grass.active || this.stars.shooting !== undefined;
+    const critters = this.bug.active || this.mouse.active || this.grass.active || this.scenery.active;
     return !ballMoving && !treatMoving && !critters && this.buddies.every((b) => b.restful);
   }
 
@@ -72,7 +72,7 @@ export class World {
     this.bug.update(dt, this.width, this.height, this.random);
     this.grass.update(dtMs);
     this.mouse.update(dt, this.width);
-    this.stars.update(dtMs);
+    this.scenery.update(dtMs);
     this.treat.update(dt, this.width);
     this.foodBowl.update(dtMs);
     this.waterBowl.update(dtMs);
