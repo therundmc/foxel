@@ -15,11 +15,16 @@ export interface Peak {
   readonly tall: number;
 }
 
-/** It stands on the side the fox looks to, never behind it, and takes a good part of the height. */
+/** Its summit keeps at least this far from the edges of the view, and from the middle of the fox. */
+const FROM_EDGE = 8;
+const FROM_FOX = 22;
+
+/** It stands on the side the fox looks to, never behind it nor out of the view, and takes a good part of the height. */
 export function peakOf({ w, h, foxX, dir }: Pick<VistaView, 'w' | 'h' | 'foxX' | 'dir'>): Peak {
   const room = dir > 0 ? w - foxX : foxX;
+  const aside = Math.min(150, Math.max(FROM_FOX, room * 0.5));
   return {
-    x: Math.round(foxX + dir * Math.min(150, Math.max(44, room * 0.46))),
+    x: Math.round(Math.min(w - FROM_EDGE, Math.max(FROM_EDGE, foxX + dir * aside))),
     tall: Math.round(Math.min(72, Math.max(16, h * 0.52))),
   };
 }

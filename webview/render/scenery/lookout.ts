@@ -40,6 +40,8 @@ interface Layout {
   readonly key: string;
   /** For each column, the row its ground starts at. */
   readonly top: Int16Array;
+  /** The same as stretches of columns of one height, [from, to, row]: far fewer rectangles to fill every frame. */
+  readonly runs: readonly (readonly [number, number, number])[];
   readonly blades: readonly Blade[];
 }
 
@@ -72,7 +74,16 @@ function layout(w: number, h: number, foxX: number): Layout {
     const near = Math.abs(x - foxX) < NEAR;
     x += (near ? 4 : 7) + Math.floor(random() * (near ? 5 : 11));
   }
-  laid = { key, top, blades: blades.filter((b) => b.x >= 0 && b.x < w) };
+  const runs: [number, number, number][] = [];
+  for (let x = 0; x < w; x++) {
+    const last = runs[runs.length - 1];
+    if (last && last[2] === top[x]) {
+      last[1] = x + 1;
+    } else {
+      runs.push([x, x + 1, top[x]]);
+    }
+  }
+  laid = { key, top, runs, blades: blades.filter((b) => b.x >= 0 && b.x < w) };
   return laid;
 }
 
@@ -90,13 +101,13 @@ export function lookoutTop({ w, h, foxX }: VistaView, x: number): number {
 /** The rise and the grass on its crest; goes last in the back layer, in front of everything far. */
 export function paintLookout(view: VistaView, tones: LookoutTones): void {
   const { ctx, w, h, foxX } = view;
-  const { top, blades } = layout(w, h, foxX);
-  for (let x = 0; x < w; x++) {
-    const y = top[x];
-    px(ctx, x, y, tones.body, 1, 1, h - y);
-    px(ctx, x, y, tones.rim);
-    px(ctx, x, h - 1, tones.deep);
-  }
+  const { top, runs, blades } = layout(w, h, foxX);
+  ctx.fillStyle = tones.body;
+  runs.forEach(([from, to, y]) => ctx.fillRect(from, y, to - from, h - y));
+  ctx.fillStyle = tones.rim;
+  runs.forEach(([from, to, y]) => ctx.fillRect(from, y, to - from, 1));
+  ctx.fillStyle = tones.deep;
+  ctx.fillRect(0, h - 1, w, 1);
   for (const blade of blades) {
     const y = top[blade.x];
     const color = tones.blades[blade.tone];
