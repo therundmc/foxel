@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- A place of its own: set `foxel.position` to `editor` and the fox lives in a strip across the bottom of the editor area, under your files, which stays in sight whatever the panel is showing. Its group takes no files, and its buttons are in the editor title bar.
+- It is still there when you come back: its view is kept alive while another tab of the panel hides it, so it is where you left it, doing what it was doing. It only makes its entrance again after ten minutes out of sight.
+- It stays awake longer: `foxel.sleepAfterSeconds` is now 5 minutes by default instead of 30 seconds.
+- A little smaller: `foxel.scale` is now 3 by default instead of 4. A value you chose yourself is kept.
+
 ## 1.2.1
 
 - Light themes: the pale things around the fox (soap bubbles, sparkles, Zzz, question marks, the rim of its picture bubbles, drops) are drawn in deeper colours on a light background, where they could hardly be seen. The view follows the theme when you change it.
