@@ -18,22 +18,21 @@ const WORM_GUST = [0.4, 2, 5, 12] as const;
 /** How much of the far dunes the dust hides in a calm, and in the hardest gust. */
 const VEIL = [0.05, 0.3] as const;
 
-/** Grains at one distance: how many for 300 pixels of view and at most, their pace, their length, how much they show. */
+/** Grains at one distance: how many for 300 pixels of view and at most, their pace, how much they show. Sand is fine: each is one pixel. */
 interface Flight {
   readonly seed: number;
   readonly grains: number;
   readonly most: number;
   readonly pace: number;
-  readonly long: number;
   readonly strength: number;
   /** How high in the view they fly, as a share of its height. */
   readonly high: number;
 }
-export const FAR_FLIGHT: Flight = { seed: 3, grains: 60, most: 150, pace: 46, long: 2, strength: 0.5, high: 0.5 };
-export const NEAR_FLIGHT: Flight = { seed: 7, grains: 34, most: 90, pace: 112, long: 4, strength: 0.75, high: 0.62 };
+export const FAR_FLIGHT: Flight = { seed: 3, grains: 190, most: 420, pace: 40, strength: 0.5, high: 0.5 };
+export const NEAR_FLIGHT: Flight = { seed: 7, grains: 110, most: 260, pace: 96, strength: 0.8, high: 0.62 };
 
-/** Ribbons of sand along the ground: how many, how fast their waves run, how long a stretch of one shows. */
-const RIBBONS = 3;
+/** Ribbons of sand along the ground, each a thread of single grains: how many, how fast they run, how long a stretch shows. */
+const RIBBONS = 4;
 const RIBBON_PACE = 46;
 const RIBBON_STRETCH = 70;
 
@@ -78,7 +77,7 @@ export function paintGrains(view: VistaView, flight: Flight, light: number): voi
     const up = hash(i, flight.seed + 3) ** 2 * h * flight.high;
     const y = Math.round(h - 4 - up + 1.5 * Math.sin(t * 2.3 + i));
     ctx.globalAlpha = flight.strength * shows * (0.5 + 0.5 * hash(i, flight.seed + 4));
-    ctx.fillRect(x, y, flight.long + (gust > 0.7 ? 1 : 0), 1);
+    ctx.fillRect(x, y, 1, 1);
   }
   ctx.globalAlpha = 1;
 }
@@ -92,16 +91,17 @@ export function paintRibbons(view: VistaView, light: number): void {
   }
   ctx.fillStyle = mix(SAND[0], SAND[1], light);
   for (let r = 0; r < RIBBONS; r++) {
-    const row = h - 3 - r * 3;
-    for (let x = 0; x < w; x += 2) {
+    const row = h - 3 - r * 2;
+    for (let x = r % 2; x < w; x += 2) {
       // Stretches of it travel along; between them the air is clear.
       const along = x - dir * t * RIBBON_PACE * (1 + 0.3 * r);
       const there = Math.sin((along / RIBBON_STRETCH) * Math.PI + r * 2.1);
       if (there <= 0.25) {
         continue;
       }
-      ctx.globalAlpha = 0.55 * gust * (there - 0.25);
-      ctx.fillRect(x, Math.round(row + 1.6 * Math.sin(along * 0.09 + r)), 2, 1);
+      // A thread of grains, not a line: each a little off the wave it rides.
+      ctx.globalAlpha = 0.7 * gust * (there - 0.25) * (0.4 + 0.6 * hash(x, r));
+      ctx.fillRect(x, Math.round(row + 1.6 * Math.sin(along * 0.09 + r) + hash(x + Math.floor(along / 9), r) - 0.5), 1, 1);
     }
   }
   ctx.globalAlpha = 1;

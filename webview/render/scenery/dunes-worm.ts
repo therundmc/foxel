@@ -25,7 +25,7 @@ const SIGN_STARTS = 0.12;
 const SIGN_PACE = 0.013;
 const SIGN_PACES = [0.8, 3] as const;
 const SIGN_LEAVES = 2.5;
-const PUFFS = 5;
+const PUFFS = 8;
 const PUFF_S = 1.2;
 
 /** How thick the worm is, how high it leaps and how far (shares of the land's height), within these bounds in pixels. */
@@ -108,7 +108,7 @@ function burst({ ctx, dir }: VistaView, x: number, y: number, since: number, cou
     const across = (hash(i, seed + 1) - 0.5) * power * 1.2 + dir * power * 0.2;
     const up = (0.45 + 0.55 * hash(i, seed + 2)) * power;
     ctx.globalAlpha = 0.9 * (1 - age / GRAIN_S);
-    ctx.fillRect(Math.round(x + across * age), Math.round(y - up * age + 0.8 * power * age * age), i % 3 === 0 ? 2 : 1, 1);
+    ctx.fillRect(Math.round(x + across * age), Math.round(y - up * age + 0.8 * power * age * age), 1, 1);
   }
   ctx.globalAlpha = 1;
 }
@@ -145,7 +145,7 @@ function sign({ ctx, w, t, foxX, dir }: VistaView, land: DunesLand, at: number, 
     const age = t / PUFF_S + i / PUFFS;
     const flown = age - Math.floor(age);
     ctx.globalAlpha = 0.7 * strength * (1 - flown);
-    ctx.fillRect(Math.round(x - dir * (2 + flown * 8)), y - 2 - Math.round(flown * 3 * (0.5 + hash(i, Math.floor(age)))), 2, 1);
+    ctx.fillRect(Math.round(x - dir * (2 + flown * 8)), y - 2 - Math.round(flown * 3 * (0.5 + hash(i, Math.floor(age)))), 1, 1);
   }
   ctx.globalAlpha = 1;
 }
@@ -231,8 +231,8 @@ export function paintWorm(view: VistaView, land: DunesLand, light: number): void
   dust(view, back, land.screen[back], moment - landsAt, leap.thick);
   paintBody(view, leap, light);
   ctx.fillStyle = mix(SAND[0], SAND[1], light);
-  burst(view, out, land.screen[out], moment - 0.05, leap.thick * 10, leap.thick * 7, 11);
-  burst(view, back, land.screen[back], moment - landsAt, leap.thick * 13, leap.thick * 8, 23);
+  burst(view, out, land.screen[out], moment - 0.05, leap.thick * 16, leap.thick * 7, 11);
+  burst(view, back, land.screen[back], moment - landsAt, leap.thick * 20, leap.thick * 8, 23);
   // Then it goes on its way under the sand, and its sign with it.
   const since = moment - RISES_S - PASSES_S;
   sign(view, land, leap.from + leap.span + signPace(view) * SIGN_LEAVES * since, ramp(since, 0, 1.5));

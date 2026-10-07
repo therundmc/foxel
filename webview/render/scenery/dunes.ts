@@ -30,8 +30,9 @@ const STARS_GONE = [3, 18] as const;
 const MOON = '#fdeee0';
 const MOON_ALPHA = [0.9, 0.55] as const;
 
-/** Sand blown off a crest: how many streaks at a time, how far they fly, for how long. */
+/** Sand blown off a crest, as puffs of single grains: how many puffs at a time and grains in each, how far they fly, for how long. */
 const STREAKS = 3;
+const GRAINS = 6;
 const FLIES = 16;
 const STREAK_S = 3.2;
 const SAND = ['#fbd3b3', '#fde6b6'] as const;
@@ -110,7 +111,7 @@ function paintMoons({ ctx, w, foxX, dir }: VistaView, land: DunesLand, light: nu
   ctx.globalAlpha = 1;
 }
 
-// The wind takes a little sand off each crest, in puffs: thin streaks that fly on and thin out.
+// The wind takes a little sand off each crest, in puffs: a few fine grains that fly on, spread and thin out.
 function paintSand({ ctx, t, dir }: VistaView, land: DunesLand, light: number): void {
   ctx.fillStyle = mix(SAND[0], SAND[1], light);
   land.crests.forEach((crest, c) => {
@@ -124,9 +125,13 @@ function paintSand({ ctx, t, dir }: VistaView, land: DunesLand, light: number): 
       if (strength < 0.1) {
         continue;
       }
-      const flown = Math.round(age * FLIES * far);
-      ctx.globalAlpha = 0.7 * strength;
-      ctx.fillRect(crest.x + (dir > 0 ? 1 + flown : -4 - flown), crest.y - 1 - Math.round(age * 2 * hash(i, c + 5)), 3 + Math.round(2 * far), 1);
+      ctx.globalAlpha = 0.75 * strength;
+      for (let g = 0; g < GRAINS; g++) {
+        // Each grain has its own pace and its own lift: the puff opens out as it goes.
+        const flown = Math.round(age * FLIES * far * (0.5 + hash(g, i + c)));
+        const lifted = Math.round(age * 4 * (hash(g + 9, i + c) - 0.3));
+        ctx.fillRect(crest.x + dir * (1 + flown), crest.y - 1 - lifted, 1, 1);
+      }
     }
   });
   ctx.globalAlpha = 1;
