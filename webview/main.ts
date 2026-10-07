@@ -43,6 +43,7 @@ const session: Session = {
   settings: { scale: DEFAULT_SCALE, speed: 1, coat: 'red', dayNight: true, installedOn: '' },
   clock: new Date(),
   introPending: true,
+  light: false,
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -174,6 +175,14 @@ function onMessage(msg: HostMessage): void {
 
 window.addEventListener('message', (e: MessageEvent<HostMessage>) => onMessage(e.data));
 new ResizeObserver(resize).observe(stage.canvas);
+
+// The editor marks the body with its theme, and changes the mark when the theme changes.
+function readTheme(): void {
+  session.light = /\bvscode-(light|high-contrast-light)\b/.test(document.body.className);
+  bitmaps.setLight(session.light);
+}
+new MutationObserver(readTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+readTheme();
 resize();
 requestAnimationFrame(tick);
 vscode.postMessage({ type: 'ready' });

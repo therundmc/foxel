@@ -4,6 +4,9 @@ import type { WorldPoint } from './sim/world';
 import { SPRITE_SIZE } from './sprites/frames';
 
 export const DEFAULT_SCALE = 4;
+/** The room the fox needs, in sprite pixels: itself, a little air to hop in, and a few steps to take. */
+const ROOM_HIGH = SPRITE_SIZE + 8;
+const ROOM_WIDE = SPRITE_SIZE + 16;
 
 /** A box on the canvas, in CSS pixels. */
 export interface Rect {
@@ -31,7 +34,10 @@ export class Stage {
     this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   }
 
-  /** Matches the canvas to the size of its element, with sprite pixels `scale` CSS pixels wide. */
+  /**
+   * Matches the canvas to the size of its element, with sprite pixels `scale` CSS pixels wide: fewer when the
+   * element is too small for the whole fox at that size.
+   */
   fit(scale: number): void {
     const dpr = window.devicePixelRatio || 1;
     this.width = this.canvas.clientWidth;
@@ -40,7 +46,8 @@ export class Stage {
     this.canvas.height = Math.round(this.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
-    this.scale = Math.max(1, Math.round(scale) || DEFAULT_SCALE);
+    const fits = Math.min(Math.floor(this.height / ROOM_HIGH), Math.floor(this.width / ROOM_WIDE));
+    this.scale = Math.max(1, Math.min(Math.round(scale) || DEFAULT_SCALE, fits));
   }
 
   toWorld(cssX: number, cssY: number): WorldPoint {

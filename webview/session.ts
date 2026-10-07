@@ -11,6 +11,8 @@ export interface Session {
   clock: Date;
   /** Whenever the view appears, the fox peeks in from an edge instead of just being there. */
   introPending: boolean;
+  /** Whether the editor's theme is a light one: pale things are drawn darker on it. */
+  light: boolean;
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */

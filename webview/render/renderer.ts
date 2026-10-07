@@ -93,7 +93,7 @@ export class Renderer {
     this.drawBall();
     this.drawBug();
     this.drawBird(false);
-    drawBubbles(stage, world.bubbles);
+    drawBubbles(stage, world.bubbles, session.light);
     this.scenery.drawFront(stage, world.scenery);
     sky.drawConfetti(stage, dt);
   }
@@ -162,7 +162,8 @@ export class Renderer {
     const left = buddy.dir === 1 ? hx + 1 : SPRITE_SIZE - hx - 1 - w;
     const top = hy - EMOTE_ABOVE_HEAD - glyph.length;
     const y = Math.max(0, rect.y + top * scale);
-    ctx.drawImage(this.bitmaps.get(glyph), rect.x + left * scale, y, w * scale, glyph.length * scale);
+    const x = Math.max(0, Math.min(rect.x + left * scale, this.stage.width - w * scale));
+    ctx.drawImage(this.bitmaps.get(glyph), x, y, w * scale, glyph.length * scale);
   }
 
   // Two-row pixel ellipse on the ground; shrinks as the thing above it rises.
@@ -198,7 +199,9 @@ export class Renderer {
     for (const o of frame.overlays) {
       const glyph = this.bitmaps.get(o.glyph);
       const x = flip ? SPRITE_SIZE - o.x - glyph.width : o.x;
-      ctx.drawImage(glyph, rect.x + x * s, rect.y + o.y * s, glyph.width * s, glyph.height * s);
+      // What floats around it stays inside the view, even when the fox stands at its very edge.
+      const left = Math.max(0, Math.min(rect.x + x * s, this.stage.width - glyph.width * s));
+      ctx.drawImage(glyph, left, Math.max(0, rect.y + o.y * s), glyph.width * s, glyph.height * s);
     }
   }
 

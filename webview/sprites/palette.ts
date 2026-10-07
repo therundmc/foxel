@@ -59,4 +59,18 @@ export const COATS: Readonly<Record<Coat, Readonly<Record<string, string>>>> = {
 };
 
 /** Emote and sky letters keep their colour whatever the light, the fox does not. */
+/**
+ * On a light theme, the pale colours of what floats around the fox (Zzz, sparkles, question marks, the rim of a
+ * picture bubble, drops) would melt into the background: these take their place.
+ */
+export const ON_LIGHT: Readonly<Record<string, string>> = {
+  Z: '#8a97d8',
+  H: '#e3b01e',
+  S: '#e6a312',
+  Q: '#9298a8',
+  C: '#3d9fe6',
+  w: '#49b9e0',
+  J: '#e0b93c',
+};
+
 export const UNTINTED = new Set(['X', 'x', 'G', 'q', 'J', 'Z', 'W', 'Q']);

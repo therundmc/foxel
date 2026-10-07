@@ -2,7 +2,7 @@
   "name": "foxel",
   "displayName": "Foxel",
   "description": "A cute pixel-art fox cub that lives in your editor: it naps, hunts butterflies, plays fetch and reacts to your coding.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "publisher": "anca",
   "author": "anca",
   "license": "MIT",
@@ -178,7 +178,7 @@
           "default": 4,
           "minimum": 1,
           "maximum": 16,
-          "description": "Size of one sprite pixel, in screen pixels. The companion keeps this size whatever the view size."
+          "description": "Size of one sprite pixel, in screen pixels. The companion keeps this size whatever the view size, unless the view is too small to show all of it."
         },
         "foxel.speed": {
           "type": "number",

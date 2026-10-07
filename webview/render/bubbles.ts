@@ -5,11 +5,20 @@ import type { Stage } from '../stage';
 // it, and when one bursts a flash, the film flying apart in fragments, and its droplets.
 
 const TURN = Math.PI * 2;
-/** The colours a soap film takes, round the bubble. */
-const FILM = ['#c9f4ff', '#8ee3ff', '#b9a4f5', '#f6a6d8'] as const;
-const GLINT = '#ffffff';
-const INSIDE = '#bfeaff';
-const INSIDE_ALPHA = 0.13;
+/**
+ * What a bubble is painted with: the colours its film takes round it, the light it catches, the air inside it and
+ * how much that shows. On a light background everything is deeper, or the bubble would not be seen at all.
+ */
+interface Soap {
+  readonly film: readonly string[];
+  readonly glint: string;
+  readonly inside: string;
+  readonly insideAlpha: number;
+}
+const ON_DARK: Soap = { film: ['#c9f4ff', '#8ee3ff', '#b9a4f5', '#f6a6d8'], glint: '#ffffff', inside: '#bfeaff', insideAlpha: 0.13 };
+/** The glint inside a bubble is always white: on a light background it shows against the air inside it. */
+const SHINE = '#ffffff';
+const ON_LIGHT: Soap = { film: ['#5cc1e6', '#3a9bd8', '#8670dc', '#dc68b0'], glint: '#2d86c8', inside: '#7cc6ea', insideAlpha: 0.22 };
 /** The arc of the film that catches the light, up and to the left (in turns, from the right, going up). */
 const LIT_ARC = [0.27, 0.46] as const;
 /** How fast the colours travel round the film, in turns a second. */
@@ -62,8 +71,9 @@ function shapeOf(rx: number, ry: number): Shape {
 }
 
 /** Draws the bubbles, what is left of those that burst, and their droplets. */
-export function drawBubbles(stage: Stage, bubbles: Bubbles): void {
+export function drawBubbles(stage: Stage, bubbles: Bubbles, light: boolean): void {
   const { ctx, scale: s } = stage;
+  const soap = light ? ON_LIGHT : ON_DARK;
   /** One sprite pixel, at a place of the world. */
   const px = (x: number, y: number, wide = 1): void => ctx.fillRect(Math.round(x) * s, stage.screenY(Math.round(y)), wide * s, s);
 
@@ -77,20 +87,20 @@ export function drawBubbles(stage: Stage, bubbles: Bubbles): void {
     const shape = shapeOf(Math.max(1, Math.round(r + wobble)), Math.max(1, Math.round(r - wobble)));
     const left = b.life - b.age;
     const thin = left < THINS_S && Math.floor(left / 0.09) % 2 === 0 ? 0.45 : 1;
-    ctx.globalAlpha = INSIDE_ALPHA;
-    ctx.fillStyle = INSIDE;
+    ctx.globalAlpha = soap.insideAlpha;
+    ctx.fillStyle = soap.inside;
     shape.inside.forEach(([dx, dy, wide]) => px(b.x + dx, b.y + dy, wide));
     const shimmer = b.age * SHIMMER + b.phase;
     ctx.globalAlpha = 0.92 * thin;
     for (const [dx, dy, round] of shape.film) {
       const lit = round >= LIT_ARC[0] && round <= LIT_ARC[1];
-      ctx.fillStyle = lit ? GLINT : FILM[Math.floor((((round + shimmer) % 1) + 1) * FILM.length) % FILM.length];
+      ctx.fillStyle = lit ? soap.glint : soap.film[Math.floor((((round + shimmer) % 1) + 1) * soap.film.length) % soap.film.length];
       px(b.x + dx, b.y + dy);
     }
     if (r >= 3) {
       // The glint inside it, up and to the left; a big one has a second, fainter, down and to the right.
       const at = Math.round(r * 0.42);
-      ctx.fillStyle = GLINT;
+      ctx.fillStyle = SHINE;
       ctx.globalAlpha = thin;
       px(b.x - at, b.y + at);
       if (r >= 5) {
@@ -106,7 +116,7 @@ export function drawBubbles(stage: Stage, bubbles: Bubbles): void {
     if (p < FLASH) {
       // The flash: the whole film goes white, a pixel wider, with a spark in its middle.
       ctx.globalAlpha = 1;
-      ctx.fillStyle = GLINT;
+      ctx.fillStyle = soap.glint;
       shapeOf(Math.round(r) + 1, Math.round(r) + 1).film.forEach(([dx, dy]) => px(x + dx, y + dy));
       px(x - 1, y, 3);
       px(x, y + 1);
@@ -121,7 +131,7 @@ export function drawBubbles(stage: Stage, bubbles: Bubbles): void {
       const fx = x + Math.cos(angle) * out;
       const fy = y + Math.sin(angle) * out;
       ctx.globalAlpha = (1 - gone) ** 1.3;
-      ctx.fillStyle = gone < 0.35 ? GLINT : FILM[k % FILM.length];
+      ctx.fillStyle = gone < 0.35 ? soap.glint : soap.film[k % soap.film.length];
       px(fx, fy);
       if (gone < 0.7) {
         px(fx - Math.sin(angle) * 1.2, fy + Math.cos(angle) * 1.2);
@@ -135,7 +145,7 @@ export function drawBubbles(stage: Stage, bubbles: Bubbles): void {
     // Droplets catch the light as they tumble.
     const twinkles = Math.floor(d.age / 0.07 + d.tint) % 3 === 0;
     ctx.globalAlpha = 1 - (d.age / d.life) ** 2;
-    ctx.fillStyle = twinkles ? GLINT : FILM[d.tint % FILM.length];
+    ctx.fillStyle = twinkles ? soap.glint : soap.film[d.tint % soap.film.length];
     px(d.x, d.y);
   }
   ctx.globalAlpha = 1;

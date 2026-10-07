@@ -1,7 +1,7 @@
 import type { LightTint } from '../../shared/day';
 import type { Coat } from '../../shared/protocol';
 import type { Glyph } from '../sprites/frames';
-import { COATS, PALETTE, TRANSPARENT, UNTINTED } from '../sprites/palette';
+import { COATS, ON_LIGHT, PALETTE, TRANSPARENT, UNTINTED } from '../sprites/palette';
 
 // Light the fox is bathed in: [colour mixed in, amount].
 const TINTS: Record<Exclude<LightTint, 'day'>, readonly [string, number]> = {
@@ -9,11 +9,12 @@ const TINTS: Record<Exclude<LightTint, 'day'>, readonly [string, number]> = {
   night: ['#24306e', 0.16],
 };
 
-/** Glyphs painted once onto small canvases, in the current coat and light. */
+/** Glyphs painted once onto small canvases, in the current coat and light, for the theme the view sits in. */
 export class Bitmaps {
   private readonly cache = new Map<Glyph, HTMLCanvasElement>();
   private coat: Coat = 'red';
   private tint: LightTint = 'day';
+  private light = false;
 
   setCoat(coat: Coat): void {
     if (coat !== this.coat) {
@@ -29,8 +30,16 @@ export class Bitmaps {
     }
   }
 
+  /** Whether the view sits on a light background. */
+  setLight(light: boolean): void {
+    if (light !== this.light) {
+      this.light = light;
+      this.cache.clear();
+    }
+  }
+
   colorOf(letter: string): string {
-    const base = COATS[this.coat]?.[letter] ?? PALETTE[letter];
+    const base = COATS[this.coat]?.[letter] ?? (this.light ? ON_LIGHT[letter] : undefined) ?? PALETTE[letter];
     if (this.tint === 'day' || UNTINTED.has(letter)) {
       return base;
     }
