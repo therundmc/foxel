@@ -244,7 +244,7 @@
     "build:web": "esbuild webview/main.ts --bundle --platform=browser --format=iife --target=es2020 --log-level=warning --outfile=dist/webview.js",
     "build": "npm run build:ext -- --sourcemap && npm run build:web -- --sourcemap",
     "watch": "npm run build:ext -- --sourcemap --watch & npm run build:web -- --sourcemap --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc && tsc -p tsconfig.host.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.sim.json",
     "test": "vitest run",
     "icon": "esbuild scripts/icon.ts --bundle --platform=node --log-level=warning --outfile=dist/icon.cjs && node dist/icon.cjs",
     "vscode:prepublish": "npm run typecheck && npm test && npm run build:ext -- --minify && npm run build:web -- --minify",

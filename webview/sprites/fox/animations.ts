@@ -1,0 +1,418 @@
+import type { Animation } from '../frames';
+import {
+  GALLOP_GATHER,
+  GALLOP_LAND,
+  GALLOP_PUSH,
+  GALLOP_STRETCH,
+  HOP_FLY,
+  HOP_GATHER,
+  HOP_KICK,
+  HOP_LAND,
+  RUN_GATHER,
+  RUN_REACH,
+  STEP_A,
+  STEP_B,
+  THUMP,
+  TUCK,
+  anim,
+} from './pose';
+import { eatAnimation, nuzzleAnimation, patAnimation, sleepAnimation } from './sequences';
+
+// Timings the simulation needs to line its movement up with the frames below.
+export const TWIRL_CROUCH_MS = 120;
+export const TWIRL_AIR_MS = 600;
+export const STARTLE_CROUCH_MS = 120;
+export const STARTLE_AIR_MS = 420;
+// Intro peek timeline: look around, duck back shyly, peek again, light up.
+export const PEEK_LOOK_MS = 1100;
+export const PEEK_DUCK_MS = 600;
+export const PEEK_RETURN_MS = 220;
+export const PEEK_HAPPY_MS = 800;
+export const TOSS_FLICK_MS = 300;
+export const TOSS_CATCH_MS = 450;
+/** When the morning greeting starts waving (and shows the sun). */
+export const MORNING_WAVE_MS = 2700;
+export const KIBBLE_MS = 940;
+
+export const JUMP_CROUCH_MS = 120;
+export const JUMP_AIR_MS = 480;
+export const JUMP_LAND_MS = 120;
+
+const SIT = { body: 'sit' } as const;
+
+const EAT = eatAnimation();
+/** Where to pick the eat animation back up for a treat already eaten down to a given TREAT_STAGES index. */
+export const EAT_RESUME_MS: readonly number[] = EAT.resumeAt;
+
+/** Every animation the fox has. Add one here and its name becomes a valid `AnimName`. */
+export const ANIMATIONS = {
+  idle: anim([
+    [{ tail: 'up' }, 700],
+    [{ tail: 'wagL' }, 400],
+    [{ tail: 'up' }, 400],
+    [{ tail: 'wagR' }, 400],
+    [{ tail: 'up', bob: 1 }, 700],
+  ]),
+  walk: anim([
+    [{ legs: STEP_A, tail: 'wagL' }, 210],
+    [{ bob: 1 }, 210],
+    [{ legs: STEP_B, tail: 'wagR' }, 210],
+    [{ bob: 1 }, 210],
+  ]),
+  // The head stays level while the body bounces under it, so the ears never leave the sprite.
+  run: anim([
+    [{ legs: HOP_KICK, bob: -1, pitch: -1, head: [1, 2], tail: 'streamB', eye: 'happy', mouth: 'tongue' }, 90],
+    [{ legs: HOP_FLY, bob: -2, head: [1, 2], tail: 'flat', eye: 'happy', mouth: 'open' }, 110],
+    [{ legs: HOP_LAND, pitch: 1, head: [1, 0], tail: 'streamA', eye: 'happy', mouth: 'tongue' }, 80],
+    [{ legs: HOP_GATHER, bob: 1, head: [0, -1], tail: 'streamB', eye: 'happy', mouth: 'tongue' }, 90],
+  ]),
+  jump: anim([
+    [{ bob: 1, mouth: 'open' }, JUMP_CROUCH_MS],
+    [{ legs: TUCK, eye: 'happy', mouth: 'open' }, JUMP_AIR_MS],
+    [{ bob: 1, tail: 'wagL' }, JUMP_LAND_MS],
+  ]),
+  sit: anim([
+    [{ ...SIT, tail: 'sitA' }, 900],
+    [{ ...SIT, tail: 'sitB' }, 900],
+  ]),
+  groom: anim([
+    [{ ...SIT, paw: 'lick', eye: 'closed', mouth: 'tongue', head: [0, 1] }, 260],
+    [{ ...SIT, paw: 'lick', eye: 'closed', mouth: 'smile', head: [0, 2] }, 260],
+  ]),
+  stretch: anim([
+    [{ body: 'bow', eye: 'closed', mouth: 'open' }, 700],
+    [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 700],
+    [{ eye: 'happy' }, 300],
+  ]),
+  yawn: anim([
+    [SIT, 300],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 900],
+    [{ ...SIT, eye: 'closed' }, 300],
+  ]),
+  sniff: anim([
+    [{ legs: STEP_A, head: [1, 4], eye: 'down', extras: ['sniffA'] }, 300],
+    [{ head: [1, 5], eye: 'down', extras: ['sniffB'] }, 300],
+    [{ legs: STEP_B, head: [1, 4], eye: 'down' }, 300],
+    [{ head: [1, 5], eye: 'down' }, 300],
+  ]),
+  chaseTail: anim([
+    [{ legs: RUN_REACH, tail: 'wagR', eye: 'happy', mouth: 'open', head: [-1, 1] }, 110],
+    [{ legs: RUN_GATHER, bob: -1, tail: 'wagL', eye: 'happy', mouth: 'open', head: [-1, 1] }, 110],
+  ]),
+  lookAround: anim([
+    [{ extras: ['question'] }, 600],
+    [{ head: [0, -1], extras: ['question'] }, 600],
+  ]),
+  sleep: sleepAnimation(),
+  typing: anim([
+    [{ ...SIT, paw: 'tapNear', eye: 'down', mouth: 'flat' }, 180],
+    [{ ...SIT, paw: 'tapFar', eye: 'down', mouth: 'flat' }, 180],
+  ]),
+  wave: anim([
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open' }, 220],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open' }, 220],
+  ]),
+  love: anim([
+    [{ ...SIT, eye: 'happy', tail: 'sitA', extras: ['heartsA'] }, 300],
+    [{ ...SIT, bob: 1, eye: 'happy', tail: 'sitB', extras: ['heartsB'] }, 300],
+  ]),
+  celebrate: anim([
+    [{ legs: TUCK, tail: 'wagL', eye: 'happy', mouth: 'open', extras: ['sparkleA'] }, 180],
+    [{ bob: 1, tail: 'wagR', eye: 'happy', mouth: 'open', extras: ['sparkleB'] }, 180],
+  ]),
+  panic: anim(
+    (
+      [
+        [GALLOP_STRETCH, -1],
+        [GALLOP_LAND, 0],
+        [GALLOP_GATHER, -1],
+        [GALLOP_PUSH, 0],
+      ] as const
+    ).map(([legs, bob]) => [
+      { legs, bob, tail: 'flat', ears: 'back', eye: 'wide', mouth: 'open', extras: ['sweat'] },
+      70,
+    ]),
+  ),
+  dizzy: anim([
+    [{ eye: 'dizzy', mouth: 'tongue', head: [-1, 0], extras: ['starsA'] }, 250],
+    [{ eye: 'dizzy', mouth: 'tongue', head: [1, 1], bob: 1, extras: ['starsB'] }, 250],
+  ]),
+  carry: anim([
+    [{ legs: STEP_A, tail: 'wagL', ball: true }, 150],
+    [{ bob: 1, ball: true }, 150],
+    [{ legs: STEP_B, tail: 'wagR', ball: true }, 150],
+    [{ bob: 1, ball: true }, 150],
+  ]),
+  pounce: anim([
+    [{ body: 'bow', eye: 'happy', mouth: 'open' }, 200],
+    [{ legs: TUCK, tail: 'wagR', eye: 'happy', mouth: 'open', head: [1, 1] }, 200],
+  ]),
+  lie: anim([
+    [{ body: 'lie', tail: 'sitA' }, 1400],
+    [{ body: 'lie', bob: 1, tail: 'sitB' }, 1400],
+  ]),
+  alert: anim([[{ head: [0, -1], tail: 'up', extras: ['bang'] }, 500]]),
+  stalk: anim([
+    [{ bob: 2, head: [1, 1], tail: 'flat', legs: STEP_A, mouth: 'flat' }, 340],
+    [{ bob: 2, head: [1, 1], tail: 'flat', mouth: 'flat' }, 340],
+    [{ bob: 2, head: [1, 1], tail: 'flat', legs: STEP_B, mouth: 'flat' }, 340],
+    [{ bob: 2, head: [1, 1], tail: 'flat', mouth: 'flat' }, 340],
+  ]),
+  wiggle: anim([
+    [{ body: 'bow', tail: 'highL', mouth: 'flat' }, 110],
+    [{ body: 'bow', bob: 1, tail: 'highR', mouth: 'flat' }, 110],
+  ]),
+  leap: anim([
+    [{ legs: RUN_REACH, head: [1, -1], tail: 'flat', mouth: 'open' }, 200],
+    [{ legs: TUCK, head: [1, -1], tail: 'flat', mouth: 'open' }, 400],
+  ]),
+  snatch: anim([[{ legs: TUCK, head: [1, -1], tail: 'wagR', eye: 'happy', ball: true }, 600]]),
+  proud: anim([
+    [{ ...SIT, eye: 'happy', tail: 'sitA', extras: ['sparkleA'] }, 350],
+    [{ ...SIT, eye: 'happy', tail: 'sitB', extras: ['sparkleB'] }, 350],
+  ]),
+  puzzled: anim([
+    [{ ...SIT, head: [0, 1], extras: ['question'] }, 700],
+    [{ ...SIT, head: [-1, 1], extras: ['question'] }, 700],
+  ]),
+  sad: anim([
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 2] }, 900],
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 2], bob: 1 }, 900],
+  ]),
+  petted: anim([
+    [{ ...SIT, eye: 'happy', head: [0, 1], tail: 'sitA', extras: ['smallHeartA'] }, 350],
+    [{ ...SIT, eye: 'happy', head: [0, 1], bob: 1, tail: 'sitB', extras: ['smallHeartB'] }, 350],
+  ]),
+  cuddle: anim([
+    [{ body: 'lie', eye: 'happy', tail: 'sitA', extras: ['heartsA'] }, 450],
+    [{ body: 'lie', eye: 'happy', bob: 1, tail: 'sitB', extras: ['heartsB'] }, 450],
+  ]),
+  watch: anim([
+    [{ ...SIT, tail: 'sitA', mouth: 'tongue' }, 160],
+    [{ ...SIT, tail: 'sitB', mouth: 'tongue', bob: 1 }, 160],
+  ]),
+  ready: anim([
+    [{ tail: 'wagL', mouth: 'tongue' }, 180],
+    [{ tail: 'wagR', mouth: 'tongue' }, 180],
+  ]),
+  boop: anim([
+    [{ eye: 'closed', ears: 'back', head: [-1, 0] }, 180],
+    [{ eye: 'closed', ears: 'back', mouth: 'open', head: [1, 1], extras: ['sniffB'] }, 240],
+    [{ eye: 'happy', tail: 'wagL' }, 300],
+    [{ eye: 'happy', tail: 'wagR' }, 300],
+  ]),
+  eat: EAT.animation,
+  beg: anim([
+    [{ ...SIT, mouth: 'tongue', tail: 'sitA' }, 240],
+    [{ ...SIT, mouth: 'tongue', tail: 'sitB', paw: 'beg', head: [1, 0] }, 200],
+    [{ ...SIT, mouth: 'tongue', tail: 'sitA', paw: 'beg', head: [1, 0] }, 200],
+    [{ ...SIT, mouth: 'tongue', tail: 'sitB' }, 240],
+  ]),
+  pat: patAnimation('sit'),
+  patLie: patAnimation('lie'),
+  scratch: anim([
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagL', head: [0, 1] }, 160],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagR', legs: THUMP, head: [0, 1] }, 120],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagL', head: [0, 1], bob: 1 }, 120],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagR', legs: THUMP, head: [0, 1] }, 120],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagL', head: [0, 1], bob: 1 }, 120],
+    [{ eye: 'happy', mouth: 'tongue', tail: 'wagR', legs: THUMP, head: [0, 1] }, 120],
+    [{ eye: 'happy', mouth: 'open', tail: 'up', extras: ['smallHeartA'] }, 300],
+    [{ eye: 'happy', tail: 'wagL', extras: ['smallHeartB'] }, 300],
+  ]),
+  shake: anim([
+    [{ ...SIT, tail: 'sitA' }, 220],
+    [{ ...SIT, paw: 'wave1', tail: 'sitB' }, 420],
+    [{ ...SIT, paw: 'wave1', head: [0, 1], eye: 'happy', tail: 'sitA' }, 260],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitB' }, 220],
+    [{ ...SIT, paw: 'wave1', head: [0, 1], eye: 'happy', tail: 'sitA' }, 260],
+    [{ ...SIT, eye: 'happy', tail: 'sitB', extras: ['smallHeartA'] }, 400],
+  ]),
+  blep: anim([
+    [{ mouth: 'flat' }, 160],
+    [{ mouth: 'blep' }, 900],
+    [{ eye: 'happy', mouth: 'blep', tail: 'wagL' }, 300],
+    [{ eye: 'happy', tail: 'wagR' }, 300],
+  ]),
+  lick: anim([
+    [{ head: [1, -1], eye: 'happy', mouth: 'open' }, 140],
+    [{ head: [1, -1], eye: 'happy', mouth: 'tongue', tail: 'wagL' }, 160],
+    [{ head: [1, 0], eye: 'happy', mouth: 'open' }, 140],
+    [{ head: [1, -1], eye: 'happy', mouth: 'tongue', tail: 'wagR' }, 160],
+    [{ head: [1, 0], eye: 'happy', mouth: 'open' }, 140],
+    [{ eye: 'happy', tail: 'wagL', extras: ['smallHeartA'] }, 420],
+  ]),
+  nuzzle: nuzzleAnimation('stand'),
+  nuzzleLie: nuzzleAnimation('lie'),
+  tilt: anim([
+    [{ head: [-1, 1], mouth: 'flat', extras: ['question'] }, 520],
+    [{ mouth: 'flat', extras: ['question'] }, 140],
+    [{ head: [1, 1], extras: ['question'] }, 520],
+    [{ eye: 'happy', tail: 'wagL' }, 200],
+    [{ eye: 'happy', tail: 'wagR' }, 200],
+  ]),
+  playBow: anim(
+    Array.from({ length: 8 }, (_, i) => [
+      { body: 'bow', eye: 'happy', mouth: 'open', tail: i % 2 ? 'highR' : 'highL', bob: i % 2 },
+      110,
+    ]),
+  ),
+  flop: anim([
+    [{ bob: 1, eye: 'happy', mouth: 'open' }, 160],
+    [{ body: 'lie', eye: 'happy', mouth: 'open', tail: 'sitA' }, 300],
+    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitB', bob: 1, extras: ['heartsA'] }, 450],
+    [{ body: 'lie', eye: 'happy', mouth: 'tongue', tail: 'sitA', extras: ['heartsB'] }, 450],
+  ]),
+  highFive: anim([
+    [{ ...SIT, tail: 'sitA' }, 150],
+    [{ ...SIT, paw: 'wave2', eye: 'wide', mouth: 'open', tail: 'sitB' }, 260],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitA', extras: ['sparkleA'] }, 380],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', tail: 'sitB', extras: ['sparkleB'] }, 380],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 300],
+  ]),
+  twirl: anim([
+    [{ bob: 1, eye: 'happy', mouth: 'open', tail: 'wagL' }, TWIRL_CROUCH_MS],
+    [{ legs: TUCK, eye: 'happy', mouth: 'open', tail: 'wagR' }, TWIRL_AIR_MS],
+    [{ bob: 1, eye: 'happy', tail: 'up', extras: ['sparkleA'] }, 200],
+    [{ eye: 'happy', tail: 'wagL', extras: ['sparkleB'] }, 320],
+  ]),
+  startle: anim([
+    [{ bob: 1, eye: 'wide', mouth: 'flat' }, STARTLE_CROUCH_MS],
+    [{ legs: TUCK, eye: 'wide', mouth: 'open', tail: 'poof', extras: ['bang'] }, STARTLE_AIR_MS],
+    [{ bob: 1, eye: 'wide', tail: 'poof' }, 180],
+    [{ tail: 'poof', extras: ['question'] }, 520],
+    [{ eye: 'happy', tail: 'wagL' }, 300],
+  ]),
+  tailPoof: anim([
+    [{ tail: 'poof', eye: 'wide', mouth: 'flat' }, 420],
+    [{ tail: 'poof', mouth: 'smile', extras: ['sparkleA'] }, 420],
+    [{ tail: 'wagL', eye: 'happy' }, 180],
+    [{ tail: 'wagR', eye: 'happy' }, 180],
+    [{ tail: 'wagL', eye: 'happy' }, 180],
+    [{ tail: 'wagR', eye: 'happy' }, 180],
+  ]),
+  peek: anim([
+    [{ head: [0, 1], mouth: 'flat' }, 500],
+    [{}, PEEK_LOOK_MS - 500],
+    [{ head: [-1, 1], eye: 'closed', mouth: 'flat' }, PEEK_DUCK_MS],
+    [{}, PEEK_RETURN_MS],
+    [{ head: [1, 0], eye: 'happy', mouth: 'open', extras: ['sparkleB'] }, PEEK_HAPPY_MS],
+  ]),
+  // Flicks the ball onto its nose, sits up with a paw tucked like a seal and sways gently to keep it there.
+  balance: anim([
+    [{ ...SIT, ball: true, tail: 'sitA' }, 240],
+    [{ ...SIT, head: [0, 1], ball: true, tail: 'sitB' }, 140],
+    [{ ...SIT, ballAt: [7, -8], eye: 'up', mouth: 'open', snoutUp: 1, paw: 'beg', tail: 'sitA' }, 150],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitB' }, 280],
+    [{ ...SIT, head: [-1, 0], ballAt: [7.5, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitA' }, 260],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitB' }, 220],
+    [{ ...SIT, head: [1, 0], ballAt: [6.5, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitA' }, 260],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitB' }, 220],
+    [{ ...SIT, head: [-1, 0], ballAt: [7.5, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitA' }, 260],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitB' }, 220],
+    [{ ...SIT, head: [1, 0], ballAt: [6.5, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitA' }, 260],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitB', extras: ['sparkleA'] }, 320],
+    [{ ...SIT, ballAt: [7, -3.6], eye: 'up', snoutUp: 1, paw: 'beg', tail: 'sitA', extras: ['sparkleB'] }, 320],
+    [{ ...SIT, head: [0, 1], ballAt: [7, -8], eye: 'up', mouth: 'open', tail: 'sitB' }, 160],
+    [{ ...SIT, ballAt: [6, -2], eye: 'up', mouth: 'open', tail: 'sitA' }, 100],
+    [{ ...SIT, head: [0, 1], ball: true, eye: 'happy', tail: 'sitB' }, 200],
+    [{ ...SIT, ball: true, eye: 'happy', tail: 'sitA', extras: ['smallHeartA'] }, 450],
+  ]),
+  // Toss: flick the ball up (the world ball flies), watch it, catch it.
+  tossFlick: anim([
+    [{ ball: true, tail: 'wagL' }, 160],
+    [{ head: [1, 1], ball: true, tail: 'wagR', bob: 1 }, TOSS_FLICK_MS - 160],
+  ]),
+  tossWait: anim([
+    [{ eye: 'up', mouth: 'open', tail: 'wagL' }, 140],
+    [{ eye: 'up', mouth: 'open', tail: 'wagR' }, 140],
+  ]),
+  tossCatch: anim([
+    [{ head: [0, 1], ball: true, eye: 'happy', bob: 1 }, 160],
+    [{ ball: true, eye: 'happy', tail: 'wagL', extras: ['sparkleA'] }, TOSS_CATCH_MS - 160],
+  ]),
+  // Drops the ball between its paws, nudges it back and forth with its nose, then snaps it up.
+  pawPlay: anim([
+    [{ body: 'bow', ball: true, eye: 'happy' }, 220],
+    [{ body: 'lie', ballGround: 27.5, eye: 'down', tail: 'sitA' }, 300],
+    [{ body: 'lie', head: [1, 1], ballGround: 28.5, eye: 'happy', mouth: 'open', tail: 'sitB' }, 200],
+    [{ body: 'lie', head: [0, 1], ballGround: 26.5, eye: 'down', tail: 'sitA' }, 220],
+    [{ body: 'lie', head: [1, 1], ballGround: 28.5, eye: 'happy', mouth: 'open', tail: 'sitB' }, 200],
+    [{ body: 'lie', head: [0, 1], ballGround: 25.5, eye: 'down', tail: 'sitA' }, 240],
+    [{ body: 'lie', head: [0, 1], ballGround: 25.5, eye: 'happy', tail: 'sitB', extras: ['smallHeartA'] }, 300],
+    [{ body: 'lie', head: [1, 2], ballGround: 26.5, eye: 'closed', mouth: 'open', tail: 'sitA' }, 180],
+    [{ body: 'lie', ball: true, eye: 'happy', tail: 'sitB' }, 300],
+    [{ ball: true, eye: 'happy', tail: 'wagL' }, 260],
+  ]),
+  // Post-lunch dip: nods off sitting up, jerks awake, nods off again.
+  doze: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 900],
+    [{ ...SIT, eye: 'sleepy', head: [0, 1], tail: 'sitB' }, 700],
+    [{ ...SIT, eye: 'closed', head: [0, 2], tail: 'sitA' }, 1100],
+    [{ ...SIT, eye: 'wide', tail: 'sitB' }, 180],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 900],
+  ]),
+  morning: anim([
+    [{ body: 'bow', eye: 'closed', mouth: 'open' }, 600],
+    [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 500],
+    [{ eye: 'happy' }, 250],
+    [{ ...SIT, eye: 'sleepy' }, 220],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 800],
+    [{ ...SIT, eye: 'closed' }, MORNING_WAVE_MS - 2370],
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', tail: 'sitA' }, 220],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitB' }, 220],
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', tail: 'sitA' }, 220],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitB' }, 220],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 500],
+  ]),
+  goodNight: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 300],
+    [{ ...SIT, paw: 'wave1', eye: 'sleepy', tail: 'sitB' }, 260],
+    [{ ...SIT, paw: 'wave2', eye: 'sleepy', tail: 'sitA' }, 260],
+    [{ ...SIT, paw: 'wave1', eye: 'sleepy', tail: 'sitB' }, 260],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1], tail: 'sitA' }, 900],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitB' }, 500],
+  ]),
+  // Sits by the empty bowl with a rumbling tummy, nudges the bowl, then looks up at you.
+  hungry: anim([
+    [{ ...SIT, mouth: 'flat', tail: 'sitA', extras: ['rumbleA'] }, 450],
+    [{ ...SIT, mouth: 'flat', tail: 'sitB', extras: ['rumbleB'] }, 450],
+    [{ ...SIT, mouth: 'flat', tail: 'sitA' }, 1300],
+    [{ body: 'bow', head: [1, 2], eye: 'down', mouth: 'flat' }, 300],
+    [{ body: 'bow', head: [2, 3], eye: 'down', mouth: 'flat' }, 260],
+    [{ body: 'bow', head: [1, 2], eye: 'down', mouth: 'flat' }, 260],
+    [{ ...SIT, mouth: 'flat', tail: 'sitB' }, 1500],
+  ]),
+  hungrySad: anim([
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 1], tail: 'sitA' }, 1300],
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 1], tail: 'sitB', extras: ['rumbleA'] }, 1300],
+  ]),
+  // One kibble per loop.
+  eatBowl: anim([
+    [{ head: [1, 4], eye: 'closed', mouth: 'open', tail: 'wagL' }, 220],
+    [{ head: [1, 5], eye: 'closed', mouth: 'flat', tail: 'wagR' }, 220],
+    [{ head: [1, 3], eye: 'happy', mouth: 'open', tail: 'wagL' }, 230],
+    [{ head: [1, 3], eye: 'happy', mouth: 'flat', tail: 'wagR' }, KIBBLE_MS - 670],
+  ]),
+  drink: anim([
+    [{ head: [1, 5], eye: 'closed', mouth: 'tongue', tail: 'wagL' }, 170],
+    [{ head: [1, 4], eye: 'closed', mouth: 'flat', tail: 'wagR' }, 170],
+  ]),
+  drowsy: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 1200],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1], tail: 'sitB' }, 900],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA', bob: 1 }, 1500],
+  ]),
+  typingSleepy: anim([
+    [{ ...SIT, paw: 'tapNear', eye: 'sleepy', mouth: 'flat' }, 320],
+    [{ ...SIT, paw: 'tapFar', eye: 'sleepy', mouth: 'flat' }, 320],
+  ]),
+  // You ignored the break: it flops down and sighs.
+  sigh: anim([
+    [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitA' }, 900],
+    [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],
+    [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitB' }, 1500],
+  ]),
+} satisfies Record<string, Animation>;
+
+export type AnimName = keyof typeof ANIMATIONS;

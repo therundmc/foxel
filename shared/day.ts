@@ -1,6 +1,7 @@
 export type DayPhase = 'dawn' | 'morning' | 'lunch' | 'afternoon' | 'evening' | 'night';
 export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner';
 export type LightTint = 'day' | 'golden' | 'night';
+export type Party = 'friday' | 'anniversary';
 
 const at = (hours: number, minutes = 0): number => hours * 60 + minutes;
 const minuteOfDay = (date: Date): number => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
@@ -46,7 +47,7 @@ export function dateKey(date: Date): string {
 }
 
 /** Friday afternoon, or the yearly anniversary of the day Foxel was installed. */
-export function partyKind(date: Date, installedOn: string | undefined): 'friday' | 'anniversary' | undefined {
+export function partyKind(date: Date, installedOn: string | undefined): Party | undefined {
   if (installedOn && installedOn.slice(5) === dateKey(date).slice(5) && installedOn.slice(0, 4) < String(date.getFullYear())) {
     return 'anniversary';
   }

@@ -1,5 +1,5 @@
-import { clamp } from './ball';
-import { BUG_H, BUG_W } from './sprites';
+import { BUG_H, BUG_W } from '../../sprites/props';
+import { clamp } from '../math';
 
 const MIN_HEIGHT = 14;
 const HEIGHT_RANGE = 8;

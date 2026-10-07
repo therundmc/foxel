@@ -1,5 +1,5 @@
-import { clamp } from './ball';
-import { BOWL_W } from './sprites';
+import { BOWL_W } from '../../sprites/props';
+import { clamp } from '../math';
 
 /** A food or water bowl that only shows up when the fox needs it. */
 export class Bowl {

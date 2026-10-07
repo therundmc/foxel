@@ -1,6 +1,7 @@
-import { BALL_SIZE } from './sprites';
+import { BALL_SIZE } from '../../sprites/props';
+import { clamp } from '../math';
 
-const GRAVITY = 140;
+export const BALL_GRAVITY = 140;
 const FRICTION = 30;
 const AIR_DRAG = 0.4;
 const BOUNCE = 0.6;
@@ -49,7 +50,7 @@ export class Ball {
       this.vx = -this.vx * BOUNCE;
     }
     if (this.y > 0 || this.vy !== 0) {
-      this.vy -= GRAVITY * dt;
+      this.vy -= BALL_GRAVITY * dt;
       this.y += this.vy * dt;
       const top = maxHeight(worldHeight);
       if (this.y > top) {
@@ -72,8 +73,4 @@ export class Ball {
 
 function maxHeight(worldHeight: number): number {
   return Math.max(0, worldHeight - BALL_SIZE - 1);
-}
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }

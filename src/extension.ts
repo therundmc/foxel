@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
 import { SCENES, type HostMessage, type Reaction, type Scene } from '../shared/protocol';
 import { BuddyViewProvider } from './buddyViewProvider';
-import { readConfig, SECTION, type Position } from './config';
+import { readConfig, SECTION, WEBVIEW_SETTINGS, webviewSettings, type Position } from './config';
 import { ActivityWatcher } from './events';
 import { Routine } from './routine';
 
@@ -36,10 +36,10 @@ export function activate(context: vscode.ExtensionContext): void {
     installedOn = dateKey(new Date());
     void context.globalState.update(INSTALLED_KEY, installedOn);
   }
-  const settingsMessage = (): HostMessage => {
-    const { scale, speed, coat, dayNight, debugHour } = readConfig();
-    return { type: 'settings', settings: { scale, speed, coat, dayNight, debugHour, installedOn } };
-  };
+  const settingsMessage = (): HostMessage => ({
+    type: 'settings',
+    settings: { ...webviewSettings(readConfig()), installedOn },
+  });
   const title = (): string | undefined => readConfig().name.trim() || undefined;
   const setDebugContext = (): Thenable<unknown> =>
     vscode.commands.executeCommand('setContext', 'foxel.debug', readConfig().debug);
@@ -99,8 +99,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (e.affectsConfiguration(`${SECTION}.debug`)) {
         void setDebugContext();
       }
-      const settingKeys = ['scale', 'speed', 'coat', 'dayNight', 'debugHour'];
-      if (settingKeys.some((key) => e.affectsConfiguration(`${SECTION}.${key}`))) {
+      if (WEBVIEW_SETTINGS.some((key) => e.affectsConfiguration(`${SECTION}.${key}`))) {
         broadcast(settingsMessage());
       }
     }),

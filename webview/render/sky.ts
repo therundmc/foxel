@@ -1,12 +1,6 @@
-import { lightTint } from '../shared/day';
-import { PALETTE } from './sprites';
-
-export interface View {
-  ctx: CanvasRenderingContext2D;
-  width: number;
-  height: number;
-  scale: number;
-}
+import { lightTint } from '../../shared/day';
+import { PALETTE } from '../sprites/palette';
+import type { Stage } from '../stage';
 
 const SHOOTING_MS = 900;
 const SHOOTING_GAP_MIN_MS = 40_000;
@@ -31,13 +25,13 @@ export class Sky {
   private shooting: { x: number; y: number; at: number } | undefined;
   private confetti: Confetto[] = [];
 
-  draw(view: View, clock: Date, now: number): void {
+  draw(stage: Stage, clock: Date, now: number): void {
     if (lightTint(clock) !== 'night') {
       this.shooting = undefined;
       return;
     }
-    const worldW = view.width / view.scale;
-    const worldH = view.height / view.scale;
+    const worldW = stage.width / stage.scale;
+    const worldH = stage.height / stage.scale;
     if (!this.shooting && now >= this.nextShootingAt) {
       this.shooting = { x: worldW * (0.3 + 0.7 * Math.random()), y: 1 + Math.random() * worldH * 0.2, at: now };
       this.nextShootingAt = now + SHOOTING_GAP_MIN_MS + Math.random() * SHOOTING_GAP_SPREAD_MS;
@@ -54,12 +48,12 @@ export class Sky {
     const headX = this.shooting.x - p * 40;
     const headY = this.shooting.y + p * 14;
     for (let i = 0; i < SHOOTING_TRAIL; i++) {
-      this.pixel(view, headX + i * 2, headY - i * 0.7, PALETTE.J, fade * (1 - i / SHOOTING_TRAIL));
+      this.pixel(stage, headX + i * 2, headY - i * 0.7, PALETTE.J, fade * (1 - i / SHOOTING_TRAIL));
     }
   }
 
-  burst(view: View, centerX: number): void {
-    const worldH = view.height / view.scale;
+  burst(stage: Stage, centerX: number): void {
+    const worldH = stage.height / stage.scale;
     for (let i = 0; i < 40; i++) {
       this.confetti.push({
         x: centerX + (Math.random() - 0.5) * 30,
@@ -72,15 +66,15 @@ export class Sky {
     }
   }
 
-  drawConfetti(view: View, dtMs: number): void {
+  drawConfetti(stage: Stage, dtMs: number): void {
     const dt = dtMs / 1000;
-    const worldH = view.height / view.scale;
+    const worldH = stage.height / stage.scale;
     this.confetti = this.confetti.filter((c) => (c.life -= dt) > 0 && c.y < worldH);
     for (const c of this.confetti) {
       c.vy += CONFETTI_GRAVITY * dt;
       c.x += (c.vx + Math.sin(c.life * 6) * 6) * dt;
       c.y += c.vy * dt;
-      this.pixel(view, c.x, c.y, PALETTE[c.color], Math.min(1, c.life));
+      this.pixel(stage, c.x, c.y, PALETTE[c.color], Math.min(1, c.life));
     }
   }
 
@@ -88,11 +82,11 @@ export class Sky {
     return this.confetti.length > 0;
   }
 
-  private pixel(view: View, x: number, y: number, color: string, alpha: number): void {
-    const s = view.scale;
-    view.ctx.globalAlpha = alpha;
-    view.ctx.fillStyle = color;
-    view.ctx.fillRect(Math.round(x) * s, Math.round(y) * s, s, s);
-    view.ctx.globalAlpha = 1;
+  private pixel(stage: Stage, x: number, y: number, color: string, alpha: number): void {
+    const s = stage.scale;
+    stage.ctx.globalAlpha = alpha;
+    stage.ctx.fillStyle = color;
+    stage.ctx.fillRect(Math.round(x) * s, Math.round(y) * s, s, s);
+    stage.ctx.globalAlpha = 1;
   }
 }

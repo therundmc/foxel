@@ -6,6 +6,8 @@
     "lib": ["ES2020", "DOM"],
     "types": ["node"],
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,

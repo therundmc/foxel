@@ -1,5 +1,5 @@
-import { clamp } from './ball';
-import { TREAT_H, TREAT_W } from './sprites';
+import { TREAT_H, TREAT_W } from '../../sprites/props';
+import { clamp } from '../math';
 
 const GRAVITY = 140;
 const BOUNCE = 0.3;

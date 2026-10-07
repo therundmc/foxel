@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { Coat } from '../shared/protocol';
+import type { BuddySettings, Coat } from '../shared/protocol';
 
 export const SECTION = 'foxel';
 
@@ -21,6 +21,20 @@ export interface BuddyConfig {
   hydrationReminderMinutes: number;
   debugHour: number | undefined;
   debug: boolean;
+}
+
+// The settings the webview draws with. Listing one here is all it takes for it, and its changes, to be sent over.
+const SENT: Record<keyof Omit<BuddySettings, 'installedOn'>, true> = {
+  scale: true,
+  speed: true,
+  coat: true,
+  dayNight: true,
+  debugHour: true,
+};
+export const WEBVIEW_SETTINGS = Object.keys(SENT) as (keyof typeof SENT)[];
+
+export function webviewSettings(config: BuddyConfig): Pick<BuddyConfig, keyof typeof SENT> {
+  return Object.fromEntries(WEBVIEW_SETTINGS.map((key) => [key, config[key]])) as Pick<BuddyConfig, keyof typeof SENT>;
 }
 
 export function readConfig(): BuddyConfig {

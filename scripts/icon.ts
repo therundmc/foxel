@@ -1,6 +1,8 @@
 import { writeFileSync } from 'fs';
 import { deflateSync } from 'zlib';
-import { ANIMATIONS, PALETTE, SPRITE_SIZE, TRANSPARENT } from '../webview/sprites';
+import { ANIMATIONS } from '../webview/sprites/fox/animations';
+import { SPRITE_SIZE } from '../webview/sprites/frames';
+import { PALETTE, TRANSPARENT } from '../webview/sprites/palette';
 
 const SIZE = 128;
 const SCALE = SIZE / SPRITE_SIZE;

@@ -28,10 +28,16 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider {
     };
     view.webview.html = this.html(view.webview);
     view.webview.onDidReceiveMessage((msg: WebviewMessage) => {
-      if (msg?.type === 'ready') {
-        this.onReady(this);
-      } else if (msg?.type === 'fed') {
-        this.onFed();
+      switch (msg?.type) {
+        case 'ready':
+          this.onReady(this);
+          break;
+        case 'fed':
+          this.onFed();
+          break;
+        default:
+          // Anything else is ignored; the compiler flags a message of ours left unhandled.
+          msg satisfies never;
       }
     });
     view.onDidChangeVisibility(() => {

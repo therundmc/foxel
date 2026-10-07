@@ -1,22 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ANIMATIONS,
-  BALL_FRAMES,
-  BALL_SIZE,
-  BUG_FRAMES,
-  BUG_H,
-  BUG_W,
-  COATS,
-  PALETTE,
-  SPRITE_SIZE,
-  TRANSPARENT,
-  TREAT_GLYPH,
-  TREAT_H,
-  TREAT_W,
-  frameAt,
-  touchZone,
-  totalDuration,
-} from '../webview/sprites';
+import { touchZone } from '../webview/sprites/fox/anchors';
+import { ANIMATIONS } from '../webview/sprites/fox/animations';
+import { SPRITE_SIZE, frameAt, totalDuration } from '../webview/sprites/frames';
+import { COATS, PALETTE, TRANSPARENT } from '../webview/sprites/palette';
+import { BALL_FRAMES, BALL_SIZE, BUG_FRAMES, BUG_H, BUG_W, TREAT_GLYPH, TREAT_H, TREAT_W } from '../webview/sprites/props';
 
 const usesPalette = (lines: readonly string[]): boolean =>
   lines.every((line) => [...line].every((c) => c === TRANSPARENT || c in PALETTE));
