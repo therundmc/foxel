@@ -11,6 +11,8 @@ import {
   BASKET_FRONT,
   BASKET_W,
   BIRD_FRAMES,
+  BIRD_H,
+  BIRD_W,
   BUG_FRAMES,
   CAKE,
   EMOTE_BUD,
@@ -119,6 +121,13 @@ export class Renderer {
     const r = this.stage.rect(bowl.box);
     const glyph = stages[Math.min(bowl.amount, stages.length - 1)];
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+    // The little bird that brings it and takes it back.
+    const bird = bowl.courier;
+    if (bird) {
+      const at = this.stage.rect({ x: bird.x, y: bird.y, w: BIRD_W, h: BIRD_H });
+      const flying = (bird.dir === 1 ? BIRD_FRAMES : BIRD_FRAMES_FACING_LEFT)[bird.wingsUp ? 0 : 1];
+      this.stage.ctx.drawImage(this.bitmaps.get(flying), at.x, at.y, at.w, at.h);
+    }
   }
 
   private drawCake(now: number): void {

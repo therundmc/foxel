@@ -106,6 +106,14 @@ export const ANIMATIONS = {
     [{ eye: 'happy', tail: 'wagL' }, 280],
     [{ eye: 'happy', tail: 'wagR' }, 280],
   ]),
+  // Sitting by its empty bowl: it looks at it, lifts a paw, and bats it away.
+  bat: anim([
+    [{ ...SIT, eye: 'down', tail: 'sitA' }, 260],
+    [{ ...SIT, paw: 'beg', eye: 'down', tail: 'sitB' }, 200],
+    [{ ...SIT, paw: 'tapNear', eye: 'closed', head: [1, 1], tail: 'sitA' }, 180],
+    [{ ...SIT, eye: 'happy', tail: 'sitB' }, 280],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 280],
+  ]),
   yawn: anim([
     [SIT, 300],
     [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 900],

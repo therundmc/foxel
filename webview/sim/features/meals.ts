@@ -1,19 +1,26 @@
 import { mealAt } from '../../../shared/day';
 import { BOWL_EAT_X, BOWL_SIT_X } from '../../sprites/fox/anchors';
-import { KIBBLE_MS } from '../../sprites/fox/animations';
-import { SPRITE_SIZE } from '../../sprites/frames';
+import { ANIMATIONS, KIBBLE_MS } from '../../sprites/fox/animations';
+import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import { BOWL_CAPACITY } from '../../sprites/props';
 import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
-import { FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
+import { FETCH_RUN_SPEED, FETCH_WALK_SPEED, WALK_SPEED } from '../tuning';
 import { REACTION_MS } from './reactions';
-import { YUM, perform } from './touch';
+import { YUM, perform, type TouchReaction } from './touch';
+
+/** It licks its chops, then sees to its bowl. */
+const FULL: TouchReaction = { ...YUM, then: 'sendOff' };
 
 const SNACK_PORTION = 3;
 const SIPS = 3;
 const SIP_MS = 900;
 const WATER_WALK = 24;
-const BOWL_LINGER_MS = 1500;
+/** Once it is empty the fox sends its bowl off; if it has not after this long, the bird comes back for it. */
+const BOWL_LEFT_MS = 9000;
+/** When, as it bats its bowl, its paw meets it. */
+const BAT_AT_MS = 460;
+const BAT_MS = totalDuration(ANIMATIONS.bat);
 /** Hungry for this long, it looks miserable. */
 export const HUNGRY_SAD_MS = 3 * 60_000;
 
@@ -23,13 +30,16 @@ export class MealsMemory {
   thirsty = false;
   feastMs = 0;
   drinkMs = 0;
+  /** The bowl it is done with and sends off, and for how long it has been at it. */
+  done: 'foodBowl' | 'waterBowl' = 'foodBowl';
+  batMs = 0;
 }
 
 /** Fills the food bowl (bringing it out if needed); it then eats, kibble by kibble. */
 export function fillBowl(b: Buddy): void {
   const bowl = b.world.foodBowl;
   if (!bowl.active) {
-    bowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height);
+    bowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height, b.x + SPRITE_SIZE / 2);
   }
   if (bowl.amount === 0) {
     bowl.fill(mealAt(b.world.now) === 'snack' ? SNACK_PORTION : BOWL_CAPACITY);
@@ -39,7 +49,7 @@ export function fillBowl(b: Buddy): void {
 
 export function startHungry(b: Buddy): void {
   if (!b.world.foodBowl.active) {
-    b.world.foodBowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height);
+    b.world.foodBowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height, b.x + SPRITE_SIZE / 2);
   }
   if (b.world.foodBowl.amount > 0) {
     startFeast(b);
@@ -83,6 +93,10 @@ function updateFeast(b: Buddy, dt: number): void {
     b.moving = true;
     return;
   }
+  // The bird is still setting it down.
+  if (!bowl.ready) {
+    return;
+  }
   b.meals.feastMs += dt * 1000;
   if (b.meals.feastMs < KIBBLE_MS) {
     return;
@@ -90,18 +104,19 @@ function updateFeast(b: Buddy, dt: number): void {
   b.meals.feastMs -= KIBBLE_MS;
   bowl.amount--;
   if (bowl.amount === 0) {
-    bowl.finish(BOWL_LINGER_MS);
+    bowl.finish(BOWL_LEFT_MS);
     b.meals.hungry = false;
     b.meals.hungerMs = 0;
+    b.meals.done = 'foodBowl';
     b.world.effects.push('fed');
-    perform(b, YUM);
+    perform(b, FULL);
   }
 }
 
 export function startDrink(b: Buddy): void {
   const water = b.world.waterBowl;
   if (!water.active) {
-    water.show(b.x + b.offsetFor(BOWL_EAT_X) + b.dir * WATER_WALK, b.world.width, b.world.height);
+    water.show(b.x + b.offsetFor(BOWL_EAT_X) + b.dir * WATER_WALK, b.world.width, b.world.height, b.x + SPRITE_SIZE / 2);
     water.fill(SIPS);
   }
   b.moving = false;
@@ -124,14 +139,43 @@ function updateDrink(b: Buddy, dt: number): void {
     b.moving = true;
     return;
   }
+  if (!water.ready) {
+    return;
+  }
   b.meals.drinkMs += dt * 1000;
   if (b.meals.drinkMs >= SIP_MS * (SIPS - water.amount + 1)) {
     water.amount--;
     if (water.amount === 0) {
-      water.finish(BOWL_LINGER_MS);
+      water.finish(BOWL_LEFT_MS);
       b.meals.thirsty = false;
-      perform(b, YUM);
+      b.meals.done = 'waterBowl';
+      perform(b, FULL);
     }
+  }
+}
+
+// Done with its bowl, it sits down by it and bats it away with a paw: it slides off out of the view.
+function updateSendOff(b: Buddy, dt: number, dtMs: number): void {
+  const m = b.meals;
+  const bowl = b.world[m.done];
+  b.fall(dt);
+  if (!bowl.visible) {
+    b.enterNext(b.pickNext());
+    return;
+  }
+  if (m.batMs === 0) {
+    const dir = bowl.centerX >= b.x + SPRITE_SIZE / 2 ? 1 : -1;
+    b.moving = b.walkTo(bowl.centerX - b.offsetFor(BOWL_SIT_X, dir), dir, WALK_SPEED * dt);
+    if (b.moving) {
+      return;
+    }
+  }
+  m.batMs += dtMs;
+  if (m.batMs >= BAT_AT_MS && m.batMs - dtMs < BAT_AT_MS) {
+    bowl.push(b.dir);
+  }
+  if (m.batMs >= BAT_MS) {
+    b.enterNext(b.pickNext());
   }
 }
 
@@ -155,6 +199,17 @@ export const mealsFeature = {
       priority: 3,
       update: updateFeast,
       anim: (b) => (b.moving ? { anim: 'run', elapsed: b.elapsed } : { anim: 'eatBowl', elapsed: b.meals.feastMs }),
+    },
+    sendOff: {
+      priority: 2,
+      next: [['sit', 50], ['idle', 25], ['groom', 25]],
+      begin(b) {
+        b.meals.batMs = 0;
+        b.moving = false;
+        b.enter('sendOff', Infinity);
+      },
+      update: updateSendOff,
+      anim: (b) => (b.moving ? { anim: 'walk', elapsed: b.elapsed } : { anim: 'bat', elapsed: b.meals.batMs }),
     },
     drink: {
       priority: 2,

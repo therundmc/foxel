@@ -50,21 +50,40 @@ describe('living with you', () => {
     expect(b.state).not.toBe('hungry');
   });
 
-  it('has its bowl set down from above, and taken back up once it is empty', () => {
+  it('has its bowl flown in by a little bird, and bats it out of the view once it is empty', () => {
     const b = fox(at(12));
     const bowl = b.world.foodBowl;
     react(b, 'hungry');
-    expect(bowl.y).toBe(b.world.height);
-    simulate(b, 3000, () => !bowl.moving);
+    // The bird carries it in from the side away from the fox, and it cannot be eaten from yet.
+    expect(bowl.courier).toBeDefined();
+    expect(bowl.y).toBeGreaterThan(0);
+    expect(bowl.ready).toBe(false);
+    simulate(b, 5000, () => bowl.ready);
     expect(bowl.y).toBe(0);
+    simulate(b, 5000, () => bowl.courier === undefined);
+    expect(bowl.courier).toBeUndefined();
+    fillBowl(b);
+    const anims = new Set<AnimName>();
+    simulate(b, 20_000, () => {
+      anims.add(b.current().anim);
+      return !bowl.visible;
+    });
+    expect(anims).toContain('bat');
+    expect(bowl.visible).toBe(false);
+    expect(bowl.courier).toBeUndefined();
+  });
+
+  it('has the bird come back for a bowl the fox was drawn away from', () => {
+    const b = fox(at(12));
+    const bowl = b.world.foodBowl;
+    react(b, 'hungry');
+    simulate(b, 5000, () => bowl.ready);
     fillBowl(b);
     simulate(b, 10_000, () => b.world.effects.includes('fed'));
-    simulate(b, 3000, () => !bowl.active);
-    // It is no longer there to eat from, but still to be seen on its way up.
-    expect(bowl.visible).toBe(true);
-    simulate(b, 60);
-    expect(bowl.y).toBeGreaterThan(0);
-    simulate(b, 2000);
+    react(b, 'celebrate');
+    simulate(b, 9500, () => bowl.courier !== undefined);
+    expect(bowl.courier).toBeDefined();
+    simulate(b, 8000, () => !bowl.visible);
     expect(bowl.visible).toBe(false);
   });
 
