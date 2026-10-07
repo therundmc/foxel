@@ -10,8 +10,9 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 | Action | What happens |
 | --- | --- |
-| Move the mouse into its view | It follows the cursor with its eyes, turns to it, then trots over (or runs, from far away) and wags its tail |
-| Rest the pointer on the fox | It looks up, paws at your hand and pushes its head under it: it would like to be petted |
+| Move the mouse into its view | It follows the cursor with its eyes, turns to it, and after a second strolls over and wags its tail |
+| Click an empty spot | You call it: it comes running |
+| Rest the pointer on the fox | Without moving from its spot, it looks up and gently presses its head into your hand: it would like to be petted |
 | Hold the button down and stroke the fox back and forth | You pet it: it closes its eyes with little hearts, then curls up for a cuddle |
 | Click its nose | Boop and sneeze, a little blep, or it licks your finger |
 | Click its head | Leans into a head pat, nuzzles your hand, or tilts its head curiously |
@@ -28,7 +29,21 @@ After installing, open the **Foxel** tab in the bottom panel. The panel gives it
 
 ## On its own
 
-It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, and rolls onto its back to wriggle with its feet in the air. In the evening and at night it sometimes turns its back to you and sits facing the sky: night comes down, the moon and the stars come out one after the other, and it gazes for a long while, its tail sweeping the ground, makes a wish on a shooting star, then gazes on until it nods off. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+It walks, sits, lies down, grooms, stretches, yawns, sniffs the ground and looks around. From time to time it stalks a butterfly, wiggles and pounces. Sometimes a tuft of tall grass comes up: it slips in, lies in wait like a cat and pounces on a passing mouse, which either gets away or ends up sitting on its head. It also digs, and rolls onto its back to wriggle with its feet in the air. Now and then it leaves the screen and comes back with a ball to play with. When you stop working for a while, it curls up and falls asleep.
+
+## Contemplation
+
+A few times a day at most, the fox stops for the sky. It sits, pricks its ears, closes its eyes and breathes in; then it turns its back to you and, for a long minute, watches a whole landscape come out behind it, its tail slowly sweeping the ground. When the sky has its great moment it sits up, follows it, bows its head over a wish and wags its tail. Then it turns back to you, sighs, lies down and lets its eyes close while the view fades away.
+
+| When | What it watches |
+| --- | --- |
+| Early morning | The sunrise: the night pales, the sun comes up big and slow over the misty hills |
+| Daytime | Mountains and enormous summer clouds piling up behind them |
+| Some days | A storm far away: heavy clouds, soft lightning, rain on the big leaf it holds over its head, then the sky clearing |
+| Evening | The sunset over the water, and the colours that come once the sun is gone |
+| Night | The stars lighting up one by one, the moon climbing, the Milky Way drawing itself, a shooting star |
+
+Hours go by between two of these moments, and they need `foxel.dayNight` (on by default).
 
 ## Its day
 
@@ -102,7 +117,9 @@ Foxel is a pet you watch and play with while you code. Each release adds one the
 - Meals with a bowl to fill, water breaks, and a break reminder when you work too long
 - Party hat and confetti on Fridays and on the install anniversary
 - Name (`foxel.name`) shown as the view title
-- New things it does on its own: mouse hunts in the tall grass, digging, rolling on its back, stargazing
+- New things it does on its own: mouse hunts in the tall grass, digging, rolling on its back
+- Contemplation: a few times a day it sits with its back to you and watches the sunrise, the clouds, a far storm, the sunset or the stars
+- It comes to your pointer, runs when you click, and asks for a stroke when you rest your hand on it
 - Everything told through emotions and picture bubbles, no text or gauges
 
 ### 1.3 — Following your work
