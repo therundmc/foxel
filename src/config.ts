@@ -14,6 +14,13 @@ export interface BuddyConfig {
   reactToTyping: boolean;
   reactToErrors: boolean;
   sleepAfterSeconds: number;
+  name: string;
+  dayNight: boolean;
+  meals: boolean;
+  breakReminderMinutes: number;
+  hydrationReminderMinutes: number;
+  debugHour: number | undefined;
+  debug: boolean;
 }
 
 export function readConfig(): BuddyConfig {
@@ -27,5 +34,13 @@ export function readConfig(): BuddyConfig {
     reactToTyping: c.get('reactToTyping', true),
     reactToErrors: c.get('reactToErrors', true),
     sleepAfterSeconds: c.get('sleepAfterSeconds', 30),
+    name: c.get('name', ''),
+    dayNight: c.get('dayNight', true),
+    meals: c.get('meals', true),
+    breakReminderMinutes: c.get('breakReminderMinutes', 50),
+    hydrationReminderMinutes: c.get('hydrationReminderMinutes', 60),
+    // Deliberately not declared in package.json: only for trying out times of day and scenes.
+    debugHour: c.get<number>('debugHour'),
+    debug: c.get('debug', false),
   };
 }

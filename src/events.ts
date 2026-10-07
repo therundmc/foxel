@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
+import { dayPhase } from '../shared/day';
 import type { Reaction } from '../shared/protocol';
 import type { BuddyConfig } from './config';
 
 const TYPING_THROTTLE_MS = 300;
 const SLEEP_CHECK_MS = 1000;
 const WELCOME_BACK_AFTER_MS = 60_000;
+// A pause at least this long counts as a real break.
+const BREAK_GAP_MS = 5 * 60_000;
+const NIGHT_SLEEP_FACTOR = 0.5;
 
 // Keeps frequent editor events from making the companion twitchy.
 const COOLDOWN_MS: Partial<Record<Reaction, number>> = {
@@ -18,6 +22,8 @@ const COOLDOWN_MS: Partial<Record<Reaction, number>> = {
 
 export class ActivityWatcher implements vscode.Disposable {
   asleep = false;
+  /** Start of the current stretch of work without a real break. */
+  workingSince = Date.now();
   private lastActivity = Date.now();
   private lastTyping = 0;
   private lastBlur = 0;
@@ -29,6 +35,7 @@ export class ActivityWatcher implements vscode.Disposable {
   constructor(
     private readonly react: (reaction: Reaction) => void,
     private readonly config: () => BuddyConfig,
+    private readonly clock: () => Date,
   ) {
     this.disposables = [
       vscode.workspace.onWillSaveTextDocument((e) => this.onSave(e)),
@@ -94,6 +101,9 @@ export class ActivityWatcher implements vscode.Disposable {
       return;
     }
     const awayMs = Date.now() - this.lastBlur;
+    if (this.lastBlur > 0 && awayMs >= BREAK_GAP_MS) {
+      this.workingSince = Date.now();
+    }
     this.touch();
     if (this.lastBlur > 0 && awayMs >= WELCOME_BACK_AFTER_MS) {
       this.emit('wave');
@@ -122,7 +132,11 @@ export class ActivityWatcher implements vscode.Disposable {
   }
 
   private touch(): void {
-    this.lastActivity = Date.now();
+    const now = Date.now();
+    if (now - this.lastActivity >= BREAK_GAP_MS) {
+      this.workingSince = now;
+    }
+    this.lastActivity = now;
     if (this.asleep) {
       this.asleep = false;
       this.react('wake');
@@ -131,7 +145,9 @@ export class ActivityWatcher implements vscode.Disposable {
 
   private checkSleep(): void {
     const idleMs = Date.now() - this.lastActivity;
-    if (!this.asleep && idleMs >= this.config().sleepAfterSeconds * 1000) {
+    const night = dayPhase(this.clock()) === 'night';
+    const sleepAfterMs = this.config().sleepAfterSeconds * 1000 * (night ? NIGHT_SLEEP_FACTOR : 1);
+    if (!this.asleep && idleMs >= sleepAfterMs) {
       this.asleep = true;
       this.react('sleep');
     }

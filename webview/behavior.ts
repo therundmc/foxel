@@ -1,14 +1,19 @@
+import { dayPhase, mealAt, type DayPhase } from '../shared/day';
 import type { Reaction } from '../shared/protocol';
 import { Ball, clamp } from './ball';
+import { Bowl } from './bowl';
 import { Bug } from './bug';
 import { Treat } from './treat';
 import {
   ANIMATIONS,
   BALL_SIZE,
+  BOWL_CAPACITY,
   EAT_RESUME_MS,
   JUMP_AIR_MS,
   JUMP_CROUCH_MS,
   JUMP_LAND_MS,
+  KIBBLE_MS,
+  MORNING_WAVE_MS,
   NOSE_X,
   SPRITE_SIZE,
   STARTLE_AIR_MS,
@@ -25,6 +30,8 @@ import {
   frameAt,
   totalDuration,
   type AnimName,
+  type Emote,
+  type Hat,
   type TouchZone,
 } from './sprites';
 
@@ -66,10 +73,31 @@ export type BuddyState =
   | 'trick'
   | 'beg'
   | 'snack'
+  | 'doze'
+  | 'drowsy'
+  | 'toBed'
+  | 'hungry'
+  | 'feast'
+  | 'drink'
+  | 'askBreak'
   | 'panic';
 
 type HuntPhase = 'spot' | 'stalk' | 'wiggle' | 'leap' | 'catch' | 'miss';
 type TimedReaction = 'alert' | 'wave' | 'love' | 'happy' | 'celebrate' | 'sad' | 'panic';
+
+export type Act =
+  | 'morning'
+  | 'goodNight'
+  | 'hungry'
+  | 'starving'
+  | 'drink'
+  | 'askBreak'
+  | 'sigh'
+  | 'doze'
+  | 'drowsy'
+  | 'typing'
+  | 'bedtime'
+  | 'party';
 
 export interface WorldPoint {
   x: number;
@@ -109,6 +137,11 @@ const PRIORITY: Partial<Record<BuddyState, number>> = {
   trick: 2,
   beg: 3,
   snack: 3,
+  toBed: 1,
+  hungry: 2,
+  feast: 3,
+  drink: 2,
+  askBreak: 2,
   panic: 4,
 };
 
@@ -142,8 +175,20 @@ const NEXT: Partial<Record<BuddyState, Weights>> = {
   hunt: [['sit', 40], ['idle', 30], ['walk', 30]],
   await: [['play', 40], ['lie', 30], ['sit', 30]],
   petted: [['lie', 60], ['sit', 40]],
+  doze: [['lie', 50], ['sit', 30], ['yawn', 20]],
+  drowsy: [['lie', 50], ['yawn', 30], ['sit', 20]],
 };
 const DEFAULT_NEXT: Weights = [['idle', 40], ['sit', 40], ['walk', 20]];
+
+// Extra things it feels like doing at certain times of day, when calm.
+const PHASE_NEXT: Partial<Record<DayPhase, Weights>> = {
+  dawn: [['stretch', 12], ['yawn', 12]],
+  afternoon: [['doze', 20], ['yawn', 8]],
+  evening: [['zoomies', 6]],
+  night: [['drowsy', 25], ['yawn', 12]],
+};
+const NIGHT_DAMPED: ReadonlySet<BuddyState> = new Set(['run', 'jump', 'hunt', 'leave', 'chaseTail', 'play']);
+const NIGHT_DAMPING = 0.25;
 
 const CALM_STATES: ReadonlySet<BuddyState> = new Set([
   'idle',
@@ -155,7 +200,7 @@ const CALM_STATES: ReadonlySet<BuddyState> = new Set([
   'groom',
 ]);
 const FACE_TARGET_STATES: ReadonlySet<BuddyState> = new Set(['idle', 'sit', 'lie', 'await', 'watch']);
-const GAZE_STATES: ReadonlySet<BuddyState> = new Set([...FACE_TARGET_STATES, 'walk', 'beg', 'alert']);
+const GAZE_STATES: ReadonlySet<BuddyState> = new Set([...FACE_TARGET_STATES, 'walk', 'beg', 'alert', 'hungry', 'askBreak']);
 const BALL_FOCUS_STATES: ReadonlySet<BuddyState> = new Set(['watch', 'fetch', 'play', 'trick']);
 
 type Trick = 'balance' | 'toss' | 'pawPlay';
@@ -187,6 +232,10 @@ const RESTFUL_STATES: ReadonlySet<BuddyState> = new Set([
   'yawn',
   'typing',
   'await',
+  'doze',
+  'drowsy',
+  'hungry',
+  'askBreak',
 ]);
 
 const JUMP_MS = JUMP_CROUCH_MS + JUMP_AIR_MS + JUMP_LAND_MS;
@@ -285,6 +334,23 @@ const TOUCH_REACTIONS: Record<TouchZone, readonly TouchReaction[]> = {
   ],
 };
 const FLOP: TouchReaction = { anim: 'flop', then: 'lie' };
+const MORNING: TouchReaction = { anim: 'morning', then: 'sit' };
+const GOOD_NIGHT: TouchReaction = { anim: 'goodNight', then: 'sit' };
+const YUM: TouchReaction = { anim: 'lick', then: 'sit' };
+const SIGH: TouchReaction = { anim: 'sigh', then: 'lie' };
+
+// Sprite columns of the bowl centre: in front of the paws when sitting, under the mouth when eating.
+const BOWL_SIT_X = 27;
+const BOWL_EAT_X = 28;
+const SNACK_PORTION = 3;
+const SIPS = 3;
+const SIP_MS = 900;
+const WATER_WALK = 24;
+const BOWL_LINGER_MS = 1500;
+const HUNGRY_SAD_MS = 3 * 60_000;
+const ASK_BREAK_MS = 6000;
+const EMOTE_CYCLE_MS = 6000;
+const EMOTE_SHOW_MS = 1500;
 const ZOOMIES_COMBO = 3;
 const ZOOMIES_MS = 3200;
 const ZOOMIES_FLIP_MIN_MS = 600;
@@ -312,6 +378,23 @@ export class Behavior {
   readonly ball = new Ball();
   readonly bug = new Bug();
   readonly treat = new Treat();
+  readonly foodBowl = new Bowl();
+  readonly waterBowl = new Bowl();
+  /** Fox x while it sleeps in its basket at night; undefined when there is no basket out. */
+  bed: number | undefined;
+  /** One-off things for the view to act on: tell the extension it ate, throw confetti. */
+  readonly effects: ('fed' | 'confetti')[] = [];
+  private now = new Date();
+  private dayLife = false;
+  private partyDay: 'friday' | 'anniversary' | undefined;
+  private hungry = false;
+  private hungerMs = 0;
+  private thirsty = false;
+  private breakWanted = false;
+  private askingBreak = false;
+  private breakAsks = 0;
+  private feastMs = 0;
+  private drinkMs = 0;
   private startDir: 1 | -1 = 1;
   private duration: number;
   private worldWidth = SPRITE_SIZE;
@@ -367,6 +450,60 @@ export class Behavior {
 
   get visible(): boolean {
     return this.state !== 'away';
+  }
+
+  /** Time of day it lives by, or undefined when day and night are turned off. */
+  get phase(): DayPhase | undefined {
+    return this.dayLife ? dayPhase(this.now) : undefined;
+  }
+
+  // Needs wait until it is not busy with something else.
+  private get free(): boolean {
+    return CALM_STATES.has(this.state) || this.state === 'walk' || this.state === 'sleep';
+  }
+
+  setClock(now: Date, dayLife: boolean): void {
+    this.now = now;
+    this.dayLife = dayLife;
+  }
+
+  setParty(kind: 'friday' | 'anniversary' | undefined): void {
+    this.partyDay = kind;
+  }
+
+  hat(): Hat | undefined {
+    if ((this.state === 'sleep' || this.state === 'toBed') && this.bed !== undefined) {
+      return 'nightcap';
+    }
+    const awake = this.state !== 'sleep' && !OFFSCREEN_STATES.has(this.state);
+    return this.partyDay && awake ? 'party' : undefined;
+  }
+
+  /** A little picture bubble above its head: what it feels or wants, without a word. */
+  emote(): Emote | undefined {
+    const pulse = this.elapsed % EMOTE_CYCLE_MS < EMOTE_SHOW_MS;
+    switch (this.state) {
+      case 'touched':
+        if (this.reactionAnim === 'morning') {
+          return this.elapsed >= MORNING_WAVE_MS ? 'sun' : undefined;
+        }
+        if (this.reactionAnim === 'goodNight') {
+          return 'moon';
+        }
+        return this.reactionAnim === 'sigh' ? 'cup' : undefined;
+      case 'hungry':
+        return pulse ? 'bowl' : undefined;
+      case 'drink':
+        return this.moving || this.drinkMs === 0 ? 'drop' : undefined;
+      case 'askBreak':
+        return 'cup';
+      case 'drowsy':
+        return 'moon';
+      case 'typing':
+        return this.phase === 'night' && pulse ? 'moon' : undefined;
+      default:
+        return undefined;
+    }
   }
 
   /** True when nothing moves fast, so the view can be redrawn less often. */
@@ -438,12 +575,36 @@ export class Behavior {
   react(reaction: Reaction): void {
     switch (reaction) {
       case 'wake':
+        this.breakAsks = 0;
         if (this.state === 'sleep') {
           this.enter('stretch', this.ambientDuration('stretch'));
         }
         return;
       case 'sleep':
-        this.tryEnter('sleep', Infinity);
+        if (this.phase === 'night') {
+          this.startBedtime();
+        } else {
+          this.tryEnter('sleep', Infinity);
+        }
+        return;
+      case 'hungry':
+        if (!this.hungry) {
+          this.hungry = true;
+          this.hungerMs = 0;
+          if (this.free) {
+            this.startHungry();
+          }
+        }
+        return;
+      case 'drink':
+        this.thirsty = true;
+        if (this.free) {
+          this.startDrink();
+        }
+        return;
+      case 'breakTime':
+        this.breakWanted = true;
+        this.startBreak();
         return;
       case 'typing':
         if (this.state === 'typing') {
@@ -493,6 +654,7 @@ export class Behavior {
     }
     this.ball.launch(vx, vy);
     this.playerX = playerX;
+    this.breakAsks = 0;
     this.tryEnter('fetch', FETCH_MAX_MS);
   }
 
@@ -529,7 +691,7 @@ export class Behavior {
     if (this.introPhase === 'enter') {
       this.running = true;
       if (!this.walkTo(this.targetX, this.dir, INTRO_SPEED * dt)) {
-        this.enter('wave', REACTION_MS.wave);
+        this.greet();
       }
       return;
     }
@@ -547,6 +709,225 @@ export class Behavior {
       this.x = this.peekX;
       this.introPhase = 'enter';
       this.elapsed = 0;
+    }
+  }
+
+  // Says hello the way the moment calls for: party, good morning, good night, or a plain wave.
+  private greet(): void {
+    const phase = this.phase;
+    if (this.partyDay) {
+      this.effects.push('confetti');
+      this.enter('celebrate', REACTION_MS.celebrate);
+    } else if (phase === 'dawn' || phase === 'morning') {
+      this.perform(MORNING);
+    } else if (phase === 'evening' || phase === 'night') {
+      this.perform(GOOD_NIGHT);
+    } else {
+      this.enter('wave', REACTION_MS.wave);
+    }
+  }
+
+  /** Fills the food bowl (bringing it out if needed); it then eats, kibble by kibble. */
+  fillBowl(): void {
+    const bowl = this.foodBowl;
+    if (!bowl.active) {
+      bowl.show(this.x + this.offsetFor(BOWL_SIT_X), this.worldWidth);
+    }
+    if (bowl.amount === 0) {
+      bowl.fill(mealAt(this.now) === 'snack' ? SNACK_PORTION : BOWL_CAPACITY);
+    }
+    this.startFeast();
+  }
+
+  /** Jumps straight into one of its daily moments, whatever it was doing: for the showcase. */
+  act(name: Act): void {
+    this.hungry = false;
+    this.thirsty = false;
+    this.breakWanted = false;
+    this.askingBreak = false;
+    this.breakAsks = 0;
+    this.foodBowl.hide();
+    this.waterBowl.hide();
+    if (this.state === 'hunt') {
+      this.bug.flee(this.dir);
+    }
+    if (this.ball.state === 'mouth') {
+      this.dropBall();
+    }
+    this.y = 0;
+    this.enter('sit', this.ambientDuration('sit'));
+    switch (name) {
+      case 'morning':
+        this.perform(MORNING);
+        return;
+      case 'goodNight':
+        this.perform(GOOD_NIGHT);
+        return;
+      case 'sigh':
+        this.perform(SIGH);
+        return;
+      case 'hungry':
+        this.react('hungry');
+        return;
+      case 'starving':
+        this.react('hungry');
+        this.hungerMs = HUNGRY_SAD_MS;
+        return;
+      case 'drink':
+        this.react('drink');
+        return;
+      case 'askBreak':
+        this.react('breakTime');
+        return;
+      case 'typing':
+        this.react('typing');
+        return;
+      case 'bedtime':
+        this.startBedtime();
+        return;
+      case 'party':
+        this.effects.push('confetti');
+        this.enter('celebrate', REACTION_MS.celebrate);
+        return;
+      default:
+        this.enter(name, this.ambientDuration(name));
+    }
+  }
+
+  private startHungry(): void {
+    if (!this.foodBowl.active) {
+      this.foodBowl.show(this.x + this.offsetFor(BOWL_SIT_X), this.worldWidth);
+    }
+    if (this.foodBowl.amount > 0) {
+      this.startFeast();
+      return;
+    }
+    this.moving = false;
+    this.tryEnter('hungry', Infinity);
+  }
+
+  // Sits by the empty bowl, rumbling, until someone fills it.
+  private updateHungry(dt: number): void {
+    this.moving = false;
+    this.fall(dt);
+    if (!this.hungry) {
+      this.enterNext('sit');
+      return;
+    }
+    const bowl = this.foodBowl;
+    const dir = bowl.centerX >= this.x + SPRITE_SIZE / 2 ? 1 : -1;
+    if (this.walkTo(bowl.centerX - this.offsetFor(BOWL_SIT_X, dir), dir, FETCH_WALK_SPEED * dt)) {
+      this.moving = true;
+    }
+  }
+
+  private startFeast(): void {
+    this.moving = false;
+    this.feastMs = 0;
+    this.tryEnter('feast', Infinity);
+  }
+
+  private updateFeast(dt: number): void {
+    this.moving = false;
+    this.fall(dt);
+    const bowl = this.foodBowl;
+    if (!bowl.active || bowl.amount === 0) {
+      this.enterNext('sit');
+      return;
+    }
+    const dir = bowl.centerX >= this.x + SPRITE_SIZE / 2 ? 1 : -1;
+    if (this.walkTo(bowl.centerX - this.offsetFor(BOWL_EAT_X, dir), dir, FETCH_RUN_SPEED * dt)) {
+      this.moving = true;
+      return;
+    }
+    this.feastMs += dt * 1000;
+    if (this.feastMs < KIBBLE_MS) {
+      return;
+    }
+    this.feastMs -= KIBBLE_MS;
+    bowl.amount--;
+    if (bowl.amount === 0) {
+      bowl.finish(BOWL_LINGER_MS);
+      this.hungry = false;
+      this.hungerMs = 0;
+      this.effects.push('fed');
+      this.perform(YUM);
+    }
+  }
+
+  private startDrink(): void {
+    const water = this.waterBowl;
+    if (!water.active) {
+      water.show(this.x + this.offsetFor(BOWL_EAT_X) + this.dir * WATER_WALK, this.worldWidth);
+      water.fill(SIPS);
+    }
+    this.moving = false;
+    this.drinkMs = 0;
+    this.tryEnter('drink', Infinity);
+  }
+
+  // Laps at the water bowl a few times: a little nudge for you to drink too.
+  private updateDrink(dt: number): void {
+    this.moving = false;
+    this.fall(dt);
+    const water = this.waterBowl;
+    if (!water.active || water.amount === 0) {
+      this.thirsty = false;
+      this.enterNext('sit');
+      return;
+    }
+    const dir = water.centerX >= this.x + SPRITE_SIZE / 2 ? 1 : -1;
+    if (this.walkTo(water.centerX - this.offsetFor(BOWL_EAT_X, dir), dir, FETCH_WALK_SPEED * dt)) {
+      this.moving = true;
+      return;
+    }
+    this.drinkMs += dt * 1000;
+    if (this.drinkMs >= SIP_MS * (SIPS - water.amount + 1)) {
+      water.amount--;
+      if (water.amount === 0) {
+        water.finish(BOWL_LINGER_MS);
+        this.thirsty = false;
+        this.perform(YUM);
+      }
+    }
+  }
+
+  // First nudge: fetches its ball and sits by you with a little cup. Ignored ones: flops down and sighs.
+  private startBreak(): void {
+    if (!this.free && this.state !== 'await') {
+      return;
+    }
+    this.breakWanted = false;
+    this.breakAsks++;
+    if (this.breakAsks > 1) {
+      this.perform(SIGH);
+      return;
+    }
+    this.askingBreak = true;
+    if (this.ball.state === 'free') {
+      this.playerX = undefined;
+      this.tryEnter('fetch', FETCH_MAX_MS);
+    } else if (this.ball.state === 'none') {
+      this.startLeave('fetch');
+    } else {
+      this.askingBreak = false;
+      this.tryEnter('askBreak', ASK_BREAK_MS);
+    }
+  }
+
+  // At night it trots to a little basket, puts its nightcap on and curls up there.
+  private startBedtime(): void {
+    if (this.bed === undefined) {
+      this.bed = this.x + SPRITE_SIZE / 2 < this.worldWidth / 2 ? 0 : this.maxX;
+    }
+    this.tryEnter('toBed', Infinity);
+  }
+
+  private updateToBed(dt: number): void {
+    const bed = this.bed ?? this.x;
+    const facing = bed < this.worldWidth / 2 ? 1 : -1;
+    if (!this.walkTo(bed, facing, WALK_SPEED * dt)) {
+      this.enter('sleep', Infinity);
     }
   }
 
@@ -647,13 +1028,34 @@ export class Behavior {
     this.bumpBall();
     this.bug.update(dt, this.worldWidth, this.worldHeight, this.random);
     this.treat.update(dt, this.worldWidth);
+    this.foodBowl.update(dtMs);
+    this.waterBowl.update(dtMs);
     this.sinceTurnMs += dtMs;
+
+    if (this.hungry) {
+      this.hungerMs += dtMs;
+      if (!mealAt(this.now) && !(this.foodBowl.amount > 0)) {
+        this.hungry = false;
+        this.foodBowl.hide();
+        if (this.state === 'hungry') {
+          this.react('sad');
+        }
+      }
+    }
 
     if (CALM_STATES.has(this.state)) {
       if (this.treat.state === 'held') {
         this.startBeg();
       } else if (this.treat.landed) {
         this.startSnack();
+      } else if (this.foodBowl.active && this.foodBowl.amount > 0) {
+        this.startFeast();
+      } else if (this.hungry) {
+        this.startHungry();
+      } else if (this.thirsty) {
+        this.startDrink();
+      } else if (this.breakWanted) {
+        this.startBreak();
       }
     }
 
@@ -736,6 +1138,18 @@ export class Behavior {
       case 'beg':
         this.updateBeg(dt);
         break;
+      case 'hungry':
+        this.updateHungry(dt);
+        break;
+      case 'feast':
+        this.updateFeast(dt);
+        break;
+      case 'drink':
+        this.updateDrink(dt);
+        break;
+      case 'toBed':
+        this.updateToBed(dt);
+        break;
       case 'snack':
         this.updateSnack(dt);
         break;
@@ -803,6 +1217,21 @@ export class Behavior {
         return { anim: 'petted', elapsed: this.petMs };
       case 'touched':
         return { anim: this.reactionAnim, elapsed: this.elapsed };
+      case 'typing':
+        return { anim: this.phase === 'night' ? 'typingSleepy' : 'typing', elapsed: this.elapsed };
+      case 'toBed':
+        return { anim: 'walk', elapsed: this.elapsed };
+      case 'hungry':
+        if (this.moving) {
+          return { anim: 'walk', elapsed: this.elapsed };
+        }
+        return { anim: this.hungerMs >= HUNGRY_SAD_MS ? 'hungrySad' : 'hungry', elapsed: this.elapsed };
+      case 'feast':
+        return this.moving ? { anim: 'run', elapsed: this.elapsed } : { anim: 'eatBowl', elapsed: this.feastMs };
+      case 'drink':
+        return { anim: this.moving ? 'walk' : 'drink', elapsed: this.elapsed };
+      case 'askBreak':
+        return { anim: 'watch', elapsed: this.elapsed };
       case 'zoomies':
         return { anim: 'run', elapsed: this.elapsed };
       case 'intro':
@@ -860,6 +1289,9 @@ export class Behavior {
         this.dropBall();
         this.enter('await', AWAIT_MS);
         return;
+      case 'askBreak':
+        this.enter('await', AWAIT_MS);
+        return;
       case 'trick':
         if (this.ball.state === 'mouth') {
           this.dropBall();
@@ -875,7 +1307,12 @@ export class Behavior {
   }
 
   private pickNext(): BuddyState {
-    const weights = (NEXT[this.state] ?? DEFAULT_NEXT).filter(([s]) => s !== 'play' || this.ballNearby());
+    const phase = this.phase;
+    const calm = CALM_STATES.has(this.state) || this.state === 'walk';
+    const extra = calm && phase ? (PHASE_NEXT[phase] ?? []) : [];
+    const weights = [...(NEXT[this.state] ?? DEFAULT_NEXT), ...extra]
+      .filter(([s]) => s !== 'play' || this.ballNearby())
+      .map(([s, w]) => [s, phase === 'night' && NIGHT_DAMPED.has(s) ? w * NIGHT_DAMPING : w] as const);
     const total = weights.reduce((sum, [, w]) => sum + w, 0);
     let r = this.random() * total;
     for (const [state, weight] of weights) {
@@ -894,6 +1331,9 @@ export class Behavior {
 
   private enterNext(state: BuddyState): void {
     switch (state) {
+      case 'zoomies':
+        this.startZoomies();
+        return;
       case 'hunt':
         this.startHunt();
         return;
@@ -931,7 +1371,11 @@ export class Behavior {
   }
 
   private arrived(): void {
-    if (this.ball.state === 'mouth') {
+    if (this.ball.state === 'mouth' && this.askingBreak) {
+      this.askingBreak = false;
+      this.dropBall();
+      this.enter('askBreak', ASK_BREAK_MS);
+    } else if (this.ball.state === 'mouth') {
       this.dropBall();
       this.startPlay();
     } else {
@@ -1157,7 +1601,14 @@ export class Behavior {
   private updateBring(dt: number): void {
     const playerX = this.playerX ?? this.worldWidth / 2;
     if (!this.approach(this.noseTargetFor(playerX), BRING_SPEED * dt)) {
-      this.showOff();
+      if (this.askingBreak) {
+        this.askingBreak = false;
+        this.dropBall();
+        this.ball.vx = 0;
+        this.enter('askBreak', ASK_BREAK_MS);
+      } else {
+        this.showOff();
+      }
     }
   }
 
@@ -1424,6 +1875,9 @@ export class Behavior {
     if (state !== 'snack' && this.treat.state === 'eating') {
       this.putTreatDown();
     }
+    if (state !== 'toBed' && state !== 'sleep' && state !== 'stretch') {
+      this.bed = undefined;
+    }
   }
 
   // Interrupted mid-meal: leave what is left on the ground, ready to be finished later.
@@ -1482,6 +1936,10 @@ export class Behavior {
         return totalDuration(ANIMATIONS[state]);
       case 'dizzy':
         return 1600;
+      case 'doze':
+        return between(8000, 14_000);
+      case 'drowsy':
+        return between(5000, 9000);
       default:
         return between(3000, 7000);
     }

@@ -4,14 +4,24 @@ import type { HostMessage, WebviewMessage } from '../shared/protocol';
 
 export class BuddyViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
+  private title: string | undefined;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onReady: (provider: BuddyViewProvider) => void,
+    private readonly onFed: () => void,
   ) {}
+
+  setTitle(title: string | undefined): void {
+    this.title = title;
+    if (this.view) {
+      this.view.title = title;
+    }
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
+    view.title = this.title;
     view.webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist')],
@@ -20,6 +30,8 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage((msg: WebviewMessage) => {
       if (msg?.type === 'ready') {
         this.onReady(this);
+      } else if (msg?.type === 'fed') {
+        this.onFed();
       }
     });
     view.onDidChangeVisibility(() => {

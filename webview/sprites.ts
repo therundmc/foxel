@@ -38,6 +38,19 @@ export const PALETTE: Readonly<Record<string, string>> = {
   T: '#d99a52',
   t: '#a8672f',
   h: '#f6cf94',
+  A: '#e0525c',
+  a: '#a8353f',
+  k: '#8a5a2e',
+  U: '#4fb3c9',
+  u: '#2f7f94',
+  w: '#8ee3ff',
+  I: '#5a6fd6',
+  i: '#3c4ea8',
+  X: '#ffd23f',
+  x: '#ffae2b',
+  G: '#f6f0c8',
+  q: '#d6cc98',
+  J: '#fff6c4',
 };
 
 // Fur letters only; everything else keeps the base palette.
@@ -128,11 +141,21 @@ export type AnimName =
   | 'tossWait'
   | 'tossCatch'
   | 'pawPlay'
+  | 'doze'
+  | 'morning'
+  | 'goodNight'
+  | 'hungry'
+  | 'hungrySad'
+  | 'eatBowl'
+  | 'drink'
+  | 'drowsy'
+  | 'typingSleepy'
+  | 'sigh'
   | 'eat'
   | 'watch';
 
 type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie';
-type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'dizzy';
+type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy';
 type Mouth = 'smile' | 'open' | 'flat' | 'tongue' | 'blep';
 type Ears = 'up' | 'back';
 type Tail =
@@ -174,7 +197,9 @@ type Extra =
   | 'sniffA'
   | 'sniffB'
   | 'crumbsA'
-  | 'crumbsB';
+  | 'crumbsB'
+  | 'rumbleA'
+  | 'rumbleB';
 
 type Point = readonly [number, number];
 // [foot x offset, foot lift] for back-far, back-near, front-far, front-near legs.
@@ -342,6 +367,8 @@ const EXTRAS: Record<Extra, readonly Overlay[]> = {
   sniffB: [{ x: 30, y: 19, glyph: GLYPHS.puff }, { x: 31, y: 22, glyph: GLYPHS.puff }],
   crumbsA: [{ x: 30, y: 22, glyph: GLYPHS.crumb }, { x: 24, y: 24, glyph: GLYPHS.crumb }],
   crumbsB: [{ x: 31, y: 24, glyph: GLYPHS.crumb }, { x: 23, y: 25, glyph: GLYPHS.crumb }],
+  rumbleA: [{ x: 21, y: 23, glyph: ['Q.Q', '.Q.'] }],
+  rumbleB: [{ x: 22, y: 22, glyph: ['.Q.', 'Q.Q'] }],
 };
 
 function set(g: Grid, x: number, y: number, c: string): void {
@@ -471,6 +498,10 @@ function drawHead(g: Grid, hx: number, hy: number, p: Pose): void {
     case 'up':
       rect(g, ex + 1, hy - 3, ex + 2, hy - 1, 'E');
       set(g, ex + 2, hy - 3, 'W');
+      break;
+    case 'sleepy':
+      rect(g, hx, hy - 1, hx + 3, hy - 1, 'E');
+      rect(g, hx + 1, hy, hx + 2, hy, 'E');
       break;
     case 'wide':
       rect(g, hx, hy - 2, hx + 2, hy, 'E');
@@ -748,6 +779,9 @@ export const PEEK_RETURN_MS = 220;
 export const PEEK_HAPPY_MS = 800;
 export const TOSS_FLICK_MS = 300;
 export const TOSS_CATCH_MS = 450;
+/** When the morning greeting starts waving (and shows the sun). */
+export const MORNING_WAVE_MS = 2700;
+export const KIBBLE_MS = 940;
 
 // A long sleepy loop: slow breathing with rising Zzz, little twitches and dreams of the ball, a treat and a butterfly.
 function sleepAnimation(): Animation {
@@ -1113,7 +1147,162 @@ export const ANIMATIONS: Record<AnimName, Animation> = {
     [{ body: 'lie', ball: true, eye: 'happy', tail: 'sitB' }, 300],
     [{ ball: true, eye: 'happy', tail: 'wagL' }, 260],
   ]),
+  // Post-lunch dip: nods off sitting up, jerks awake, nods off again.
+  doze: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 900],
+    [{ ...SIT, eye: 'sleepy', head: [0, 1], tail: 'sitB' }, 700],
+    [{ ...SIT, eye: 'closed', head: [0, 2], tail: 'sitA' }, 1100],
+    [{ ...SIT, eye: 'wide', tail: 'sitB' }, 180],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 900],
+  ]),
+  morning: anim([
+    [{ body: 'bow', eye: 'closed', mouth: 'open' }, 600],
+    [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 500],
+    [{ eye: 'happy' }, 250],
+    [{ ...SIT, eye: 'sleepy' }, 220],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 800],
+    [{ ...SIT, eye: 'closed' }, MORNING_WAVE_MS - 2370],
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', tail: 'sitA' }, 220],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitB' }, 220],
+    [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', tail: 'sitA' }, 220],
+    [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitB' }, 220],
+    [{ ...SIT, eye: 'happy', tail: 'sitA' }, 500],
+  ]),
+  goodNight: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 300],
+    [{ ...SIT, paw: 'wave1', eye: 'sleepy', tail: 'sitB' }, 260],
+    [{ ...SIT, paw: 'wave2', eye: 'sleepy', tail: 'sitA' }, 260],
+    [{ ...SIT, paw: 'wave1', eye: 'sleepy', tail: 'sitB' }, 260],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1], tail: 'sitA' }, 900],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitB' }, 500],
+  ]),
+  // Sits by the empty bowl with a rumbling tummy, nudges the bowl, then looks up at you.
+  hungry: anim([
+    [{ ...SIT, mouth: 'flat', tail: 'sitA', extras: ['rumbleA'] }, 450],
+    [{ ...SIT, mouth: 'flat', tail: 'sitB', extras: ['rumbleB'] }, 450],
+    [{ ...SIT, mouth: 'flat', tail: 'sitA' }, 1300],
+    [{ body: 'bow', head: [1, 2], eye: 'down', mouth: 'flat' }, 300],
+    [{ body: 'bow', head: [2, 3], eye: 'down', mouth: 'flat' }, 260],
+    [{ body: 'bow', head: [1, 2], eye: 'down', mouth: 'flat' }, 260],
+    [{ ...SIT, mouth: 'flat', tail: 'sitB' }, 1500],
+  ]),
+  hungrySad: anim([
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 1], tail: 'sitA' }, 1300],
+    [{ ...SIT, ears: 'back', eye: 'down', mouth: 'flat', head: [0, 1], tail: 'sitB', extras: ['rumbleA'] }, 1300],
+  ]),
+  // One kibble per loop.
+  eatBowl: anim([
+    [{ head: [1, 4], eye: 'closed', mouth: 'open', tail: 'wagL' }, 220],
+    [{ head: [1, 5], eye: 'closed', mouth: 'flat', tail: 'wagR' }, 220],
+    [{ head: [1, 3], eye: 'happy', mouth: 'open', tail: 'wagL' }, 230],
+    [{ head: [1, 3], eye: 'happy', mouth: 'flat', tail: 'wagR' }, KIBBLE_MS - 670],
+  ]),
+  drink: anim([
+    [{ head: [1, 5], eye: 'closed', mouth: 'tongue', tail: 'wagL' }, 170],
+    [{ head: [1, 4], eye: 'closed', mouth: 'flat', tail: 'wagR' }, 170],
+  ]),
+  drowsy: anim([
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 1200],
+    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1], tail: 'sitB' }, 900],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA', bob: 1 }, 1500],
+  ]),
+  typingSleepy: anim([
+    [{ ...SIT, paw: 'tapNear', eye: 'sleepy', mouth: 'flat' }, 320],
+    [{ ...SIT, paw: 'tapFar', eye: 'sleepy', mouth: 'flat' }, 320],
+  ]),
+  // You ignored the break: it flops down and sighs.
+  sigh: anim([
+    [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitA' }, 900],
+    [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],
+    [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitB' }, 1500],
+  ]),
 };
+
+export type Emote = 'sun' | 'moon' | 'cup' | 'drop' | 'bowl';
+
+const EMOTE_ICONS: Record<Emote, Glyph> = {
+  sun: ['..x..', '.XXX.', 'xXXXx', '.XXX.', '..x..'],
+  moon: ['.GG..', 'GGq..', 'GG...', 'GGq..', '.GG..'],
+  cup: ['Q.Q..', '.Q.Q.', 'AAAA.', 'AAAaA', 'AAAA.', '.aa..'],
+  drop: ['..U..', '.UUU.', 'UUwUU', 'UUUUU', '.UUU.'],
+  bowl: ['.kkk.', 'AAAAA', '.aaa.'],
+};
+
+// A rounded speech bubble with a little tail at the bottom left, pointing down to the head.
+function emoteBubble(icon: Glyph): Glyph {
+  const w = icon[0].length + 4;
+  const h = icon.length + 4;
+  const rows: string[][] = Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      const cornerX = x === 0 || x === w - 1;
+      const cornerY = y === 0 || y === h - 1;
+      if (cornerX && cornerY) {
+        return TRANSPARENT;
+      }
+      return cornerX || cornerY ? 'Z' : 'W';
+    }),
+  );
+  icon.forEach((line, y) => [...line].forEach((c, x) => c !== TRANSPARENT && (rows[y + 2][x + 2] = c)));
+  const tail = Array.from({ length: w }, (_, x) => (x === 2 ? 'Z' : TRANSPARENT));
+  return [...rows.map((r) => r.join('')), tail.join('')];
+}
+
+export const EMOTES: Record<Emote, Glyph> = {
+  sun: emoteBubble(EMOTE_ICONS.sun),
+  moon: emoteBubble(EMOTE_ICONS.moon),
+  cup: emoteBubble(EMOTE_ICONS.cup),
+  drop: emoteBubble(EMOTE_ICONS.drop),
+  bowl: emoteBubble(EMOTE_ICONS.bowl),
+};
+
+export type Hat = 'party' | 'nightcap';
+
+/** Hats are drawn over the head; `x`/`y` place the glyph's top-left relative to the head centre. */
+export const HATS: Record<Hat, { glyph: Glyph; x: number; y: number }> = {
+  party: { glyph: outlined(['..W..', '..L..', '.LSL.', '.SLS.', 'LSLSL']), x: -4, y: -12 },
+  nightcap: {
+    glyph: outlined(['WW......', 'WIi.....', '.IiIi...', '..IiIiII', '..IIIIII']),
+    x: -8,
+    y: -9,
+  },
+};
+
+const BOWL_SHAPE = ['AAAAAAAAAA', '.aaaaaaaa.', '..AAAAAA..'];
+// Kibble or water level, drawn as the top row of the bowl.
+function bowlGlyph(fill: string, amount: number, capacity: number): Glyph {
+  const slots = [1, 3, 5, 7, 2, 6, 4, 8].slice(0, Math.round((amount / capacity) * 8));
+  const top = Array.from({ length: 10 }, (_, x) => (slots.includes(x) ? fill : TRANSPARENT)).join('');
+  return outlined([top, ...BOWL_SHAPE.map((r) => (fill === 'w' ? r.replace(/A/g, 'U').replace(/a/g, 'u') : r))]);
+}
+
+export const BOWL_W = 12;
+export const BOWL_H = 6;
+export const BOWL_CAPACITY = 5;
+/** Food bowl glyphs by kibble count left (0..BOWL_CAPACITY), then the water bowl by sips left. */
+export const FOOD_BOWL: readonly Glyph[] = Array.from({ length: BOWL_CAPACITY + 1 }, (_, n) => bowlGlyph('k', n, BOWL_CAPACITY));
+export const WATER_BOWL: readonly Glyph[] = Array.from({ length: 4 }, (_, n) => bowlGlyph('w', n, 3));
+
+export const BASKET_W = 26;
+export const BASKET_BACK: Glyph = [
+  '..tttttttttttttttttttttt..',
+  '.tTTTTTTTTTTTTTTTTTTTTTTt.',
+  'tTCCCCCCCCCCCCCCCCCCCCCCTt',
+  'tTCCCCCCCCCCCCCCCCCCCCCCTt',
+];
+export const BASKET_FRONT: Glyph = [
+  'tTTTTTTTTTTTTTTTTTTTTTTTTt',
+  'tThThThThThThThThThThThTTt',
+  '.tTTTTTTTTTTTTTTTTTTTTTTt.',
+  '..tttttttttttttttttttttt..',
+];
+
+export const CAKE: readonly Glyph[] = [
+  outlined(['...H...', '...S...', '.LLLLL.', 'WWWWWWW', 'LLLLLLL', 'ccccccc']),
+  outlined(['...S...', '...S...', '.LLLLL.', 'WWWWWWW', 'LLLLLLL', 'ccccccc']),
+];
+
+/** Emote and sky letters keep their colour whatever the light, the fox does not. */
+export const UNTINTED = new Set(['X', 'x', 'G', 'q', 'J', 'Z', 'W', 'Q']);
 
 export const BUG_FRAMES: readonly Glyph[] = [
   ['VV.VV', 'VVKVV', '.VKV.', '..K..'],

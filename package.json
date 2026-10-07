@@ -2,7 +2,7 @@
   "name": "foxel",
   "displayName": "Foxel",
   "description": "A cute pixel-art fox cub that lives in your editor: it naps, hunts butterflies, plays fetch and reacts to your coding.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "anca",
   "author": "anca",
   "license": "MIT",
@@ -104,9 +104,25 @@
         "title": "Give a Treat",
         "category": "Foxel",
         "icon": "$(heart)"
+      },
+      {
+        "command": "foxel.fillBowl",
+        "title": "Fill the Bowl",
+        "category": "Foxel"
+      },
+      {
+        "command": "foxel.playScene",
+        "title": "Play a Scene...",
+        "category": "Foxel"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "foxel.playScene",
+          "when": "foxel.debug"
+        }
+      ],
       "view/title": [
         {
           "command": "foxel.throwBall",
@@ -192,6 +208,33 @@
           "default": 30,
           "minimum": 5,
           "description": "Inactivity delay, in seconds, before the companion falls asleep."
+        },
+        "foxel.name": {
+          "type": "string",
+          "default": "",
+          "description": "Your fox's name, shown as the title of its view."
+        },
+        "foxel.dayNight": {
+          "type": "boolean",
+          "default": true,
+          "description": "Live by the local clock: sun, moon and stars in the view, morning greetings, sleepy evenings, a basket and nightcap at night, party hats on Fridays."
+        },
+        "foxel.meals": {
+          "type": "boolean",
+          "default": true,
+          "description": "Get hungry at breakfast (7:00), lunch (11:30), snack time (16:00) and dinner (18:30). Click the bowl to fill it."
+        },
+        "foxel.breakReminderMinutes": {
+          "type": "integer",
+          "default": 50,
+          "minimum": 0,
+          "description": "After this many minutes of work without a break, the fox brings its ball and asks for a pause. 0 turns it off."
+        },
+        "foxel.hydrationReminderMinutes": {
+          "type": "integer",
+          "default": 60,
+          "minimum": 0,
+          "description": "Every this many minutes the fox has a drink, a reminder for you to drink too. 0 turns it off."
         }
       }
     }

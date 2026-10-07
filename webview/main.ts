@@ -1,20 +1,35 @@
+import { clockAt, lightTint, partyKind, type LightTint } from '../shared/day';
 import type { BuddySettings, HostMessage } from '../shared/protocol';
 import { Behavior, type Gaze, type WorldPoint } from './behavior';
+import type { Bowl } from './bowl';
+import { Showcase } from './showcase';
+import { Sky } from './sky';
 import {
   ANIMATIONS,
   BALL_FRAMES,
   BALL_SIZE,
+  BASKET_BACK,
+  BASKET_FRONT,
+  BASKET_W,
+  BOWL_H,
+  BOWL_W,
   BUG_FRAMES,
   BUG_H,
   BUG_W,
+  CAKE,
   COATS,
+  EMOTES,
+  FOOD_BOWL,
   GROUND_ROW,
+  HATS,
   PALETTE,
   SPRITE_SIZE,
   TRANSPARENT,
   TREAT_H,
   TREAT_STAGES,
   TREAT_W,
+  UNTINTED,
+  WATER_BOWL,
   frameAt,
   touchZone,
   type Frame,
@@ -52,14 +67,26 @@ const CLICK_SLOP = 2;
 const GAZE_DELAY_MS = 220;
 const GAZE_HOLD_MS = 350;
 const CENTER_GAZE: Gaze = { x: 0, y: 0 };
+// Light the fox is bathed in: [colour mixed in, amount].
+const TINTS: Record<Exclude<LightTint, 'day'>, readonly [string, number]> = {
+  golden: ['#ffb05c', 0.08],
+  night: ['#24306e', 0.16],
+};
+// Above the ear tips, where the picture bubble sits.
+const EMOTE_ABOVE_HEAD = 13;
+const CAKE_FLICKER_MS = 300;
 
 const vscode = acquireVsCodeApi();
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 const behavior = new Behavior();
+const sky = new Sky();
+const showcase = new Showcase();
 const bitmaps = new Map<Glyph, HTMLCanvasElement>();
 
-let settings: BuddySettings = { scale: DEFAULT_SCALE, speed: 1, coat: 'red' };
+let settings: BuddySettings = { scale: DEFAULT_SCALE, speed: 1, coat: 'red', dayNight: true, installedOn: '' };
+let clock = new Date();
+let tint: LightTint = 'day';
 let scale = DEFAULT_SCALE;
 let width = 0;
 let height = 0;
@@ -84,7 +111,14 @@ function blinkGap(): number {
 }
 
 function colorOf(letter: string): string {
-  return COATS[settings.coat]?.[letter] ?? PALETTE[letter];
+  const base = COATS[settings.coat]?.[letter] ?? PALETTE[letter];
+  if (tint === 'day' || UNTINTED.has(letter)) {
+    return base;
+  }
+  const [mix, amount] = TINTS[tint];
+  const channel = (hex: string, i: number): number => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const out = [0, 1, 2].map((i) => Math.round(channel(base, i) * (1 - amount) + channel(mix, i) * amount));
+  return `rgb(${out.join(',')})`;
 }
 
 function bitmap(pixels: Glyph): HTMLCanvasElement {
@@ -194,15 +228,87 @@ function overTreat(x: number, y: number): boolean {
   return behavior.treat.state === 'free' && inside(treatRect(), x, y, scale * 2);
 }
 
-function draw(now: number): void {
+function bowlRect(bowl: Bowl): Rect {
+  return {
+    x: Math.round(bowl.x * scale),
+    y: Math.round(screenY(BOWL_H)),
+    w: BOWL_W * scale,
+    h: BOWL_H * scale,
+  };
+}
+
+function overFoodBowl(x: number, y: number): boolean {
+  return behavior.foodBowl.active && inside(bowlRect(behavior.foodBowl), x, y, scale * 2);
+}
+
+function view(): { ctx: CanvasRenderingContext2D; width: number; height: number; scale: number } {
+  return { ctx, width, height, scale };
+}
+
+function draw(now: number, dt: number): void {
   ctx.clearRect(0, 0, width, height);
+  if (settings.dayNight) {
+    sky.draw(view(), clock, now);
+  }
+  drawCake(now);
   const frame = currentFrame();
+  drawBasket(BASKET_BACK, BASKET_FRONT.length + BASKET_BACK.length);
+  drawBowl(behavior.foodBowl, FOOD_BOWL);
+  drawBowl(behavior.waterBowl, WATER_BOWL);
   drawTreat(frame);
-  if (behavior.visible && !introPending) {
+  const fox = behavior.visible && !introPending;
+  if (fox) {
     drawBuddy(buddyRect(), frame, now);
+  }
+  drawBasket(BASKET_FRONT, BASKET_FRONT.length);
+  if (fox) {
+    drawEmote(buddyRect(), frame);
   }
   drawBall();
   drawBug();
+  sky.drawConfetti(view(), dt);
+}
+
+// The basket sits under the curled-up fox: back rim and cushion behind it, front rim in front.
+function drawBasket(glyph: Glyph, topAboveGround: number): void {
+  if (behavior.bed === undefined) {
+    return;
+  }
+  const x = Math.round((behavior.bed + (SPRITE_SIZE - BASKET_W) / 2) * scale);
+  const y = Math.round(screenY(topAboveGround));
+  ctx.drawImage(bitmap(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
+}
+
+function drawBowl(bowl: Bowl, stages: readonly Glyph[]): void {
+  if (!bowl.active) {
+    return;
+  }
+  const r = bowlRect(bowl);
+  ctx.drawImage(bitmap(stages[Math.min(bowl.amount, stages.length - 1)]), r.x, r.y, r.w, r.h);
+}
+
+function drawCake(now: number): void {
+  if (!settings.dayNight || partyKind(clock, settings.installedOn) !== 'anniversary') {
+    return;
+  }
+  const glyph = CAKE[Math.floor(now / CAKE_FLICKER_MS) % CAKE.length];
+  const x = Math.round((width / scale) * 0.12) * scale;
+  ctx.drawImage(bitmap(glyph), x, Math.round(screenY(glyph.length)), glyph[0].length * scale, glyph.length * scale);
+}
+
+// A little picture bubble above the head: what it feels or wants, never words.
+function drawEmote(rect: Rect, frame: Frame): void {
+  const emote = behavior.emote();
+  if (!emote) {
+    return;
+  }
+  const glyph = EMOTES[emote];
+  const [hx, hy] = frame.head;
+  const w = glyph[0].length;
+  const left = behavior.dir === 1 ? hx + 1 : SPRITE_SIZE - hx - 1 - w;
+  const top = hy - EMOTE_ABOVE_HEAD - glyph.length;
+  const y = Math.max(0, rect.y + top * scale);
+  ctx.drawImage(bitmap(glyph), rect.x + left * scale, y, w * scale, glyph.length * scale);
 }
 
 // Two-row pixel ellipse on the ground; shrinks as the thing above it rises.
@@ -231,12 +337,35 @@ function drawBuddy(rect: Rect, frame: Frame, now: number): void {
     ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
   }
   drawEyes(frame, rect, flip, now);
+  drawHat(frame, rect, flip);
 
   // Overlays (Zzz, ?, hearts) follow the facing side but must never be mirrored.
   for (const o of frame.overlays) {
     const glyph = bitmap(o.glyph);
     const x = flip ? SPRITE_SIZE - o.x - glyph.width : o.x;
     ctx.drawImage(glyph, rect.x + x * s, rect.y + o.y * s, glyph.width * s, glyph.height * s);
+  }
+}
+
+function drawHat(frame: Frame, rect: Rect, flip: boolean): void {
+  const hat = behavior.hat();
+  if (!hat) {
+    return;
+  }
+  const { glyph, x, y } = HATS[hat];
+  const s = scale;
+  const w = glyph[0].length;
+  const img = bitmap(glyph);
+  const left = frame.head[0] + x;
+  const top = rect.y + (frame.head[1] + y) * s;
+  if (flip) {
+    ctx.save();
+    ctx.translate(rect.x + (SPRITE_SIZE - left) * s, top);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, w * s, glyph.length * s);
+    ctx.restore();
+  } else {
+    ctx.drawImage(img, rect.x + left * s, top, w * s, glyph.length * s);
   }
 }
 
@@ -282,22 +411,23 @@ function drawEyes(frame: Frame, rect: Rect, flip: boolean, now: number): void {
   for (let y = ey - 1; y <= ey + 2; y++) {
     paint(ex - 1, y, 4, colorOf('O'));
   }
+  const pupil = colorOf('E');
   if (blinking || !gaze) {
-    paint(ex - 1, ey + 1, 1, PALETTE.E);
-    paint(ex, ey + 2, 2, PALETTE.E);
-    paint(ex + 2, ey + 1, 1, PALETTE.E);
+    paint(ex - 1, ey + 1, 1, pupil);
+    paint(ex, ey + 2, 2, pupil);
+    paint(ex + 2, ey + 1, 1, pupil);
     return;
   }
   const x = ex + gaze.x;
   if (gaze.y === 1) {
-    paint(x, ey + 1, 2, PALETTE.E);
-    paint(x, ey + 2, 2, PALETTE.E);
+    paint(x, ey + 1, 2, pupil);
+    paint(x, ey + 2, 2, pupil);
     paint(x + 1, ey + 1, 1, PALETTE.W);
     return;
   }
   const top = ey + gaze.y;
   for (let y = top; y < top + 3; y++) {
-    paint(x, y, 2, PALETTE.E);
+    paint(x, y, 2, pupil);
   }
   paint(x + 1, top, 1, PALETTE.W);
 }
@@ -419,7 +549,7 @@ function updateCursor(x: number, y: number): void {
     cursor = 'grabbing';
   } else if (overBall(x, y) || overTreat(x, y)) {
     cursor = 'grab';
-  } else if (zoneAt(x, y)) {
+  } else if (zoneAt(x, y) || overFoodBowl(x, y)) {
     cursor = 'pointer';
   }
   canvas.style.cursor = cursor;
@@ -428,18 +558,43 @@ function updateCursor(x: number, y: number): void {
 let last = performance.now();
 function tick(now: number): void {
   requestAnimationFrame(tick);
-  if (behavior.restful && !holding && now - last < RESTFUL_FRAME_MS) {
+  if (behavior.restful && !holding && !sky.busy && now - last < RESTFUL_FRAME_MS) {
     return;
   }
   const dt = Math.min(now - last, MAX_FRAME_DT_MS);
   last = now;
+  updateClock();
   const pointerActive = pointer !== undefined && (holding || now - pointer.time < POINTER_IDLE_MS);
   behavior.setPointer(pointerActive && pointer ? toWorld(pointer.x, pointer.y) : undefined);
+  showcase.update(dt * settings.speed, behavior);
   behavior.update(dt * settings.speed);
+  for (const effect of behavior.effects.splice(0)) {
+    if (effect === 'fed') {
+      vscode.postMessage({ type: 'fed' });
+    } else {
+      sky.burst(view(), behavior.x + SPRITE_SIZE / 2);
+    }
+  }
   if (now >= nextBlinkAt + BLINK_MS) {
     nextBlinkAt = now + blinkGap();
   }
-  draw(now);
+  draw(now, dt);
+}
+
+function updateClock(): void {
+  clock = clockAt(showcase.hour ?? settings.debugHour);
+  const dayLife = settings.dayNight || showcase.active;
+  behavior.setClock(clock, dayLife);
+  if (showcase.active) {
+    behavior.setParty(showcase.party ? 'friday' : undefined);
+  } else {
+    behavior.setParty(dayLife ? partyKind(clock, settings.installedOn) : undefined);
+  }
+  const light = dayLife ? lightTint(clock) : 'day';
+  if (light !== tint) {
+    tint = light;
+    bitmaps.clear();
+  }
 }
 
 window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
@@ -451,7 +606,11 @@ window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
     settings = msg.settings;
     resize();
   } else if (msg.type === 'reaction') {
-    behavior.react(msg.reaction);
+    if (!showcase.active) {
+      behavior.react(msg.reaction);
+    }
+  } else if (msg.type === 'play') {
+    showcase.play(msg.scenes);
   } else if (msg.type === 'shown') {
     if (!introPending && behavior.state !== 'intro') {
       introPending = true;
@@ -459,6 +618,8 @@ window.addEventListener('message', (e: MessageEvent<HostMessage>) => {
     }
   } else if (msg.type === 'giveTreat') {
     behavior.giveTreat((width / scale) * (0.2 + 0.6 * Math.random()));
+  } else if (msg.type === 'fillBowl') {
+    behavior.fillBowl();
   } else if (msg.type === 'spawnBall') {
     const x = (width / scale) * (0.2 + 0.6 * Math.random());
     const y = height / scale - BALL_SIZE - 2;
@@ -544,6 +705,10 @@ window.addEventListener('mouseout', (e) => {
 
 canvas.addEventListener('click', (e) => {
   if (dragged || behavior.state === 'petted') {
+    return;
+  }
+  if (overFoodBowl(e.clientX, e.clientY)) {
+    behavior.fillBowl();
     return;
   }
   const zone = zoneAt(e.clientX, e.clientY);
