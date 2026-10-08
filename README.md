@@ -8,7 +8,7 @@
 ![Productivity: 0%](https://img.shields.io/badge/productivity-0%25-ff7f8f)
 ![Cuteness: 100%](https://img.shields.io/badge/cuteness-100%25-ff7f8f)
 
-<img src="media/readme/foxel.gif" width="840" alt="The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak while a signpost drops from the sky, then dozing off again">
+<img src="media/readme/film.gif" width="840" alt="The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak while a signpost drops from the sky, then dozing off again">
 
 You used to write code. Now you write a prompt and watch a spinner. Foxel won't give you your career back, but it does give your day a purpose again: a small fox that gets bored, hungry and sleepy, roughly in that order, and has made it your problem.
 
