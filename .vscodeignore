@@ -12,3 +12,4 @@ CLAUDE.md
 .gitignore
 *.vsix
 .github/**
+media/readme/**
