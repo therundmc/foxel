@@ -1,6 +1,6 @@
 # Foxel
 
-**AI does your job now. Your new job is the fox.**
+**The agent got your job. You got a fox.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
@@ -14,7 +14,7 @@ No score, no streak, no notifications. Nobody is measuring anything, which makes
 
 ## It has a life
 
-- **Needs.** Food, a ball thrown now and then, and naps whenever it likes. Gen Z calls that boundaries.
+- **Needs.** Food, play, and naps on the job. It skips every meeting and has never once picked up the phone. Very Gen Z.
 - **Moods.** They depend on how you treat it. No pressure.
 - **Opinions about your work.** Commit and it plants a flag. Fail three builds and it hides in a box. Let an AI write the code and it puts its glasses on to supervise. Someone has to, and it's no longer you.
 - **A home of its choosing.** The bottom panel, the side bar, or a strip of its own under your editor, out of the terminal's way.
