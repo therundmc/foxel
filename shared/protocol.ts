@@ -39,7 +39,19 @@ export type Reaction =
   | 'debugDone'
   /** You have been typing without a pause for a good while; then you stop. */
   | 'focused'
-  | 'unfocused';
+  | 'unfocused'
+  /** Someone else is writing in your files (an assistant, most likely) while you watch; then it stops. */
+  | 'helper'
+  | 'helperDone'
+  /** New commits came in from the remote; you moved to another branch. */
+  | 'pulled'
+  | 'branch'
+  /** You undid a great deal at once; you made a new file; you threw one away. */
+  | 'undoSpree'
+  | 'newFile'
+  | 'goneFile'
+  /** You are back after hours away. */
+  | 'reunion';
 
 export type Coat = 'red' | 'arctic' | 'silver' | 'fennec';
 
@@ -101,6 +113,7 @@ export const SCENES = [
   'debugging',
   'zone',
   'lantern',
+  'assistant',
   'typing',
   'drowsy',
   'sunrise',

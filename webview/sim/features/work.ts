@@ -1,12 +1,12 @@
 import { ANIMATIONS, type AnimName } from '../../sprites/fox/animations';
 import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
-import type { Feature } from '../state';
+import type { BuddyState, Feature } from '../state';
 import { REACTION_MS } from './reactions';
 import { asleep } from './rest';
 
 /** What it is doing about your work, as far as ending it properly goes: each has its accessory to put away. */
-type Scene = 'wait' | 'tower' | 'box' | 'cloud' | 'yarn' | 'debug' | 'point' | 'zone' | 'lantern';
+type Scene = 'wait' | 'tower' | 'box' | 'cloud' | 'yarn' | 'debug' | 'point' | 'zone' | 'lantern' | 'helper';
 
 /** One animation of a little script: played once, or over and over for a while when it is a loop. */
 interface Step {
@@ -47,6 +47,7 @@ const CLOSING: Record<Scene, readonly Step[]> = {
   point: [],
   zone: [once('zoneOut')],
   lantern: [once('lanternOut')],
+  helper: [once('glassesOff')],
 };
 
 export class WorkMemory {
@@ -98,6 +99,13 @@ function then(b: Buddy, steps: readonly Step[], closing?: readonly Step[]): void
   }
   const scene = sceneOf(b);
   play(b, [...(closing ?? (scene ? CLOSING[scene] : [])), ...steps]);
+}
+
+/** A short reaction it already has, unless it is asleep or in the middle of a scene. */
+function briefly(b: Buddy, state: BuddyState, ms?: number): void {
+  if (!asleep(b) && b.state !== 'acting') {
+    b.tryEnter(state, ms ?? b.ambientDuration(state));
+  }
 }
 
 const underCloud = (b: Buddy): readonly Step[] => [once('cloudIn', 'cloud'), loop(b.work.heavy ? 'cloudHeavy' : 'cloudy', CLOUD_MS, 'cloud'), once('cloudOut')];
@@ -208,6 +216,20 @@ export const WORK = {
       play(b, CLOSING.zone);
     }
   },
+  // Someone else writes your code for a while: it puts its glasses on and supervises.
+  helper: (b: Buddy): void => then(b, [once('glassesOn', 'helper'), loop('supervise', LASTS_MS, 'helper'), once('glassesOff')]),
+  helperDone(b: Buddy): void {
+    if (sceneOf(b) === 'helper') {
+      play(b, CLOSING.helper);
+    }
+  },
+  // Smaller news, told with what it already knows how to do.
+  pulled: (b: Buddy): void => briefly(b, 'happy', REACTION_MS.happy),
+  branch: (b: Buddy): void => briefly(b, 'jump'),
+  undoSpree: (b: Buddy): void => briefly(b, 'dizzy'),
+  newFile: (b: Buddy): void => briefly(b, 'sniff'),
+  goneFile: (b: Buddy): void => briefly(b, 'wave', REACTION_MS.wave),
+  reunion: (b: Buddy): void => briefly(b, 'love', REACTION_MS.love),
 };
 
 function updateActing(b: Buddy, dt: number, dtMs: number): void {

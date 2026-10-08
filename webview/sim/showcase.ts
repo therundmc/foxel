@@ -159,6 +159,7 @@ const SCRIPTS: Record<Scene, Script> = {
   errors: { hour: 10.5, ms: 30_000, cues: [[0, news('worry')], [12_000, news('overwhelmed')], [24_000, news('atEase')]] },
   debugging: { hour: 10.6, ms: 17_000, cues: [[0, news('debugging')], [6000, news('paused')], [10_000, news('resumed')], [14_000, news('debugDone')]] },
   zone: { hour: 10.7, ms: 9000, cues: [[0, news('focused')], [6000, news('unfocused')]] },
+  assistant: { hour: 10.8, ms: 13_000, cues: [[0, news('helper')], [9000, news('helperDone')]] },
   lantern: { hour: 23.2, ms: 45_000, cues: [[0, (b) => b.enterNext('lantern')]] },
   sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },
   typing: {

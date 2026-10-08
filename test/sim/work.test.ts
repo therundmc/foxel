@@ -152,6 +152,28 @@ describe('following your work', () => {
     expect(watch(b, 60_000, () => b.state !== 'acting')).toEqual(['lanternIn', 'lantern', 'lanternOut', expect.anything()]);
   });
 
+  it('puts its glasses on to supervise when someone else writes your code, and takes them off after', () => {
+    const b = fox();
+    react(b, 'helper');
+    expect(watch(b, 4000)).toEqual(['glassesOn', 'supervise']);
+    react(b, 'helperDone');
+    expect(watch(b, 3000, () => b.state !== 'acting')[0]).toBe('glassesOff');
+  });
+
+  it('has a little something for smaller news', () => {
+    const state = (reaction: Reaction): string => {
+      const b = fox();
+      react(b, reaction);
+      return b.state;
+    };
+    expect(state('pulled')).toBe('happy');
+    expect(state('branch')).toBe('jump');
+    expect(state('undoSpree')).toBe('dizzy');
+    expect(state('newFile')).toBe('sniff');
+    expect(state('goneFile')).toBe('wave');
+    expect(state('reunion')).toBe('love');
+  });
+
   it('leaves a sleeping fox alone', () => {
     const b = fox();
     react(b, 'sleep');

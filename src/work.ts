@@ -8,12 +8,25 @@ const CHECK_MS = 2000;
 /** A command stopped by hand (Ctrl+C) did not fail. */
 const INTERRUPTED = 130;
 /** Keeps a burst of the same news from making it twitchy. */
-const COOLDOWN_MS: Partial<Record<Reaction, number>> = { commit: 3000, push: 3000, failed: 4000, done: 3000 };
+const COOLDOWN_MS: Partial<Record<Reaction, number>> = { commit: 3000, push: 3000, failed: 4000, done: 3000, pulled: 3000, branch: 3000 };
+/** A command that starts one of these is an assistant at work in the terminal, not something to wait for. */
+const ASSISTANTS = /(^|[\s/])(claude|aider|codex|copilot|gemini|opencode|goose|cursor-agent)(\s|$)/;
+/** Files that change by themselves all the time: builds, dependencies, Git's own. */
+const NOT_YOUR_CODE = /(^|\/)(\.git|node_modules|dist|out|build|target|coverage|\.next|\.venv|__pycache__)(\/|$)/;
+/**
+ * Someone else is writing your code when this many files have changed within the window, over at least the
+ * spread (a checkout changes them all at once), and you were not typing just before. It is over after the quiet.
+ */
+const HELPER_FILES = 3;
+const HELPER_WINDOW_MS = 20_000;
+const HELPER_SPREAD_MS = 3000;
+const HELPER_QUIET_MS = 25_000;
+const YOU_TYPED_MS = 8000;
 
 /** What the fox needs of the editor's built-in Git extension: just enough to tell a commit, a push and a conflict. */
 export interface GitRepository {
   readonly state: {
-    readonly HEAD?: { readonly name?: string; readonly commit?: string; readonly ahead?: number; readonly upstream?: unknown };
+    readonly HEAD?: { readonly name?: string; readonly commit?: string; readonly ahead?: number; readonly behind?: number; readonly upstream?: unknown };
     readonly mergeChanges: readonly unknown[];
     readonly onDidChange: vscode.Event<void>;
   };
@@ -28,6 +41,7 @@ interface Standing {
   readonly branch: string | undefined;
   readonly commit: string | undefined;
   readonly ahead: number | undefined;
+  readonly behind?: number;
   readonly tracked: boolean;
   readonly conflicts: number;
 }
@@ -36,6 +50,7 @@ const standingOf = ({ state }: GitRepository): Standing => ({
   branch: state.HEAD?.name,
   commit: state.HEAD?.commit,
   ahead: state.HEAD?.ahead,
+  behind: state.HEAD?.behind,
   tracked: state.HEAD?.upstream !== undefined,
   conflicts: state.mergeChanges.length,
 });
@@ -49,7 +64,7 @@ export function gitNews(before: Standing, after: Standing): Reaction | undefined
     return 'resolved';
   }
   if (after.branch !== before.branch) {
-    return undefined;
+    return after.branch !== undefined && before.branch !== undefined ? 'branch' : undefined;
   }
   if (after.commit === before.commit) {
     // Nothing new here, and nothing left to send: it has gone to the remote.
@@ -57,12 +72,16 @@ export function gitNews(before: Standing, after: Standing): Reaction | undefined
   }
   // A new commit on the same branch: yours if the branch is now one more ahead, or has no remote to compare with.
   const oneMore = after.ahead !== undefined && after.ahead === (before.ahead ?? 0) + 1;
-  return oneMore || (!after.tracked && before.commit !== undefined) ? 'commit' : undefined;
+  if (oneMore || (!after.tracked && before.commit !== undefined)) {
+    return 'commit';
+  }
+  // New commits that are not yours to send: they came in from the remote.
+  return after.tracked && (before.behind ?? 0) > (after.behind ?? 0) ? 'pulled' : undefined;
 }
 
 /** A terminal that reports when a command starts and ends: newer editors only. */
 interface ShellEvents {
-  onDidStartTerminalShellExecution?: vscode.Event<{ readonly execution: object }>;
+  onDidStartTerminalShellExecution?: vscode.Event<{ readonly execution: { readonly commandLine?: { readonly value?: string } } }>;
   onDidEndTerminalShellExecution?: vscode.Event<{ readonly execution: object; readonly exitCode: number | undefined }>;
 }
 
@@ -77,6 +96,10 @@ export class WorkWatcher implements vscode.Disposable {
   private readonly running = new Map<object, { since: number; awaited: boolean }>();
   private readonly lastEmitted = new Map<Reaction, number>();
   private readonly timer: ReturnType<typeof setInterval>;
+  /** Assistants running in a terminal; the files of yours that changed lately; whether someone is helping. */
+  private readonly assistants = new Set<object>();
+  private changes: { path: string; at: number }[] = [];
+  private helping = false;
 
   constructor(
     private readonly react: (reaction: Reaction) => void,
@@ -85,7 +108,15 @@ export class WorkWatcher implements vscode.Disposable {
     private readonly worked: () => void,
     /** A merge with conflicts is in progress, or no longer. */
     private readonly troubled: (conflicts: boolean) => void,
+    /** When you last typed. */
+    private readonly typedAt: () => number = () => 0,
   ) {
+    const files = vscode.workspace.createFileSystemWatcher('**/*');
+    this.disposables.push(
+      files,
+      files.onDidChange((uri) => this.fileChanged(uri.path)),
+      files.onDidCreate((uri) => this.fileChanged(uri.path)),
+    );
     const shell = vscode.window as typeof vscode.window & ShellEvents;
     this.disposables.push(
       vscode.tasks.onDidStartTaskProcess((e) => !e.execution.task.isBackground && this.started(e.execution)),
@@ -93,7 +124,7 @@ export class WorkWatcher implements vscode.Disposable {
     );
     if (shell.onDidStartTerminalShellExecution && shell.onDidEndTerminalShellExecution) {
       this.disposables.push(
-        shell.onDidStartTerminalShellExecution((e) => this.started(e.execution)),
+        shell.onDidStartTerminalShellExecution((e) => this.started(e.execution, e.execution.commandLine?.value)),
         shell.onDidEndTerminalShellExecution((e) => this.ended(e.execution, e.exitCode, false)),
       );
     }
@@ -136,12 +167,35 @@ export class WorkWatcher implements vscode.Disposable {
     this.troubled(this.on && [...this.standings.values()].some((standing) => standing.conflicts > 0));
   }
 
-  private started(run: object): void {
-    this.running.set(run, { since: Date.now(), awaited: false });
+  private started(run: object, commandLine = ''): void {
     this.worked();
+    if (ASSISTANTS.test(commandLine)) {
+      // It will write in your files for as long as it likes: that is watched for, not waited for.
+      this.assistants.add(run);
+    } else {
+      this.running.set(run, { since: Date.now(), awaited: false });
+    }
+  }
+
+  // A file of yours changed on disk. If you were not typing, and it goes on, someone is writing for you.
+  private fileChanged(path: string): void {
+    const now = Date.now();
+    if (!this.on || NOT_YOUR_CODE.test(path) || now - this.typedAt() < YOU_TYPED_MS) {
+      return;
+    }
+    this.changes = [...this.changes.filter((change) => now - change.at < HELPER_WINDOW_MS && change.path !== path), { path, at: now }];
+    const spread = now - this.changes[0].at;
+    const atWork = this.assistants.size > 0 || (this.changes.length >= HELPER_FILES && spread >= HELPER_SPREAD_MS);
+    if (atWork && !this.helping) {
+      this.helping = true;
+      this.react('helper');
+    }
   }
 
   private ended(run: object, exitCode: number | undefined, task: boolean): void {
+    if (this.assistants.delete(run)) {
+      return;
+    }
     const was = this.running.get(run);
     this.running.delete(run);
     if (!this.on) {
@@ -166,6 +220,12 @@ export class WorkWatcher implements vscode.Disposable {
 
   private checkWaiting(): void {
     const now = Date.now();
+    const lastChange = this.changes[this.changes.length - 1]?.at ?? 0;
+    if (this.helping && now - lastChange >= HELPER_QUIET_MS) {
+      this.helping = false;
+      this.changes = [];
+      this.react('helperDone');
+    }
     for (const run of this.running.values()) {
       if (!run.awaited && now - run.since >= WAIT_AFTER_MS) {
         run.awaited = true;

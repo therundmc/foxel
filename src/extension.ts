@@ -45,6 +45,7 @@ const SCENE_LABELS: Record<Scene, string> = {
   debugging: 'Debugging: the detective, and a breakpoint',
   zone: 'A long stretch of typing: the headband',
   lantern: 'Working late: the lantern',
+  assistant: 'An assistant writes for you: it supervises, glasses on',
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',
@@ -94,7 +95,7 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const watcher = new ActivityWatcher(react, readConfig, clock, trouble('errors'));
-  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0));
+  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0), () => watcher.typedAt);
   void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);

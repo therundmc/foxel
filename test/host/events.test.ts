@@ -18,8 +18,9 @@ const editor = vi.hoisted(() => {
     fire: (name: string, e?: unknown) => listeners[name](e),
     module: {
       TextDocumentSaveReason: { Manual: 1, AfterDelay: 2 },
+      TextDocumentChangeReason: { Undo: 1, Redo: 2 },
       DiagnosticSeverity: { Error: 0, Warning: 1 },
-      workspace: { onWillSaveTextDocument: on('save'), onDidChangeTextDocument: on('edit') },
+      workspace: { onWillSaveTextDocument: on('save'), onDidChangeTextDocument: on('edit'), onDidCreateFiles: on('created'), onDidDeleteFiles: on('deleted') },
       window: {
         activeTextEditor: { document: doc },
         onDidChangeTextEditorSelection: on('selection'),
@@ -124,6 +125,25 @@ describe('ActivityWatcher', () => {
     editor.fire('stack', undefined);
     editor.fire('debugEnd');
     expect(reactions).toEqual(['debugging', 'paused', 'resumed', 'debugDone']);
+  });
+
+  it('notices a great deal undone at once, a new file and one thrown away', () => {
+    for (let i = 0; i < 8; i++) {
+      editor.fire('edit', { contentChanges: [{}], document: editor.doc, reason: 1 });
+    }
+    editor.fire('created');
+    editor.fire('deleted');
+    expect(reactions.filter((r) => r !== 'typing')).toEqual(['undoSpree', 'newFile', 'goneFile']);
+  });
+
+  it('makes a reunion of your return after hours away, and a wave of a shorter absence', () => {
+    editor.fire('window', { focused: false });
+    vi.advanceTimersByTime(5 * MINUTE);
+    editor.fire('window', { focused: true });
+    editor.fire('window', { focused: false });
+    vi.advanceTimersByTime(3 * 60 * MINUTE);
+    editor.fire('window', { focused: true });
+    expect(reactions.filter((r) => r === 'wave' || r === 'reunion')).toEqual(['wave', 'reunion']);
   });
 
   it('notices a long stretch of typing without a pause, and when it ends', () => {

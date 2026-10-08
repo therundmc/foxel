@@ -15,10 +15,18 @@ const MANY_ERRORS = 8;
 const STREAK_GAP_MS = 15_000;
 const FOCUSED_AFTER_MS = 3 * 60_000;
 const UNFOCUSED_AFTER_MS = 30_000;
+/** This many undos within this long is taking a great deal back at once. */
+const UNDO_SPREE = 8;
+const UNDO_SPREE_MS = 5000;
+/** Away from the window this long, coming back is a reunion. */
+const REUNION_AFTER_MS = 2 * 3_600_000;
 
 // Keeps frequent editor events from making the companion twitchy.
 const COOLDOWN_MS: Partial<Record<Reaction, number>> = {
   progress: 20_000,
+  undoSpree: 20_000,
+  newFile: 8000,
+  goneFile: 8000,
   notice: 6000,
   celebrate: 3000,
   alert: 4000,
@@ -37,6 +45,7 @@ export class ActivityWatcher implements vscode.Disposable {
   private lastKey = 0;
   private streakSince = 0;
   private focused = false;
+  private undos: number[] = [];
   private lastBlur = 0;
   private errorCount = countErrors();
   private readonly lastEmitted = new Map<Reaction, number>();
@@ -64,6 +73,8 @@ export class ActivityWatcher implements vscode.Disposable {
       vscode.debug.onDidStartDebugSession(() => this.activity('debugging')),
       vscode.debug.onDidTerminateDebugSession(() => this.activity('debugDone')),
       vscode.languages.onDidChangeDiagnostics(() => this.onDiagnostics()),
+      vscode.workspace.onDidCreateFiles(() => this.activity('newFile')),
+      vscode.workspace.onDidDeleteFiles(() => this.activity('goneFile')),
     ];
     this.timer = setInterval(() => this.checkSleep(), SLEEP_CHECK_MS);
   }
@@ -71,6 +82,11 @@ export class ActivityWatcher implements vscode.Disposable {
   /** Doing something with the fox is being there too, even with the editor left alone. */
   interacted(): void {
     this.present();
+  }
+
+  /** When you last typed in a file. */
+  get typedAt(): number {
+    return this.lastKey;
   }
 
   /** Work done outside the editor (a command, a commit) is work all the same. */
@@ -102,6 +118,13 @@ export class ActivityWatcher implements vscode.Disposable {
     }
     this.touch();
     const now = Date.now();
+    if (e.reason === vscode.TextDocumentChangeReason.Undo) {
+      this.undos = [...this.undos.filter((at) => now - at < UNDO_SPREE_MS), now];
+      if (this.undos.length >= UNDO_SPREE) {
+        this.undos = [];
+        this.emit('undoSpree');
+      }
+    }
     if (now - this.lastKey > STREAK_GAP_MS) {
       this.streakSince = now;
     }
@@ -154,7 +177,7 @@ export class ActivityWatcher implements vscode.Disposable {
     }
     this.touch();
     if (this.lastBlur > 0 && awayMs >= WELCOME_BACK_AFTER_MS) {
-      this.emit('wave');
+      this.emit(awayMs >= REUNION_AFTER_MS ? 'reunion' : 'wave');
     }
   }
 

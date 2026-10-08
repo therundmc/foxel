@@ -14,6 +14,7 @@ const editor = vi.hoisted(() => {
     fire: (name: string, e?: unknown) => listeners[name](e),
     module: {
       tasks: { onDidStartTaskProcess: on('taskStart'), onDidEndTaskProcess: on('taskEnd') },
+      workspace: { createFileSystemWatcher: () => ({ onDidChange: on('fileChange'), onDidCreate: on('fileCreate'), dispose: () => undefined }) },
       window: { onDidStartTerminalShellExecution: on('commandStart'), onDidEndTerminalShellExecution: on('commandEnd') },
     },
   };
@@ -49,6 +50,7 @@ describe('following your work', () => {
   let worked: number;
   let config: BuddyConfig;
   let watcher: WorkWatcher;
+  let typedAt: number;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -57,7 +59,8 @@ describe('following your work', () => {
     troubled = [];
     worked = 0;
     config = { reactToWork: true } as BuddyConfig;
-    watcher = new WorkWatcher((r) => reactions.push(r), () => config, () => worked++, (there) => troubled.push(there));
+    typedAt = 0;
+    watcher = new WorkWatcher((r) => reactions.push(r), () => config, () => worked++, (there) => troubled.push(there), () => typedAt);
   });
 
   afterEach(() => {
@@ -82,9 +85,65 @@ describe('following your work', () => {
     expect(gitNews(at('main', 'a', 0), at('main', 'b', 1))).toBe('commit');
     // Pulled: new commits, but nothing more of yours to send.
     expect(gitNews(at('main', 'a', 0), at('main', 'c', 0))).toBeUndefined();
-    expect(gitNews(at('main', 'a', 0), at('other', 'z', 3))).toBeUndefined();
+    // Another branch: not a commit.
+    expect(gitNews(at('main', 'a', 0), at('other', 'z', 3))).not.toBe('commit');
     expect(gitNews(at('local', 'a', undefined, false), at('local', 'b', undefined, false))).toBe('commit');
     expect(gitNews(at('main', 'a', 2), at('main', 'a', 2))).toBeUndefined();
+  });
+
+  it('tells commits coming in from the remote, and a move to another branch', () => {
+    const at = (branch: string, commit: string, behind: number) => ({ branch, commit, ahead: 0, behind, tracked: true, conflicts: 0 });
+    expect(gitNews(at('main', 'a', 3), at('main', 'd', 0))).toBe('pulled');
+    expect(gitNews(at('main', 'a', 0), at('feature', 'z', 0))).toBe('branch');
+  });
+
+  it('sees that someone else is writing your code: several files, one after the other, while you do not type', () => {
+    const change = (path: string): void => editor.fire('fileChange', { path });
+    change('/repo/src/a.ts');
+    vi.advanceTimersByTime(2 * SECOND);
+    change('/repo/src/b.ts');
+    vi.advanceTimersByTime(2 * SECOND);
+    expect(reactions).toEqual([]);
+    change('/repo/src/c.ts');
+    expect(reactions).toEqual(['helper']);
+    vi.advanceTimersByTime(10 * SECOND);
+    change('/repo/src/d.ts');
+    vi.advanceTimersByTime(20 * SECOND);
+    expect(reactions).toEqual(['helper']);
+    // It has gone quiet: the helper is done.
+    vi.advanceTimersByTime(10 * SECOND);
+    expect(reactions).toEqual(['helper', 'helperDone']);
+  });
+
+  it('is not fooled by your own saves, a checkout that changes everything at once, or build output', () => {
+    const change = (path: string): void => editor.fire('fileChange', { path });
+    // A checkout: all at the same instant.
+    ['a', 'b', 'c', 'd', 'e'].forEach((name) => change(`/repo/src/${name}.ts`));
+    vi.advanceTimersByTime(30 * SECOND);
+    // Build output and dependencies.
+    ['dist/x.js', 'node_modules/y/z.js', '.git/index'].forEach((name, i) => {
+      change(`/repo/${name}`);
+      vi.advanceTimersByTime((i + 2) * SECOND);
+    });
+    // You, typing and saving as you go.
+    ['a', 'b', 'c'].forEach((name) => {
+      typedAt = Date.now();
+      vi.advanceTimersByTime(2 * SECOND);
+      change(`/repo/src/${name}.ts`);
+    });
+    expect(reactions).toEqual([]);
+  });
+
+  it('knows an assistant started in the terminal: its first edit is enough, and it is not waited for like a build', () => {
+    const session = { commandLine: { value: 'claude' } };
+    editor.fire('commandStart', { execution: session });
+    vi.advanceTimersByTime(60 * SECOND);
+    expect(reactions).toEqual([]);
+    editor.fire('fileChange', { path: '/repo/src/a.ts' });
+    expect(reactions).toEqual(['helper']);
+    editor.fire('commandEnd', { execution: session, exitCode: 0 });
+    vi.advanceTimersByTime(30 * SECOND);
+    expect(reactions).toEqual(['helper', 'helperDone']);
   });
 
   it('frets for as long as a merge conflicts, and is relieved when it is sorted out', () => {

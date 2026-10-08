@@ -4,6 +4,7 @@ import { cloudAnims } from './cloud';
 import { detectiveAnims } from './detective';
 import { flagAnims } from './flag';
 import { flinchAnims } from './flinch';
+import { helperAnims } from './helper';
 import { hourglassAnims } from './hourglass';
 import { letterAnims } from './letter';
 import { pebblesAnims } from './pebbles';
@@ -27,4 +28,5 @@ export const WORK_ANIMATIONS = {
   cloudOut: reversed(cloudAnims.cloudIn),
   ...detectiveAnims,
   ...zoneAnims,
+  ...helperAnims,
 };
