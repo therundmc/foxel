@@ -182,6 +182,7 @@ export class Renderer {
     this.drawShadow(rect.x + rect.w / 2, 16 - Math.min(buddy.y, 8));
 
     const flip = buddy.dir === -1;
+    this.drawOverlays(frame, rect, flip, true);
     // A frame is the sprite and a margin round it, for what reaches past its box.
     const img = this.bitmaps.get(frame.pixels);
     const pad = FRAME_PAD * s;
@@ -198,13 +199,30 @@ export class Renderer {
     this.eyes.draw(this.stage, this.bitmaps, buddy, frame, rect, flip, now);
     this.drawHat(frame, rect, flip);
 
-    // Overlays (Zzz, ?, hearts) follow the facing side but must never be mirrored.
+    this.drawOverlays(frame, rect, flip, false);
+  }
+
+  // Overlays follow the side the fox faces. What it holds turns round with it; a Zzz or a heart never does.
+  private drawOverlays(frame: Frame, rect: Rect, flip: boolean, behind: boolean): void {
+    const { ctx, scale: s } = this.stage;
     for (const o of frame.overlays) {
+      if ((o.behind === true) !== behind) {
+        continue;
+      }
       const glyph = this.bitmaps.get(o.glyph);
       const x = flip ? SPRITE_SIZE - o.x - glyph.width : o.x;
       // What floats around it stays inside the view, even when the fox stands at its very edge.
       const left = Math.max(0, Math.min(rect.x + x * s, this.stage.width - glyph.width * s));
-      ctx.drawImage(glyph, left, Math.max(0, rect.y + o.y * s), glyph.width * s, glyph.height * s);
+      const top = Math.max(0, rect.y + o.y * s);
+      if (flip && o.mirrors) {
+        ctx.save();
+        ctx.translate(left + glyph.width * s, top);
+        ctx.scale(-1, 1);
+        ctx.drawImage(glyph, 0, 0, glyph.width * s, glyph.height * s);
+        ctx.restore();
+      } else {
+        ctx.drawImage(glyph, left, top, glyph.width * s, glyph.height * s);
+      }
     }
   }
 

@@ -10,10 +10,15 @@ export type Point = readonly [number, number];
 
 export type Glyph = readonly string[];
 
+/** Something drawn with the fox for one frame, placed from the top left of its sprite when it faces right. */
 export interface Overlay {
   readonly x: number;
   readonly y: number;
   readonly glyph: Glyph;
+  /** Turns round with the fox when it faces left (a thing it holds); otherwise only its place does (a Zzz, a heart). */
+  readonly mirrors?: true;
+  /** Drawn behind the fox instead of over it. */
+  readonly behind?: true;
 }
 
 export interface Frame {

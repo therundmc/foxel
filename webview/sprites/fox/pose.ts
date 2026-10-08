@@ -1,4 +1,4 @@
-import type { Animation, Frame, Point } from '../frames';
+import type { Animation, Frame, Overlay, Point } from '../frames';
 import { ellipse, filledAt, limb, newGrid, outline, rect, type Grid } from '../grid';
 import { GROUND_ROW } from './anchors';
 import { drawFront, type FrontPose } from './front';
@@ -48,6 +48,8 @@ export interface Pose extends HeadPose, FrontPose {
   ballGround?: number;
   treat?: number;
   extras?: readonly Extra[];
+  /** Things of this frame's own: an accessory it holds, something that lands beside it. */
+  props?: readonly Overlay[];
 }
 
 const STILL: Legs = [[0, 0], [0, 0], [0, 0], [0, 0]];
@@ -272,7 +274,7 @@ export function frame(p: Pose): Frame {
   outline(g);
   return {
     pixels: g.map((r) => r.join('')),
-    overlays: (p.extras ?? []).flatMap((e) => EXTRAS[e]),
+    overlays: [...(p.extras ?? []).flatMap((e) => EXTRAS[e]), ...(p.props ?? [])],
     eye: eye && (p.eye ?? 'open') === 'open' ? eye : undefined,
     head: [hx, hy],
     treat: p.treat,

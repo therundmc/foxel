@@ -1,3 +1,4 @@
+import { WORK_ANIMATIONS } from './anims';
 import type { Animation } from '../frames';
 import {
   GALLOP_GATHER,
@@ -633,6 +634,7 @@ export const ANIMATIONS = {
     [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],
     [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitB' }, 1500],
   ]),
+  ...WORK_ANIMATIONS,
 } satisfies Record<string, Animation>;
 
 export type AnimName = keyof typeof ANIMATIONS;
