@@ -1,6 +1,6 @@
 # Foxel
 
-**A little fox moves into your VS Code. It gets hungry, it gets sleepy, and it needs someone. That would be you.**
+**A small fox has moved into your VS Code. Nobody asked it to. It would like its dinner now.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
@@ -8,35 +8,47 @@
 
 ![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, bursting soap bubbles, then turning its back to us to look at a great snowy peak](media/readme/foxel.gif)
 
-## You have time for a pet now
+*It looks like a GIF. It isn't. GIFs don't get hungry.*
 
-Be honest: half your day is spent watching an agent think. The prompt is sent, the code is writing itself, and you are staring at a spinner.
+## Your agent is coding. You are not.
 
-Foxel is what you do with that time. It is a small animal that lives in a corner of your editor and has to be looked after: fed when it is hungry, played with when it is bored, left alone when it sleeps. It does not fix your bugs, write your tests or close your tickets. It needs you, and that is the whole feature.
+Let's be honest about how software gets made these days. You write a prompt, you press Enter, and then you sit and watch a small spinner do your job. One minute. Three. Long enough to put the kettle on, never quite long enough to drink the tea.
 
-It wakes up when you do. It begs at meal times, with the eyes. It drops its ball at your feet when you have not moved for an hour, which is its way of saying *go outside*. At night it drags its basket in, puts its nightcap on and is asleep before you are.
+Foxel is for that bit.
 
-There is no text in its view. No score, no streak, no notification. If you want to know how it feels, you have to look at it, the way you would with a real one.
+It's a fox, and it lives in a corner of your editor. It needs looking after: feeding when it's hungry, playing with when it's bored, leaving well alone when it's asleep (it sleeps a lot, and it's very good at it). It will not fix your bugs, write your tests or close your tickets. It has no views on your tickets whatsoever. It's interested in you, which is more than your tickets have ever been.
+
+## A pet, not a screensaver
+
+It wakes up when you do, more or less. At meal times it sits by its bowl and looks at you. Just looks. It's devastating. If you haven't moved in an hour, it drops its ball at your feet, which is fox for *go outside, you look dreadful*. At night it drags its basket in, puts on its nightcap and is fast asleep well before you, which makes one of you.
+
+There's no text in its view. No score, no streak, no little red badge making you feel guilty. If you want to know how it's feeling, you'll have to look at it, like you would a real one.
 
 ## It has opinions about your work
 
-- **You commit.** It plants a little flag, as if you had conquered something.
-- **You push.** A bird flies the letter away. No taking it back now.
-- **Your build takes forever.** It turns an hourglass over. When that gets old, it starts stacking pebbles. It has all day. So do you, apparently.
-- **Three failures in a row.** It hides under a cardboard box. Honestly, same.
-- **Errors pile up.** A small rain cloud moves in over its head and stays there until you have fixed them. No pressure.
-- **You debug.** Out comes the magnifying glass. It finds nothing either, but it looks the part.
-- **An AI writes your code** (Claude Code, Copilot, take your pick). It puts its glasses on and supervises. Somebody has to.
+- **You commit.** It plants a little flag. Hillary and Tenzing had Everest; you have `fix typo`. Same flag.
+- **You push.** A bird flies off with the letter. No taking it back now.
+- **Your build takes forever.** It turns an hourglass over. Then again. Then it starts stacking pebbles. It's in no hurry. Neither, evidently, is your build.
+- **Three failures in a row.** It hides in a cardboard box. Relatable.
+- **Errors pile up.** A small personal rain cloud settles over its head and stays until you've fixed them. No pressure.
+- **You debug.** Out comes the magnifying glass. It finds nothing either, but it looks terribly professional.
+- **An AI writes your code** (Claude Code, Copilot, whoever's on shift). It puts its glasses on and supervises. Someone has to.
 
-And once or twice a day, for no reason you gave it, it stops everything, turns its back to you and watches a whole landscape for a long minute. You may want to do the same.
+## Something new every day
 
-## It looks simple. It is not.
+On day one, it's a cute fox that follows your mouse about. Lovely. That's the trailer.
 
-The first day, it is a cute fox that follows your pointer. Give it a week. It has habits you have not seen yet, moods that depend on how you treat it, and moments so rare that most people will miss them. No two days with it are the same, and no two foxes will have lived the same life.
+Give it a week. It has habits you haven't seen yet, moods that depend rather a lot on how you treat it, and moments so rare that most people will miss them altogether. Once or twice a day, for reasons it keeps to itself, it stops what it's doing, turns its back on you and watches a whole sky for a long minute. We'd suggest you join it. The agent can wait. It's an agent.
 
-This is also only the beginning of its story. Foxel is going to grow up. Things will happen to it, good and less good. It will meet others. And one day, if you have looked after it well, or not at all, it might do what animals do and go its own way.
+No two days with it are alike, and no two foxes end up living the same life.
 
-So look after it. Every day, a little.
+## This is only chapter one
+
+Foxel is going to grow up. Things will happen to it, some lovely, some less so. It will have moods, and good days, and the other kind. It will meet others along the way. And one day, if you've looked after it very well (or not at all), it may do what wild things do in the end, and go its own way.
+
+It looks like a little pixel fox. It's actually a story, and you're in it.
+
+So look after it. A little, every day. It notices.
 
 ## Install
 
@@ -56,7 +68,7 @@ Then open the **Foxel** tab in the bottom panel: that is where it has the most r
 - Blow it some bubbles, with the button in the title of its view.
 - Keep it company through a whole day of work, from early morning to late at night.
 
-That is all this page will tell you. It has more habits, games and surprises than fit in a list, some of them only come once in a long while, and finding them is the point.
+That's all this page is going to tell you. It has more habits, games and surprises than would fit on it, some turn up once in a blue moon, and finding them is rather the point.
 
 ![The fox sitting, waving, pawing at the glass, flicking its tail, in love, asleep and gazing away](media/readme/fox.png)
 
