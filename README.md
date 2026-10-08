@@ -6,7 +6,7 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/anca.foxel?color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 
-![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak, then dozing off again](media/readme/foxel.gif)
+<img src="media/readme/foxel.gif" width="100%" alt="The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak while a signpost drops from the sky, then dozing off again">
 
 You used to write code. Now you write a prompt and watch a spinner. Foxel won't give you your career back, but it does give your day a purpose again: a small fox that gets bored, hungry and sleepy, roughly in that order, and has made it your problem.
 
