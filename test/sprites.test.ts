@@ -51,13 +51,15 @@ describe('sprites', () => {
         });
       });
 
-      it('keeps overlays inside the sprite and in the palette', () => {
+      it('keeps overlays within reach of the sprite and in the palette', () => {
+        // An accessory may stand beside the fox, fly in over it or sink into the ground: not wander off.
+        const REACH = 36;
         for (const frame of animation.frames) {
           for (const { x, y, glyph } of frame.overlays) {
-            expect(x).toBeGreaterThanOrEqual(0);
-            expect(y).toBeGreaterThanOrEqual(0);
-            expect(x + glyph[0].length).toBeLessThanOrEqual(SPRITE_SIZE);
-            expect(y + glyph.length).toBeLessThanOrEqual(SPRITE_SIZE);
+            expect(x).toBeGreaterThanOrEqual(-REACH);
+            expect(y).toBeGreaterThanOrEqual(-REACH);
+            expect(x + glyph[0].length).toBeLessThanOrEqual(SPRITE_SIZE + REACH);
+            expect(y + glyph.length).toBeLessThanOrEqual(SPRITE_SIZE + REACH / 2);
             expect(usesPalette(glyph)).toBe(true);
           }
         }
