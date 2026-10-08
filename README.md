@@ -45,7 +45,7 @@ Then open the **Foxel** tab in the bottom panel: that is where it has the most r
 
 The rest is up to you. Some of it only shows up once in a blue moon.
 
-![The fox sitting, waving, pawing at the glass, flicking its tail, in love, asleep and gazing away](media/readme/fox.png)
+![The fox sitting, waving, pawing at the glass, flicking its tail, in love, asleep and gazing away](media/readme/poses.png)
 
 ## Commands
 
