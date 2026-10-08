@@ -47,7 +47,7 @@ const carried = (x: number, y: number, wing: 0 | 1, lead: number, behind?: true)
 
 const WATCH = { ...SIT, eye: 'up', mouth: 'flat' } as const;
 // Neck stretched, the letter held up for the bird.
-const OFFER = { ...SIT, head: [0, -1], snoutUp: 1, mouth: 'flat' } as const;
+const OFFER = { ...SIT, head: [0, -1], snoutUp: 1, eye: 'up', mouth: 'flat' } as const;
 const GONE = { ...SIT, eye: 'up', mouth: 'open' } as const;
 
 export const letterAnims = {
@@ -81,13 +81,13 @@ export const letterAnims = {
     [{ ...OFFER, head: [0, 0], eye: 'happy', tail: 'sitB', props: carried(26, 13, 0, 5, true) }, 130],
     // Off it goes with the letter swinging under it, slowly then faster, up and out of sight.
     [{ ...OFFER, mouth: 'open', tail: 'sitB', props: carried(28, 11, 1, 3, true) }, 100],
-    [{ ...GONE, snoutUp: 1, tail: 'sitA', props: carried(30, 9, 0, 2) }, 90],
-    [{ ...GONE, snoutUp: 1, head: [0, -1], tail: 'sitA', props: carried(33, 5, 1, 1) }, 80],
-    [{ ...GONE, snoutUp: 1, head: [0, -1], tail: 'sitB', props: carried(36, -1, 0, 0) }, 70],
-    [{ ...GONE, snoutUp: 1, paw: 'wave1', tail: 'sitB', props: carried(39, -8, 1, 1) }, 70],
-    [{ ...GONE, snoutUp: 1, paw: 'wave1', tail: 'sitA', props: carried(41, -16, 0, 2) }, 60],
-    [{ ...GONE, snoutUp: 1, paw: 'wave2', tail: 'sitA', props: carried(43, -24, 1, 1) }, 60],
-    [{ ...GONE, snoutUp: 1, paw: 'wave2', tail: 'sitB', props: carried(44, -31, 0, 2) }, 60],
+    [{ ...GONE, tail: 'sitA', props: carried(30, 9, 0, 2) }, 90],
+    [{ ...GONE, head: [0, -1], tail: 'sitA', props: carried(33, 5, 1, 1) }, 80],
+    [{ ...GONE, head: [0, -1], tail: 'sitB', props: carried(36, -1, 0, 0) }, 70],
+    [{ ...GONE, paw: 'wave1', tail: 'sitB', props: carried(39, -8, 1, 1) }, 70],
+    [{ ...GONE, paw: 'wave1', tail: 'sitA', props: carried(41, -16, 0, 2) }, 60],
+    [{ ...GONE, paw: 'wave2', tail: 'sitA', props: carried(43, -24, 1, 1) }, 60],
+    [{ ...GONE, paw: 'wave2', tail: 'sitB', props: carried(44, -31, 0, 2) }, 60],
     // It waves it goodbye.
     [{ ...SIT, paw: 'wave1', eye: 'happy', mouth: 'open', snoutUp: 1, tail: 'sitB' }, 170],
     [{ ...SIT, paw: 'wave2', eye: 'happy', mouth: 'open', tail: 'sitA' }, 190],

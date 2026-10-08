@@ -68,19 +68,7 @@ const LOW_B: Pose = { head: [3, 6], pitch: 2, eye: 'down', mouth: 'flat' };
 const HALF: Pose = { head: [1, 3], pitch: 1, mouth: 'flat' };
 
 const POINT: Pose = { pitch: 1, head: [3, 3], tail: 'streamB', legs: [[-2, 0], [-1, 0], [0, 0], [3, 4]], mouth: 'flat', eye: 'wide' };
-const TEST = anim([
-  [holding({ head: [-1, 0], tilt: 0.25, mouth: 'flat' }, 'fwd', { slide: [1, -2] }), 100],
-  [holding({ head: [-1, 1], tilt: 0.4, mouth: 'flat' }, 'fwd', { slide: [1, -3] }), 100],
-  [holding({ head: [-1, 0], tilt: -0.25, mouth: 'flat' }, 'fwd', { slide: [-1, 2] }), 100],
-  [holding({ head: [0, 0], snoutUp: 1, mouth: 'flat' }, 'fwd', { slide: [0, -1] }), 100],
-  [holding({ head: [1, 2], eye: 'wide', mouth: 'flat' }, 'up'), 100],
-  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'streamA', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
-  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'flat', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
-  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'streamA', ears: 'back', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
-]);
-
 export const detectiveAnims = {
-  zzTest: TEST,
   // A case! It nods, whips the glass out from behind its ear and shows it off, then gets down to it.
   detectiveIn: anim([
     [{}, 120],
