@@ -1,6 +1,6 @@
 # Foxel
 
-**A pixel-art fox cub moves into your VS Code. It gets hungry, it gets sleepy, and it has opinions about your code.**
+**A little fox moves into your VS Code. It gets hungry, it gets sleepy, and it needs someone. That would be you.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
@@ -8,13 +8,15 @@
 
 ![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, bursting soap bubbles, then turning its back to us to look at a great snowy peak](media/readme/foxel.gif)
 
-## It will not make you more productive
+## You have time for a pet now
 
-Foxel does not fix your bugs, write your tests or close your tickets. It sits in a corner of your editor and needs you. That is the whole feature.
+Be honest: half your day is spent watching an agent think. The prompt is sent, the code is writing itself, and you are staring at a spinner.
 
-It wakes up when you do. It begs at meal times, with the eyes. It drops its ball at your feet when you have been staring at the same function for an hour, which is its way of saying *go outside*. At night it drags its basket in, puts its nightcap on and is asleep before you are.
+Foxel is what you do with that time. It is a small animal that lives in a corner of your editor and has to be looked after: fed when it is hungry, played with when it is bored, left alone when it sleeps. It does not fix your bugs, write your tests or close your tickets. It needs you, and that is the whole feature.
 
-There is no text in its view. No score, no streak, no notification. If you want to know how it feels, look at it. It is a tamagotchi, not a dashboard.
+It wakes up when you do. It begs at meal times, with the eyes. It drops its ball at your feet when you have not moved for an hour, which is its way of saying *go outside*. At night it drags its basket in, puts its nightcap on and is asleep before you are.
+
+There is no text in its view. No score, no streak, no notification. If you want to know how it feels, you have to look at it, the way you would with a real one.
 
 ## It has opinions about your work
 
@@ -27,6 +29,14 @@ There is no text in its view. No score, no streak, no notification. If you want 
 - **An AI writes your code** (Claude Code, Copilot, take your pick). It puts its glasses on and supervises. Somebody has to.
 
 And once or twice a day, for no reason you gave it, it stops everything, turns its back to you and watches a whole landscape for a long minute. You may want to do the same.
+
+## It looks simple. It is not.
+
+The first day, it is a cute fox that follows your pointer. Give it a week. It has habits you have not seen yet, moods that depend on how you treat it, and moments so rare that most people will miss them. No two days with it are the same, and no two foxes will have lived the same life.
+
+This is also only the beginning of its story. Foxel is going to grow up. Things will happen to it, good and less good. It will meet others. And one day, if you have looked after it well, or not at all, it might do what animals do and go its own way.
+
+So look after it. Every day, a little.
 
 ## Install
 

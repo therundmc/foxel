@@ -1,7 +1,7 @@
 {
   "name": "foxel",
   "displayName": "Foxel",
-  "description": "A pixel-art fox cub that lives in your VS Code. It gets hungry, sleepy and needs you, and it watches your work, even when an AI assistant does it.",
+  "description": "A little fox to look after while your AI agent writes the code. It gets hungry, sleepy and needs you. Cute, and deeper than it looks.",
   "version": "1.2.2",
   "publisher": "anca",
   "author": "anca",
@@ -23,7 +23,8 @@
   "keywords": [
     "pet",
     "virtual pet",
-    "tamagotchi",
+    "digital pet",
+    "desktop pet",
     "companion",
     "fox",
     "pixel art",
