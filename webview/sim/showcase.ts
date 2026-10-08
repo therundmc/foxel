@@ -1,4 +1,4 @@
-import type { Scene } from '../../shared/protocol';
+import type { Reaction, Scene } from '../../shared/protocol';
 import { SPRITE_SIZE } from '../sprites/frames';
 import type { Buddy } from './buddy';
 import { startContemplate } from './features/contemplate';
@@ -130,6 +130,9 @@ interface Script {
   cues: readonly (readonly [number, (b: Buddy) => void])[];
 }
 
+/** A piece of news about your work, told to the fox as the editor would. */
+const news = (reaction: Reaction) => (b: Buddy): void => react(b, reaction);
+
 const SCRIPTS: Record<Scene, Script> = {
   sunrise: { hour: 6.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunrise')]] },
   morning: { hour: 7.5, ms: 6000, cues: [[0, (b) => act(b, 'morning')]] },
@@ -147,6 +150,16 @@ const SCRIPTS: Record<Scene, Script> = {
   bird: { hour: 18.5, ms: 17_000, cues: [[0, landBird], [3200, (b) => startHunt(b, 'bird')]] },
   bubbles: { hour: 17, ms: 26_000, cues: [[0, blowBubbles], [2500, blowBubbles]] },
   mouse: { hour: 18.75, ms: 18_000, cues: [[0, (b) => act(b, 'mouse')]] },
+  // Your work beyond typing, as the editor would report it.
+  commit: { hour: 10, ms: 4000, cues: [[0, news('commit')]] },
+  push: { hour: 10.1, ms: 5000, cues: [[0, news('push')]] },
+  conflict: { hour: 10.2, ms: 13_000, cues: [[0, news('conflict')], [9000, news('resolved')]] },
+  failing: { hour: 10.3, ms: 24_000, cues: [[0, news('failed')], [4000, news('failed')], [8000, news('failed')], [17_000, news('done')]] },
+  build: { hour: 10.4, ms: 68_000, cues: [[0, news('waiting')], [60_000, news('done')]] },
+  errors: { hour: 10.5, ms: 30_000, cues: [[0, news('worry')], [12_000, news('overwhelmed')], [24_000, news('atEase')]] },
+  debugging: { hour: 10.6, ms: 17_000, cues: [[0, news('debugging')], [6000, news('paused')], [10_000, news('resumed')], [14_000, news('debugDone')]] },
+  zone: { hour: 10.7, ms: 9000, cues: [[0, news('focused')], [6000, news('unfocused')]] },
+  lantern: { hour: 23.2, ms: 45_000, cues: [[0, (b) => b.enterNext('lantern')]] },
   sunset: { hour: 19.6, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'sunset')]] },
   typing: {
     hour: 22.5,

@@ -1,56 +1,269 @@
+import { ANIMATIONS, type AnimName } from '../../sprites/fox/animations';
+import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Feature } from '../state';
 import { REACTION_MS } from './reactions';
 import { asleep } from './rest';
 
-/** It watches what is running for this long, then nods off; and after this long it gives up waiting. */
-const WATCHES_MS = 60_000;
-const WAIT_MAX_MS = 10 * 60_000;
-/** While something worries it, it frets every so often, for a moment. */
-const FRET_GAP_MS = [25_000, 45_000] as const;
-const FRET_MS = 2000;
+/** What it is doing about your work, as far as ending it properly goes: each has its accessory to put away. */
+type Scene = 'wait' | 'tower' | 'box' | 'cloud' | 'yarn' | 'debug' | 'point' | 'zone' | 'lantern';
+
+/** One animation of a little script: played once, or over and over for a while when it is a loop. */
+interface Step {
+  readonly anim: AnimName;
+  /** A loop: for how long at most. */
+  readonly forMs?: number;
+  /** A little jump while it plays: when it leaves the ground, for how long, how high. */
+  readonly hop?: { readonly at: number; readonly air: number; readonly height: number };
+  readonly scene?: Scene;
+}
+
+const once = (anim: AnimName, scene?: Scene): Step => ({ anim, scene });
+const loop = (anim: AnimName, forMs: number, scene: Scene): Step => ({ anim, forMs, scene });
+
+const MINUTE = 60_000;
+/** It watches the hourglass for this long before it starts on a tower of pebbles, and waits this long in all. */
+const HOURGLASS_MS = 40_000;
+const WAIT_MAX_MS = 10 * MINUTE;
+/** After this many failures in a row it hides under its box, for this long at most. */
+const HIDES_AFTER = 3;
+const HIDES_MS = 40_000;
+/** How long it stays tangled, investigates, points or keeps its headband on if nothing tells it to stop. */
+const LASTS_MS = 10 * MINUTE;
+/** Under its cloud for this long, then the cloud drifts off; it is back after a pause while errors remain. */
+const CLOUD_MS = 14_000;
+const CLOUD_GAP_MS = [30_000, 60_000] as const;
+const LANTERN_MS = [20_000, 40_000] as const;
+const TADA: Step = { anim: 'tada', hop: { at: 250, air: 400, height: 5 } };
+
+/** How each scene is brought to a close when something else comes up: the accessory goes away, it does not vanish. */
+const CLOSING: Record<Scene, readonly Step[]> = {
+  wait: [once('hourglassOut')],
+  tower: [once('towerDone')],
+  box: [once('boxLeave')],
+  cloud: [once('cloudOut')],
+  yarn: [once('untangle')],
+  debug: [once('detectiveOut')],
+  point: [],
+  zone: [once('zoneOut')],
+  lantern: [once('lanternOut')],
+};
 
 export class WorkMemory {
-  /** Errors or conflicts remain: it cannot quite settle. */
+  /** Errors or conflicts remain: it cannot quite settle. A great many, and its cloud is a heavy one. */
   worried = false;
-  /** Time left before it frets again. */
-  fretInMs: number = FRET_GAP_MS[0];
+  heavy = false;
+  /** A merge is in conflict: it is the yarn it is caught in, not a cloud. */
+  conflict = false;
+  debugging = false;
+  /** Time left before its cloud comes back. */
+  cloudInMs = 0;
+  /** Failures in a row. */
+  failures = 0;
+  /** What it is playing: the steps, which one, and for how long. */
+  steps: readonly Step[] = [];
+  at = 0;
+  stepMs = 0;
 }
 
-/** Something of yours has been running for a while: it sits down and waits for it with you. */
-export function startWaiting(b: Buddy): void {
-  if (!asleep(b)) {
-    b.tryEnter('waiting', WAIT_MAX_MS);
+const lengthOf = (step: Step): number => {
+  const one = totalDuration(ANIMATIONS[step.anim]);
+  return step.forMs === undefined ? one : Math.ceil(step.forMs / one) * one;
+};
+
+/** The scene it is in the middle of, if any. */
+const sceneOf = (b: Buddy): Scene | undefined => (b.state === 'acting' ? b.work.steps[b.work.at]?.scene : undefined);
+
+/** Plays these steps from now on, dropping what it was playing. */
+function play(b: Buddy, steps: readonly Step[]): void {
+  if (steps.length === 0) {
+    if (b.state === 'acting') {
+      b.enterNext(b.pickNext());
+    }
+    return;
+  }
+  const m = b.work;
+  m.steps = steps;
+  m.at = 0;
+  m.stepMs = 0;
+  if (b.state !== 'acting') {
+    b.tryEnter('acting', Infinity);
   }
 }
 
-/** What it was waiting for is over, however it went. */
-export function stopWaiting(b: Buddy): void {
-  if (b.state === 'waiting') {
-    b.enterNext('sit');
+/** Does this next: whatever scene it was in is closed first, properly. Asleep, it does nothing. */
+function then(b: Buddy, steps: readonly Step[], closing?: readonly Step[]): void {
+  if (asleep(b)) {
+    return;
+  }
+  const scene = sceneOf(b);
+  play(b, [...(closing ?? (scene ? CLOSING[scene] : [])), ...steps]);
+}
+
+const underCloud = (b: Buddy): readonly Step[] => [once('cloudIn', 'cloud'), loop(b.work.heavy ? 'cloudHeavy' : 'cloudy', CLOUD_MS, 'cloud'), once('cloudOut')];
+const investigating: readonly Step[] = [once('detectiveIn', 'debug'), loop('detective', LASTS_MS, 'debug'), once('detectiveOut')];
+
+/** At night, now and then, it sets a little lantern down and sits by it for a while. */
+function startLantern(b: Buddy): void {
+  play(b, [once('lanternIn', 'lantern'), loop('lantern', b.between(LANTERN_MS[0], LANTERN_MS[1]), 'lantern'), once('lanternOut')]);
+}
+
+/** What each piece of news about your work does to it. */
+export const WORK = {
+  commit(b: Buddy): void {
+    b.work.failures = 0;
+    then(b, [once('plantFlag')]);
+  },
+  push: (b: Buddy): void => then(b, [once('sendLetter')]),
+  conflict(b: Buddy): void {
+    b.work.conflict = true;
+    then(b, [once('tangleIn', 'yarn'), loop('tangled', LASTS_MS, 'yarn'), once('untangle')]);
+  },
+  resolved(b: Buddy): void {
+    b.work.conflict = false;
+    if (sceneOf(b) === 'yarn') {
+      play(b, [once('untangle')]);
+    } else if (!asleep(b)) {
+      b.tryEnter('happy', REACTION_MS.happy);
+    }
+  },
+  failed(b: Buddy): void {
+    const m = b.work;
+    m.failures++;
+    if (sceneOf(b) === 'tower') {
+      // The tower it built while waiting comes down with the build.
+      play(b, [once('towerFalls')]);
+    } else if (m.failures >= HIDES_AFTER) {
+      then(b, [once('boxHide', 'box'), loop('boxPeek', HIDES_MS, 'box'), once('boxLeave')]);
+    } else {
+      then(b, [once('flinch')]);
+    }
+  },
+  done(b: Buddy): void {
+    b.work.failures = 0;
+    then(b, [TADA]);
+  },
+  stopped(b: Buddy): void {
+    const scene = sceneOf(b);
+    if (scene === 'wait' || scene === 'tower') {
+      play(b, CLOSING[scene]);
+    }
+  },
+  waiting(b: Buddy): void {
+    then(b, [
+      once('hourglassIn', 'wait'),
+      loop('hourglassWait', HOURGLASS_MS, 'wait'),
+      once('hourglassOut'),
+      once('stackPebbles', 'tower'),
+      loop('towerAdmire', WAIT_MAX_MS, 'tower'),
+      once('towerDone'),
+    ]);
+  },
+  worry(b: Buddy): void {
+    b.work.worried = true;
+    b.work.heavy = false;
+  },
+  overwhelmed(b: Buddy): void {
+    b.work.worried = true;
+    b.work.heavy = true;
+  },
+  atEase(b: Buddy): void {
+    b.work.worried = false;
+    b.work.heavy = false;
+    if (sceneOf(b) === 'cloud') {
+      play(b, [once('cloudClears')]);
+    } else if (!asleep(b)) {
+      b.tryEnter('happy', REACTION_MS.happy);
+    }
+  },
+  progress(b: Buddy): void {
+    if (b.def.calm) {
+      play(b, [once('encouraged')]);
+    }
+  },
+  debugging(b: Buddy): void {
+    b.work.debugging = true;
+    then(b, investigating);
+  },
+  paused: (b: Buddy): void => then(b, [loop('pointing', LASTS_MS, 'point')], sceneOf(b) === 'debug' ? [] : undefined),
+  resumed(b: Buddy): void {
+    if (sceneOf(b) === 'point') {
+      play(b, b.work.debugging ? investigating : []);
+    }
+  },
+  debugDone(b: Buddy): void {
+    b.work.debugging = false;
+    const scene = sceneOf(b);
+    if (scene === 'debug' || scene === 'point') {
+      play(b, CLOSING[scene]);
+    }
+  },
+  focused(b: Buddy): void {
+    if (b.def.calm) {
+      play(b, [once('zoneIn', 'zone'), loop('inTheZone', LASTS_MS, 'zone'), once('zoneOut')]);
+    }
+  },
+  unfocused(b: Buddy): void {
+    if (sceneOf(b) === 'zone') {
+      play(b, CLOSING.zone);
+    }
+  },
+};
+
+function updateActing(b: Buddy, dt: number, dtMs: number): void {
+  const m = b.work;
+  let step = m.steps[m.at];
+  m.stepMs += dtMs;
+  if (step && m.stepMs >= lengthOf(step)) {
+    m.at++;
+    m.stepMs = 0;
+    step = m.steps[m.at];
+  }
+  if (!step) {
+    b.y = 0;
+    b.enterNext(b.pickNext());
+    return;
+  }
+  const hop = step.hop;
+  const p = hop ? (m.stepMs - hop.at) / hop.air : -1;
+  if (hop && p > 0 && p < 1) {
+    b.y = 4 * Math.min(hop.height, Math.max(0, b.maxY)) * p * (1 - p);
+  } else {
+    b.fall(dt);
   }
 }
 
-// Your work beyond typing: it waits with you for what takes long, and frets while something is wrong.
+// Your work beyond typing: it marks your commits, waits with you for what takes long, hides when things keep
+// failing, frets under a cloud of its own while errors remain, and investigates with you when you debug.
 export const workFeature = {
   states: {
-    waiting: {
-      priority: 1,
-      restful: true,
-      gazes: true,
-      next: [['lie', 60], ['sit', 40]],
-      anim: (b) => ({ anim: b.elapsed < WATCHES_MS ? 'watch' : 'doze', elapsed: b.elapsed }),
+    acting: {
+      priority: 3,
+      free: true,
+      next: [['sit', 60], ['idle', 40]],
+      update: updateActing,
+      anim(b) {
+        const step = b.work.steps[b.work.at] ?? b.work.steps[b.work.steps.length - 1];
+        return { anim: step?.anim ?? 'sit', elapsed: b.work.stepMs };
+      },
+    },
+    lantern: {
+      // Not straight after another scene: it has just put one accessory away.
+      available: (b) => b.world.phase === 'night' && b.state !== 'acting',
+      begin: startLantern,
+      anim: (b) => ({ anim: 'lantern', elapsed: b.elapsed }),
     },
   },
   tick(b, dtMs) {
     const m = b.work;
-    if (!m.worried || !b.def.calm) {
+    // While errors remain, and no yarn has it already, its cloud comes back every so often.
+    if (!m.worried || m.conflict || !b.def.calm) {
       return;
     }
-    m.fretInMs -= dtMs;
-    if (m.fretInMs <= 0) {
-      m.fretInMs = b.between(FRET_GAP_MS[0], FRET_GAP_MS[1]);
-      b.tryEnter('sad', Math.min(FRET_MS, REACTION_MS.sad));
+    m.cloudInMs -= dtMs;
+    if (m.cloudInMs <= 0) {
+      m.cloudInMs = CLOUD_MS + b.between(CLOUD_GAP_MS[0], CLOUD_GAP_MS[1]);
+      play(b, underCloud(b));
     }
   },
 } satisfies Feature;

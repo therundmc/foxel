@@ -36,6 +36,15 @@ const SCENE_LABELS: Record<Scene, string> = {
   mouse: 'Mouse hunt in the tall grass',
   bird: 'A bird lands, it pounces and misses',
   bubbles: 'Soap bubbles to jump at and burst',
+  commit: 'A commit: it plants a flag',
+  push: 'A push: a bird takes the letter',
+  conflict: 'A merge conflict: tangled in yarn, then free',
+  failing: 'Commands that keep failing: a flinch, then under the box',
+  build: 'A long build: the hourglass, then a tower of pebbles',
+  errors: 'Errors that remain: its own rain cloud',
+  debugging: 'Debugging: the detective, and a breakpoint',
+  zone: 'A long stretch of typing: the headband',
+  lantern: 'Working late: the lantern',
   typing: 'Sleepy typing',
   drowsy: 'Drowsy',
   stargaze: 'Contemplating the stars',
@@ -72,22 +81,20 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.executeCommand('setContext', 'foxel.debug', readConfig().debug);
   void setDebugContext();
 
-  // What it frets about for as long as it lasts: errors in your files, a merge that conflicts.
-  const troubles = new Set<string>();
-  const trouble = (what: string) => (there: boolean): void => {
-    const fretting = troubles.size > 0;
-    if (there) {
-      troubles.add(what);
-    } else {
-      troubles.delete(what);
-    }
-    if (troubles.size > 0 !== fretting) {
-      react(troubles.size > 0 ? 'worry' : 'atEase');
+  // What it frets about for as long as it lasts: errors in your files (some, or a great many), a merge that conflicts.
+  const MOODS = ['atEase', 'worry', 'overwhelmed'] as const;
+  const troubles = { errors: 0, conflicts: 0 };
+  const mood = (): Reaction => MOODS[Math.max(troubles.errors, troubles.conflicts)];
+  const trouble = (what: keyof typeof troubles) => (level: number): void => {
+    const before = mood();
+    troubles[what] = level;
+    if (mood() !== before) {
+      react(mood());
     }
   };
 
   const watcher = new ActivityWatcher(react, readConfig, clock, trouble('errors'));
-  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), trouble('conflicts'));
+  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0));
   void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
@@ -103,8 +110,8 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     routine.viewReady();
     // A view that has just opened does not know what the fox is fretting about.
-    if (troubles.size > 0) {
-      provider.post({ type: 'reaction', reaction: 'worry' });
+    if (mood() !== 'atEase') {
+      provider.post({ type: 'reaction', reaction: mood() });
     }
   };
   const onMessage = (msg: WebviewMessage, provider: BuddyHost): void => {

@@ -26,7 +26,7 @@ const editor = vi.hoisted(() => {
         onDidChangeActiveTextEditor: on('editor'),
         onDidChangeWindowState: on('window'),
       },
-      debug: { onDidStartDebugSession: on('debug') },
+      debug: { onDidStartDebugSession: on('debug'), onDidTerminateDebugSession: on('debugEnd'), onDidChangeActiveStackItem: on('stack') },
       languages: {
         onDidChangeDiagnostics: on('diagnostics'),
         getDiagnostics: () => [['file', Array.from({ length: state.errors }, () => ({ severity: 0 }))]],
@@ -86,37 +86,56 @@ describe('ActivityWatcher', () => {
     expect(reactions).toHaveLength(2);
   });
 
-  it('panics at new errors, not at each one, and is happy once they are all fixed', () => {
+  it('does not take fright at errors any more, and keeps quiet about them when asked to', () => {
     errors(1);
     errors(3);
-    expect(reactions).toEqual(['panic']);
-    errors(2);
-    errors(0);
-    expect(reactions).toEqual(['panic', 'happy']);
+    expect(reactions).toEqual([]);
     config.reactToErrors = false;
-    errors(4);
-    expect(reactions).toHaveLength(2);
+    errors(2);
+    expect(reactions).toEqual([]);
   });
 
-  it('reacts to debugging and switching files', () => {
-    editor.fire('debug');
+  it('notices when you switch files', () => {
     editor.fire('editor', {});
     editor.fire('editor', undefined);
-    expect(reactions).toEqual(['alert', 'notice']);
+    expect(reactions).toEqual(['notice']);
   });
 
-  it('says for how long errors remain, not only when they appear', () => {
-    const troubled: boolean[] = [];
+  it('says how many errors remain, for as long as they do, and when you are getting there', () => {
+    const troubled: number[] = [];
     const errors = (count: number): void => {
       editor.state.errors = count;
       editor.fire('diagnostics');
     };
     watcher.dispose();
-    watcher = new ActivityWatcher((r) => reactions.push(r), () => config, () => new Date(), (there) => troubled.push(there));
+    watcher = new ActivityWatcher((r) => reactions.push(r), () => config, () => new Date(), (level) => troubled.push(level));
     errors(2);
+    errors(9);
     errors(1);
     errors(0);
-    expect(troubled).toEqual([false, true, true, false]);
+    expect(troubled).toEqual([0, 1, 2, 1, 0]);
+    // Fewer than a moment ago, but not none yet.
+    expect(reactions).toEqual(['progress']);
+  });
+
+  it('says when you debug, when the debugger stops on a line, and when you are done', () => {
+    editor.fire('debug');
+    editor.fire('stack', {});
+    editor.fire('stack', undefined);
+    editor.fire('debugEnd');
+    expect(reactions).toEqual(['debugging', 'paused', 'resumed', 'debugDone']);
+  });
+
+  it('notices a long stretch of typing without a pause, and when it ends', () => {
+    const type = (): void => editor.fire('edit', { contentChanges: [{}], document: editor.doc });
+    for (let s = 0; s < 4 * 60; s += 5) {
+      type();
+      vi.advanceTimersByTime(5 * SECOND);
+    }
+    expect(reactions.filter((r) => r === 'focused')).toHaveLength(1);
+    expect(reactions).not.toContain('unfocused');
+    vi.advanceTimersByTime(40 * SECOND);
+    expect(reactions.filter((r) => r === 'unfocused')).toHaveLength(1);
   });
 
   it('falls asleep when nothing happens and wakes up at the first sign of life', () => {

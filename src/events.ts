@@ -9,10 +9,16 @@ const WELCOME_BACK_AFTER_MS = 60_000;
 // A pause at least this long counts as a real break.
 const BREAK_GAP_MS = 5 * 60_000;
 const NIGHT_SLEEP_FACTOR = 0.5;
+/** This many errors or more is a great many. */
+const MANY_ERRORS = 8;
+/** Typing with no pause longer than the first, for as long as the second, is being in the zone; it ends after a pause as long as the third. */
+const STREAK_GAP_MS = 15_000;
+const FOCUSED_AFTER_MS = 3 * 60_000;
+const UNFOCUSED_AFTER_MS = 30_000;
 
 // Keeps frequent editor events from making the companion twitchy.
 const COOLDOWN_MS: Partial<Record<Reaction, number>> = {
-  panic: 15_000,
+  progress: 20_000,
   notice: 6000,
   celebrate: 3000,
   alert: 4000,
@@ -28,6 +34,9 @@ export class ActivityWatcher implements vscode.Disposable {
   private lastActivity = Date.now();
   private lastWork = Date.now();
   private lastTyping = 0;
+  private lastKey = 0;
+  private streakSince = 0;
+  private focused = false;
   private lastBlur = 0;
   private errorCount = countErrors();
   private readonly lastEmitted = new Map<Reaction, number>();
@@ -38,17 +47,22 @@ export class ActivityWatcher implements vscode.Disposable {
     private readonly react: (reaction: Reaction) => void,
     private readonly config: () => BuddyConfig,
     private readonly clock: () => Date,
-    /** Errors remain in your files, or none do any more. */
-    private readonly troubled: (errors: boolean) => void = () => undefined,
+    /** How many errors remain in your files: none (0), some (1) or a great many (2). */
+    private readonly troubled: (errors: 0 | 1 | 2) => void = () => undefined,
   ) {
-    this.troubled(this.config().reactToErrors && this.errorCount > 0);
+    this.troubled(this.trouble());
+    // Newer editors say when the debugger stops on a line and when it goes on.
+    const debug = vscode.debug as typeof vscode.debug & { onDidChangeActiveStackItem?: vscode.Event<unknown> };
+    const stops = debug.onDidChangeActiveStackItem?.((item) => this.activity(item ? 'paused' : 'resumed'));
     this.disposables = [
+      ...(stops ? [stops] : []),
       vscode.workspace.onWillSaveTextDocument((e) => this.onSave(e)),
       vscode.workspace.onDidChangeTextDocument((e) => this.onEdit(e)),
       vscode.window.onDidChangeTextEditorSelection(() => this.touch()),
       vscode.window.onDidChangeActiveTextEditor((editor) => this.onEditorSwitch(editor)),
       vscode.window.onDidChangeWindowState((s) => this.onWindowState(s)),
-      vscode.debug.onDidStartDebugSession(() => this.activity('alert')),
+      vscode.debug.onDidStartDebugSession(() => this.activity('debugging')),
+      vscode.debug.onDidTerminateDebugSession(() => this.activity('debugDone')),
       vscode.languages.onDidChangeDiagnostics(() => this.onDiagnostics()),
     ];
     this.timer = setInterval(() => this.checkSleep(), SLEEP_CHECK_MS);
@@ -88,23 +102,37 @@ export class ActivityWatcher implements vscode.Disposable {
     }
     this.touch();
     const now = Date.now();
-    if (this.config().reactToTyping && now - this.lastTyping >= TYPING_THROTTLE_MS) {
+    if (now - this.lastKey > STREAK_GAP_MS) {
+      this.streakSince = now;
+    }
+    this.lastKey = now;
+    if (!this.config().reactToTyping) {
+      return;
+    }
+    if (!this.focused && now - this.streakSince >= FOCUSED_AFTER_MS) {
+      this.focused = true;
+      this.react('focused');
+    }
+    if (now - this.lastTyping >= TYPING_THROTTLE_MS) {
       this.lastTyping = now;
       this.react('typing');
     }
   }
 
+  private trouble(): 0 | 1 | 2 {
+    if (!this.config().reactToErrors || this.errorCount === 0) {
+      return 0;
+    }
+    return this.errorCount >= MANY_ERRORS ? 2 : 1;
+  }
+
   private onDiagnostics(): void {
     const previous = this.errorCount;
     this.errorCount = countErrors();
-    this.troubled(this.config().reactToErrors && this.errorCount > 0);
-    if (!this.config().reactToErrors) {
-      return;
-    }
-    if (this.errorCount > previous) {
-      this.activity('panic');
-    } else if (this.errorCount === 0 && previous > 0) {
-      this.activity('happy');
+    // Errors are a mood that lasts, not a fright: what it does about them is up to how many remain.
+    this.troubled(this.trouble());
+    if (this.config().reactToErrors && this.errorCount < previous && this.errorCount > 0) {
+      this.activity('progress');
     }
   }
 
@@ -170,6 +198,10 @@ export class ActivityWatcher implements vscode.Disposable {
     if (!this.asleep && idleMs >= sleepAfterMs) {
       this.asleep = true;
       this.react('sleep');
+    }
+    if (this.focused && Date.now() - this.lastKey >= UNFOCUSED_AFTER_MS) {
+      this.focused = false;
+      this.react('unfocused');
     }
   }
 }

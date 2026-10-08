@@ -26,6 +26,7 @@ Every feature is judged against these three, before any technical consideration:
 | `shared/day.ts` | Pure time-of-day logic (phases, meals, light, party days) |
 | `src/extension.ts` | Composition root: commands, providers, config changes; keeps the fox's memory between views |
 | `src/events.ts` | Editor events → `Reaction`s, with cooldowns; idle and work tracking |
+| `src/work.ts` | Work beyond typing → `Reaction`s: Git, terminal commands and tasks, what takes long |
 | `src/routine.ts` | Timed needs: meals, break and drink reminders |
 | `src/config.ts` | Reading settings; `SENT` lists those forwarded to the view |
 | `webview/main.ts` | Wiring: loop, clock, host messages |
@@ -41,7 +42,7 @@ Every feature is judged against these three, before any technical consideration:
 | `webview/sim/props/` | Ball, bubbles, butterfly, bird, treat, bowl, basket, grass, mouse, scenery: physics only |
 | `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
-| `webview/sprites/fox/` | The fox: `animations.ts` (table), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
+| `webview/sprites/fox/` | The fox: `animations.ts` (table), `anims/` (the animations about your work, one file per group, each with its accessories), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |
 | `webview/sprites/` | `palette.ts`, `frames.ts` (types, `frameAt`), `props.ts` (glyphs), `grid.ts` (pixel drawing) |
 | `test/sim/<feature>.test.ts` | Simulation tests; `helpers.ts` has `spawn`, `fixed`, `simulate` |
 | `test/host/` | Host tests, with fake timers and a fake `vscode` |
@@ -51,7 +52,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New state**: add its name to `BuddyState` (`sim/state.ts`), then its `StateDef` to the `states` of a feature file. The compiler asks for the definition, and for `anim` when the name is not an animation. Make it reachable: a `next` weight, a reaction handler, an urge or a command.
 - **New feature file**: export `xFeature` (and `XMemory` if it remembers things), add it to `FEATURES` and `STATES` in `registry.ts`, and the memory as a field of `Buddy`.
 - **New reaction to the editor**: add it to `Reaction` (`shared/protocol.ts`); the compiler asks for its handler in `features/reactions.ts`. Emit it from `src/events.ts` or `src/routine.ts`.
-- **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry.
+- **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry. An accessory is a `props` entry of a pose: a glyph placed from the corner of the sprite, which may turn round with the fox (`mirrors`) or go behind it (`behind`). It has to arrive and leave, never pop.
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
 - **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameMemory` and `recall` in `sim/memory.ts`. The host needs no change.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Add it to the settings table of the README.

@@ -3,7 +3,7 @@ import type { Buddy } from '../buddy';
 import type { Feature } from '../state';
 import { startDrink, startHungry } from './meals';
 import { goToSleep, startBreak, wakeUp } from './rest';
-import { startWaiting, stopWaiting } from './work';
+import { WORK } from './work';
 
 type TimedReaction = 'alert' | 'wave' | 'love' | 'happy' | 'celebrate' | 'sad' | 'panic';
 
@@ -65,27 +65,8 @@ const HANDLERS: Record<Reaction, (b: Buddy) => void> = {
       b.tryEnter('alert', NOTICE_MS);
     }
   },
-  // Your work beyond typing. A commit is cheered, a push waved off, a conflict is a fright and its end a relief.
-  commit: timed('celebrate'),
-  push: timed('wave'),
-  conflict: timed('panic'),
-  resolved: timed('happy'),
-  failed(b) {
-    stopWaiting(b);
-    b.tryEnter('sad', REACTION_MS.sad);
-  },
-  done(b) {
-    stopWaiting(b);
-    b.tryEnter('celebrate', REACTION_MS.celebrate);
-  },
-  stopped: stopWaiting,
-  waiting: startWaiting,
-  worry(b) {
-    b.work.worried = true;
-  },
-  atEase(b) {
-    b.work.worried = false;
-  },
+  // Your work beyond typing has a feature of its own.
+  ...WORK,
   alert: timed('alert'),
   wave: timed('wave'),
   love: timed('love'),

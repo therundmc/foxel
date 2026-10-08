@@ -26,9 +26,20 @@ export type Reaction =
   | 'stopped'
   /** Something has been running for a while: it sits down to wait for it. */
   | 'waiting'
-  /** Errors or conflicts remain, and it frets about them; then none are left. Moods, not moments. */
+  /** Errors or conflicts remain, a few or a great many, and it frets about them; then none are left. Moods, not moments. */
   | 'worry'
-  | 'atEase';
+  | 'overwhelmed'
+  | 'atEase'
+  /** Fewer errors than a moment ago: you are getting there. */
+  | 'progress'
+  /** A debugging session starts and ends; in between, it stops on a breakpoint and goes on. */
+  | 'debugging'
+  | 'paused'
+  | 'resumed'
+  | 'debugDone'
+  /** You have been typing without a pause for a good while; then you stop. */
+  | 'focused'
+  | 'unfocused';
 
 export type Coat = 'red' | 'arctic' | 'silver' | 'fennec';
 
@@ -81,6 +92,15 @@ export const SCENES = [
   'mouse',
   'bird',
   'bubbles',
+  'commit',
+  'push',
+  'conflict',
+  'failing',
+  'build',
+  'errors',
+  'debugging',
+  'zone',
+  'lantern',
   'typing',
   'drowsy',
   'sunrise',
