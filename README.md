@@ -3,8 +3,8 @@
 **The agent got your job. You got a fox.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
-[![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/anca.foxel?color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
+[![Version](https://vsmarketplacebadges.dev/version-short/anca.foxel.svg?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/anca.foxel.svg?label=installs&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 
 <img src="media/readme/foxel.gif" width="100%" alt="The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak while a signpost drops from the sky, then dozing off again">
 
