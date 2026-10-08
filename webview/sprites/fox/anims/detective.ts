@@ -2,70 +2,130 @@ import { outlined } from '../../grid';
 import type { Animation } from '../../frames';
 import { anim, STEP_A, STEP_B, type Pose } from '../pose';
 
-// Round lens (rows of 3, 5, 7, 7, 7, 5, 3): dark rim, pale blue glass, a glint, and a handle going down and back.
-const LENS_ROWS = [
-  '....ddd....',
-  '...dWwwwd..',
-  '...dWwwwwd.',
-  '...dwwwwwd.',
-  '...dwwwwwd.',
-  '....dwwwd..',
-  '....ddd....',
-  '...k.......',
-  '..k........',
-  '.k.........',
-  'k..........',
-];
-// Same glass seen close up: one dark pixel of pupil makes the eye look big behind it.
-const LENS = outlined(LENS_ROWS);
-const LENS_EYE = outlined(LENS_ROWS.map((r, y) => (y === 3 ? r.replace('wwwww', 'wwEww') : r)));
+// The lens alone, 7 across: a brass rim lit from the top left, pale glass with a glint and a shade.
+const LENS = ['..XXX..', '.XWwwX.', 'XWwwwwX', 'XwwwwwX', 'XwwwwCx', '.XwwCx.', '..Xxx..'];
 
-// x, y is the glyph's top-left corner once outlined (13x13): the lens is centred 8 pixels right and 4 down.
-const lens = (x: number, y: number, behind?: true, glyph = LENS): NonNullable<Pose['props']> => [
-  { x, y, glyph, mirrors: true, behind },
-];
+// Its own eye seen through the glass: a pupil far bigger than the real one, `at` columns into the glass.
+const eyeIn = (at: number): string[] => {
+  const row = (y: number, pupil: string): string => {
+    const glass = LENS[y].slice(1, 6);
+    return LENS[y][0] + glass.slice(0, at) + pupil + glass.slice(at + 3) + LENS[y][6];
+  };
+  return [LENS[0], LENS[1], row(2, 'EEW'), row(3, 'EEE'), row(4, 'WEE'), LENS[5], LENS[6]];
+};
 
-const SNIFF = { eye: 'down', mouth: 'flat' } as const;
+const pad = (lens: readonly string[], left: number, right: number): string[] =>
+  lens.map((r) => '.'.repeat(left) + r + '.'.repeat(right));
+// One glass, drawn at each angle it takes as it turns in the mouth: the mouth always closes on the end of the handle.
+// `dx`, `dy` place the outlined glyph from the centre of the head.
+const peer = (lens: readonly string[]) => ({
+  glyph: outlined([...pad(lens, 0, 2).map((r, y) => (y === 6 ? r.slice(0, 5) + 'tk..' : r)), '......tk.', '.......tk']),
+  dx: -3,
+  dy: -5,
+});
+const GRIP = {
+  /** Pushed along the ground, lens ahead of the nose. */
+  flat: { glyph: outlined(pad(LENS, 5, 0).map((r, y) => (y === 3 ? 'ttttt' + r.slice(5) : r))), dx: 6, dy: 0 },
+  /** Held up and forward, the way a glass is shown off. */
+  fwd: {
+    glyph: outlined([...pad(LENS, 4, 0).map((r, y) => (y === 6 ? '....tk' + r.slice(6) : r)), '...tk......', '..tk.......', '.tk........', 'tk.........']),
+    dx: 5,
+    dy: -7,
+  },
+  /** Between the two above and straight up. */
+  steep: {
+    glyph: outlined([...pad(LENS, 1, 0).map((r, y) => (y === 6 ? '..t' + r.slice(3) : r)), '..t.....', '.t......', '.t......', 't.......', 't.......']),
+    dx: 4,
+    dy: -8,
+  },
+  /** Straight up, halfway to the eye. */
+  up: { glyph: outlined([...LENS, ...Array<string>(5).fill('...t...')]), dx: 2, dy: -9 },
+  /** Over its own eye, the handle coming down across the muzzle; then with the eye in it, looking ahead, back and forward. */
+  eye: peer(LENS),
+  mid: peer(eyeIn(1)),
+  left: peer(eyeIn(0)),
+  right: peer(eyeIn(2)),
+} as const;
 
-// Nose near the ground: the glass is held just in front of and below it.
-const NOSE_LOW: Pose = { head: [2, 8], pitch: 2, ...SNIFF };
-const NOSE_LOWER: Pose = { head: [2, 9], pitch: 2, ...SNIFF };
+interface Hold {
+  behind?: true;
+  /** Moved off the mouth: sliding away behind its head. */
+  slide?: readonly [number, number];
+}
+
+/** The same pose with the glass in its mouth. */
+function holding(pose: Pose, grip: keyof typeof GRIP, { behind, slide }: Hold = {}): Pose {
+  const { dx, dy, glyph } = GRIP[grip];
+  const x = 22 + (pose.head?.[0] ?? 0) + dx + (slide?.[0] ?? 0);
+  const y = 13 + (pose.bob ?? 0) + (pose.pitch ?? 0) + (pose.head?.[1] ?? 0) + dy + (slide?.[1] ?? 0);
+  return { ...pose, props: [{ x, y, glyph, mirrors: true, behind }] };
+}
+
+// Nose to the ground, the lens resting on it; and a sniff, nose forward and up.
+const LOW_A: Pose = { head: [2, 7], pitch: 2, eye: 'down', mouth: 'flat' };
+const LOW_B: Pose = { head: [3, 6], pitch: 2, eye: 'down', mouth: 'flat' };
+/** Halfway between standing and nose down. */
+const HALF: Pose = { head: [1, 3], pitch: 1, mouth: 'flat' };
+
+const POINT: Pose = { pitch: 1, head: [3, 3], tail: 'streamB', legs: [[-2, 0], [-1, 0], [0, 0], [3, 4]], mouth: 'flat', eye: 'wide' };
+const TEST = anim([
+  [holding({ head: [-1, 0], tilt: 0.25, mouth: 'flat' }, 'fwd', { slide: [1, -2] }), 100],
+  [holding({ head: [-1, 1], tilt: 0.4, mouth: 'flat' }, 'fwd', { slide: [1, -3] }), 100],
+  [holding({ head: [-1, 0], tilt: -0.25, mouth: 'flat' }, 'fwd', { slide: [-1, 2] }), 100],
+  [holding({ head: [0, 0], snoutUp: 1, mouth: 'flat' }, 'fwd', { slide: [0, -1] }), 100],
+  [holding({ head: [1, 2], eye: 'wide', mouth: 'flat' }, 'up'), 100],
+  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'streamA', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
+  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'flat', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
+  [{ ...POINT, pitch: 2, head: [3, 4], tail: 'streamA', ears: 'back', legs: [[-2, 0], [-1, 0], [0, 0], [4, 3]] }, 100],
+]);
 
 export const detectiveAnims = {
-  // It pulls the glass out from behind its shoulder and holds it up before its muzzle.
+  zzTest: TEST,
+  // A case! It nods, whips the glass out from behind its ear and shows it off, then gets down to it.
   detectiveIn: anim([
-    [{ eye: 'open' }, 150],
-    [{ head: [0, 1], props: lens(6, 18, true) }, 170],
-    [{ head: [0, 1], eye: 'down', props: lens(14, 14) }, 170],
-    [{ head: [1, 2], eye: 'wide', mouth: 'open', props: lens(20, 10) }, 260],
-    [{ ...NOSE_LOW, props: lens(23, 19) }, 250],
+    [{}, 120],
+    [{ head: [0, -1], eye: 'up' }, 100],
+    [{ head: [0, 1], eye: 'closed', tail: 'wagL' }, 110],
+    [holding({ head: [0, 0], eye: 'closed', tail: 'wagL' }, 'up', { behind: true }), 70],
+    [holding({ head: [0, -1], eye: 'up', tail: 'wagR' }, 'steep', { behind: true }), 70],
+    [holding({ head: [1, -2], eye: 'happy', tail: 'wagR' }, 'fwd'), 110],
+    [holding({ head: [0, -1], tail: 'wagL' }, 'fwd'), 210],
+    [holding({ ...HALF, eye: 'down' }, 'flat'), 90],
+    [holding({ ...LOW_A, legs: STEP_A, tail: 'wagL' }, 'flat'), 110],
   ]),
-  // Sniffs along the ground, stops to peer through the glass, looks up puzzled, sniffs on.
+  // Sniffs along the trail with the glass on the ground, finds something, peers at it with a huge eye, looks at us puzzled, sniffs on.
   detective: anim([
-    [{ ...NOSE_LOW, legs: STEP_A, extras: ['sniffA'], props: lens(23, 19) }, 300],
-    [{ ...NOSE_LOWER, legs: STEP_B, extras: ['sniffB'], props: lens(23, 20) }, 300],
-    [{ ...NOSE_LOW, legs: STEP_A, extras: ['sniffA'], props: lens(23, 19) }, 300],
-    [{ ...NOSE_LOWER, extras: ['sniffB'], props: lens(23, 20) }, 300],
-    [{ head: [2, 4], eye: 'wide', mouth: 'flat', pitch: 1, props: lens(19, 11, undefined, LENS_EYE) }, 300],
-    [{ head: [2, 4], eye: 'wide', mouth: 'flat', pitch: 1, tail: 'wagL', props: lens(19, 12, undefined, LENS_EYE) }, 440],
-    [{ head: [0, 0], eye: 'up', mouth: 'flat', ears: 'back', props: lens(20, 16) }, 400],
-    [{ head: [0, 0], eye: 'open', mouth: 'flat', tail: 'wagR', props: lens(20, 16) }, 260],
-    [{ ...NOSE_LOW, legs: STEP_B, props: lens(23, 18) }, 220],
-    [{ ...NOSE_LOW, props: lens(23, 19) }, 220],
+    [holding({ ...LOW_A, legs: STEP_A, tail: 'wagL', extras: ['sniffA'] }, 'flat'), 190],
+    [holding({ ...LOW_B, extras: ['sniffB'] }, 'flat'), 190],
+    [holding({ ...LOW_A, legs: STEP_B, tail: 'wagR', extras: ['sniffA'] }, 'flat'), 190],
+    [holding({ ...LOW_B, extras: ['sniffB'] }, 'flat'), 240],
+    [holding({ ...HALF, head: [2, 4], eye: 'wide', tail: 'poof' }, 'flat'), 280],
+    [holding({ head: [1, 2], eye: 'wide', mouth: 'flat' }, 'up'), 80],
+    [holding({ head: [1, 1], mouth: 'flat' }, 'mid'), 260],
+    [holding({ head: [1, 1], mouth: 'flat', tail: 'wagL' }, 'left'), 280],
+    [holding({ head: [1, 1], mouth: 'flat', tail: 'wagR' }, 'right'), 280],
+    [holding({ head: [1, 1], mouth: 'flat' }, 'mid'), 160],
+    [holding({ head: [0, 0], mouth: 'flat' }, 'up'), 80],
+    [holding({ head: [-1, 0], mouth: 'flat', tail: 'wagL' }, 'fwd'), 380],
+    [holding({ head: [-1, 0], mouth: 'flat', ears: 'back', tail: 'wagR' }, 'fwd'), 200],
+    [holding({ ...HALF, eye: 'down' }, 'flat'), 100],
   ]),
-  // It drops the glass behind its back, out of sight, and stands tall again.
+  // Case closed: it stands up, tucks the glass back behind its ear and straightens, pleased.
   detectiveOut: anim([
-    [{ ...NOSE_LOW, props: lens(23, 19) }, 150],
-    [{ head: [1, 2], props: lens(16, 17) }, 170],
-    [{ head: [0, 1], props: lens(6, 18, true) }, 170],
-    [{ head: [0, 1], props: lens(0, 21, true) }, 150],
-    [{ head: [0, 0], eye: 'happy', tail: 'wagL' }, 260],
+    [holding({ ...LOW_A, legs: STEP_A, tail: 'wagL' }, 'flat'), 120],
+    [holding(HALF, 'flat'), 90],
+    [holding({ head: [0, -1] }, 'fwd'), 140],
+    [holding({ head: [0, 0], eye: 'up' }, 'steep', { behind: true }), 70],
+    [holding({ head: [0, 1], eye: 'closed' }, 'up', { behind: true }), 70],
+    [{ head: [0, 1], eye: 'closed', tail: 'wagR' }, 110],
+    [{ head: [0, -1], eye: 'happy', tail: 'wagL' }, 130],
+    [{ eye: 'happy', tail: 'wagR' }, 160],
   ]),
   // A breakpoint: it freezes like a pointer dog, low and stretched, one paw up, tail out straight.
   pointing: anim([
-    [{ pitch: 2, bob: 1, head: [2, 2], tail: 'flat', legs: [[-1, 0], [0, 0], [2, 0], [2, 2]], mouth: 'flat' }, 800],
-    [{ pitch: 2, bob: 1, head: [2, 2], tail: 'streamA', legs: [[-1, 0], [0, 0], [2, 0], [2, 2]], mouth: 'flat' }, 120],
-    [{ pitch: 2, bob: 1, head: [2, 2], tail: 'flat', legs: [[-1, 0], [0, 0], [2, 0], [2, 2]], mouth: 'flat' }, 700],
-    [{ pitch: 2, bob: 1, head: [2, 2], tail: 'flat', ears: 'back', legs: [[-1, 0], [0, 0], [2, 0], [2, 2]], mouth: 'flat' }, 380],
+    [POINT, 800],
+    [{ ...POINT, tail: 'flat' }, 120],
+    [POINT, 700],
+    [{ ...POINT, ears: 'back' }, 380],
   ]),
 } satisfies Record<string, Animation>;

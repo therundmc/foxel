@@ -1,168 +1,272 @@
-import type { Animation, Glyph, Overlay } from '../../frames';
+import type { Animation, Glyph, Overlay, Point } from '../../frames';
 import { outlined } from '../../grid';
 import { anim, type Pose } from '../pose';
 
-const SIT = { body: 'sit' } as const;
+type Step = [Pose, number];
 
-// Pebble fills, from the biggest (bottom of the tower) to the tiniest (the last one).
-const PEBBLES: readonly Glyph[] = [
-  ['..QQQQ..', '.QQmmmmD', 'mmmDDDDD'],
-  ['.NNNq.', 'NNnnnD'],
-  ['.eQee', 'eeDDD'],
-  ['.mQm', 'mDDD'],
-  ['Nq'],
-].map(outlined);
+// Stone fills, from the biggest (the foot of the tower) to the tiniest (the last one): slate, warm grey, brown,
+// pale, sand. Each has a lit top, a darker underside and a shape of its own.
+const FILLS: readonly Glyph[] = [
+  ['.mmmeee.', 'meeeeeeD', '.eDDDDD.'],
+  ['.qqNN.', 'NNNnnn'],
+  ['.TTt.', 'tttkk'],
+  ['Ymm.', 'mmee'],
+  ['hT'],
+];
 
-// The heap they come from, from five stones down to one.
-const HEAPS: readonly Glyph[] = [
-  ['...QQ...', '..mmNN..', '.QmDnNQ.', 'mmDDnnNN'],
-  ['..mmNN..', '.QmDnNQ.', 'mmDDnnNN'],
-  ['.QmDnNQ.', 'mmDDnnNN'],
-  ['mmDnNN'],
-  ['NDn'],
-].map(outlined);
+/** A quarter turn clockwise: the way a stone rolls to the right. */
+const turned = (g: Glyph): Glyph =>
+  Array.from({ length: g[0].length }, (_, y) => Array.from({ length: g.length }, (_, x) => g[g.length - 1 - x][y]).join(''));
 
-const TOWER_X = 29; // middle of the tower
-const HEAP_X = 38;
-const GROUND = 31; // exclusive bottom row of a thing on the ground
+// Every stone lying flat, on its edge, upside down and on its other edge.
+const STONES: readonly (readonly Glyph[])[] = FILLS.map((flat) => {
+  const edge = turned(flat);
+  const over = turned(edge);
+  return [flat, edge, over, turned(over)].map(outlined);
+});
 
-const pebbleX = (k: number, cx = TOWER_X): number => Math.round(cx - PEBBLES[k][0].length / 2);
+const GROUND = 30; // bottom row of the outline of a thing lying on the ground
+const HEAD: Point = [21, 12]; // middle of the head of a sitting fox
 
-// Outline row of the top of a tower of n pebbles (outline rows are shared between neighbours).
-function topOf(n: number): number {
-  let bottom = GROUND;
-  for (let k = 0; k < n; k++) {
-    bottom -= PEBBLES[k].length - 1;
-  }
-  return n === 0 ? GROUND : bottom - 1;
+// Left column of each stone in the tower: none sits quite in the middle of the one under it.
+const TOWER_X = [27, 27, 29, 28, 28] as const;
+// Top row of each: a stone shares its bottom outline with the top outline of the one under it.
+const TOWER_Y = STONES.reduce<number[]>((tops, [flat], k) => [...tops, (k === 0 ? GROUND + 1 : tops[k - 1] + 1) - flat.length], []);
+// How far right of the middle of its head a stone hangs from its mouth: the small ones from the very tip.
+const GRIP = [3, 4, 5, 6, 6] as const;
+
+const stone = (k: number, x: number, y: number, turn = 0): Overlay => ({ x, y, glyph: STONES[k][turn % 4], mirrors: true });
+
+/** Stone k whatever way up, placed by its middle: how it flies and tumbles. */
+function tumbling(k: number, turn: number, cx: number, cy: number): Overlay {
+  const glyph = STONES[k][turn % 4];
+  return stone(k, Math.round(cx - glyph[0].length / 2), Math.round(cy - glyph.length / 2), turn);
 }
 
-// Bottom (exclusive) of pebble k once it is placed.
-const seatOf = (k: number): number => (k === 0 ? GROUND : topOf(k) + 1);
-
-/** The first n pebbles stacked, each moved by [dx, dy] given per pebble. */
-function tower(n: number, shift: (k: number) => readonly [number, number] = () => [0, 0]): Overlay[] {
-  return PEBBLES.slice(0, n).map((g, k) => {
-    const [dx, dy] = shift(k);
-    return { x: pebbleX(k) + dx, y: seatOf(k) - g.length + dy, glyph: g };
-  });
+/** The first n stones stacked, leaning by so many pixels at the top. */
+function tower(n: number, lean = 0): Overlay[] {
+  return Array.from({ length: n }, (_, k) => stone(k, TOWER_X[k] + (k === 0 ? 0 : Math.round((lean * k) / (n - 1))), TOWER_Y[k]));
 }
 
-/** What is left of the heap (stones to go), counted from five. */
-function heap(left: number): Overlay[] {
-  if (left <= 0) {
-    return [];
-  }
-  const g = HEAPS[5 - left];
-  return [{ x: HEAP_X, y: GROUND - g.length, glyph: g }];
+/** The same things `by` pixels into the ground: what is under it is not drawn. */
+function sunk(things: readonly Overlay[], by: number): Overlay[] {
+  return things
+    .map((o) => ({ ...o, y: o.y + by, glyph: o.glyph.slice(0, Math.max(0, GROUND + 1 - o.y - by)) }))
+    .filter((o) => o.glyph.length > 0);
 }
 
-/** Pebble k in the air, its middle at column cx and its bottom at row `bottom`. */
-function held(k: number, cx: number, bottom: number): Overlay {
-  const g = PEBBLES[k];
-  return { x: Math.round(cx - g[0].length / 2), y: bottom - g.length, glyph: g, mirrors: true };
+/** Sitting, its head moved by [dx, dy]. */
+const sit = (dx: number, dy: number, more: Pose = {}): Pose => ({ body: 'sit', head: [dx, dy], ...more });
+
+/** Sitting with its head `down` rows lower in all: past a point it has to crouch for it. */
+function leaning(dx: number, down: number, more: Pose = {}): Pose {
+  const bob = down >= 7 ? 2 : down >= 5 ? 1 : 0;
+  return sit(dx, down - bob, { bob, ...more });
 }
 
-const WAG = ['sitA', 'sitB'] as const;
+/**
+ * Stone k in its mouth, `back` columns short of its place on the tower and `up` rows above it: the head is where
+ * that puts it, the top edge of the stone being the line of its lips.
+ */
+function bringing(k: number, back: number, up: number, around: readonly Overlay[], more: Pose = {}): Pose {
+  const x = TOWER_X[k] - back;
+  const y = TOWER_Y[k] - up;
+  return { ...leaning(x - GRIP[k] - HEAD[0], y - 4 - HEAD[1], more), props: [...around, stone(k, x, y)] };
+}
 
-// One round of stacking pebble k: reach for the heap, pick up, carry, lower, let go, lean back to look.
-function place(k: number): [Pose, number][] {
-  const below = tower(k);
-  const rest = heap(5 - k);
-  const after = heap(4 - k);
-  const seat = seatOf(k);
-  const wag = WAG[k % 2];
-  const lift = { ...SIT, tail: wag, head: [3, 3] } as const;
+/** Its mouth opens and the stone is on the tower: its head where it was with the stone `up` rows above its place. */
+function lettingGo(k: number, up: number, things: readonly Overlay[], more: Pose = {}): Pose {
+  return { ...bringing(k, 0, up, [], more), mouth: 'open', props: things };
+}
+
+/**
+ * It keeps its stones on its far side: it turns its head away, dips for one and comes back with it between its
+ * teeth, the stone showing from behind its head before its face does.
+ */
+function fetch(k: number, around: readonly Overlay[], rummage = 150): Step[] {
+  const width = STONES[k][0][0].length;
+  const peeking: Overlay = { ...stone(k, HEAD[0] - 2 + 9 + Math.min(3, width - 2) - width, HEAD[1] + 2), behind: true };
   return [
-    [{ ...SIT, tail: wag, head: [3, 4], eye: 'down', props: [...rest, ...below] }, 230],
-    [{ ...lift, eye: 'down', mouth: 'flat', props: [...after, ...below, held(k, 34, 27)] }, 190],
-    [{ ...SIT, tail: wag, head: [1, 1], eye: 'down', mouth: 'flat', props: [...after, ...below, held(k, 31, 22)] }, 230],
-    [
-      { ...SIT, tail: wag, head: [0, 3], eye: 'down', mouth: 'flat', props: [...after, ...below, held(k, TOWER_X, seat - 4)] },
-      330,
-    ],
-    [{ ...SIT, tail: wag, head: [0, 3], eye: 'down', props: [...after, ...below, held(k, TOWER_X, seat - 1)] }, 110],
-    [{ ...SIT, tail: wag, head: [0, 2], eye: 'down', props: [...after, ...tower(k + 1)] }, 160],
-    [{ ...SIT, tail: wag, head: [-1, 0], eye: 'happy', props: [...after, ...tower(k + 1)] }, 400],
+    [sit(-2, 0, { away: true, tail: 'sitB', props: around }), 90],
+    [sit(-3, 2, { away: true, bob: 1, tail: 'sitA', props: around }), rummage],
+    [sit(-2, 0, { away: true, tail: 'sitB', props: [...around, peeking] }), 80],
   ];
 }
 
-const LOOK = { ...SIT, head: [1, 2], eye: 'down' } as const;
+// The first one is the heavy one: it lets it go from a little way up, and blinks at the thud.
+const first: Step[] = [
+  ...fetch(0, []),
+  [bringing(0, 3, 9, [], { tail: 'sitA' }), 110],
+  [bringing(0, 2, 9, [], { tail: 'sitB' }), 80],
+  [bringing(0, 1, 7, [], { eye: 'down', tail: 'sitB' }), 80],
+  [bringing(0, 0, 5, [], { eye: 'down' }), 90],
+  [bringing(0, 0, 4, [], { eye: 'down' }), 110],
+  [bringing(0, 0, 3, [], { eye: 'down' }), 180],
+  [lettingGo(0, 4, [stone(0, TOWER_X[0], TOWER_Y[0] - 2)], { eye: 'down' }), 60],
+  [leaning(2, 5, { eye: 'closed', tail: 'sitB', props: tower(1) }), 90],
+  [sit(0, 2, { eye: 'down', tail: 'sitB', props: tower(1) }), 110],
+  [sit(-1, 0, { eye: 'happy', tail: 'sitA', props: tower(1) }), 280],
+];
+
+// The second one, with care: slower and slower, and a look at how it sits.
+const one = tower(1);
+const second: Step[] = [
+  ...fetch(1, one),
+  [bringing(1, 2, 6, one, { tail: 'sitA' }), 110],
+  [bringing(1, 1, 7, one, { tail: 'sitB' }), 80],
+  [bringing(1, 0, 5, one, { eye: 'down', tail: 'sitB' }), 80],
+  [bringing(1, 0, 3, one, { eye: 'down' }), 100],
+  [bringing(1, 0, 2, one, { eye: 'down' }), 130],
+  [bringing(1, 0, 1, one, { eye: 'down' }), 200],
+  [lettingGo(1, 2, tower(2), { eye: 'down' }), 90],
+  [leaning(1, 4, { eye: 'wide', tail: 'sitB', props: tower(2, 1) }), 80],
+  [sit(-1, 0, { eye: 'happy', tail: 'sitB', props: tower(2) }), 300],
+];
+
+// The third one: it is not sure, lifts it again, looks, and tries once more.
+const two = tower(2);
+const third: Step[] = [
+  ...fetch(2, two),
+  [bringing(2, 3, 3, two, { tail: 'sitA' }), 110],
+  [bringing(2, 2, 5, two, { tail: 'sitB' }), 80],
+  [bringing(2, 1, 4, two, { eye: 'down', tail: 'sitB' }), 80],
+  [bringing(2, 0, 3, two, { eye: 'down' }), 100],
+  [bringing(2, 0, 2, two, { eye: 'down' }), 150],
+  [bringing(2, 0, 3, two, { tail: 'sitB' }), 120],
+  [bringing(2, 1, 4, two, { eye: 'down', ears: 'back', tail: 'sitB' }), 260],
+  [bringing(2, 0, 3, two, { eye: 'down' }), 100],
+  [bringing(2, 0, 2, two, { eye: 'down' }), 120],
+  [bringing(2, 0, 1, two, { eye: 'down' }), 200],
+  [lettingGo(2, 2, tower(3), { eye: 'down' }), 90],
+  [sit(2, 2, { eye: 'wide', tail: 'sitB', props: tower(3, 1) }), 80],
+  [sit(1, 1, { eye: 'wide', tail: 'sitB', props: tower(3, -1) }), 80],
+  [sit(-1, 0, { eye: 'happy', tail: 'sitA', props: tower(3) }), 300],
+];
+
+// The last one, high up: ears flat, not a breath while the tower sways, then it lets its breath out.
+const three = tower(3);
+const tense = { eye: 'wide', ears: 'back', mouth: 'flat' } as const;
+const fourth: Step[] = [
+  ...fetch(3, three),
+  [bringing(3, 2, 2, three, { tail: 'sitA' }), 110],
+  [bringing(3, 2, 3, three, { tail: 'sitB' }), 80],
+  [bringing(3, 1, 4, three, { tail: 'sitB' }), 80],
+  [bringing(3, 0, 3, three, { eye: 'down', ears: 'back' }), 120],
+  [bringing(3, 0, 2, three, { eye: 'down', ears: 'back' }), 170],
+  [bringing(3, 0, 1, three, { eye: 'down', ears: 'back' }), 320],
+  [lettingGo(3, 2, tower(4), { eye: 'down', ears: 'back' }), 90],
+  [sit(0, -1, { ...tense, props: tower(4, 1) }), 110],
+  [sit(0, -1, { ...tense, props: tower(4, -1) }), 110],
+  [sit(0, -1, { ...tense, props: tower(4) }), 220],
+  [sit(-1, 1, { bob: 1, eye: 'closed', mouth: 'open', tail: 'sitB', props: tower(4) }), 180],
+  [sit(-1, 0, { eye: 'happy', tail: 'sitA', props: tower(4) }), 300],
+];
 
 const stackPebbles = anim([
-  [{ ...SIT, eye: 'down', head: [1, 1], props: heap(5) }, 160],
-  ...[0, 1, 2, 3].flatMap(place),
-  [{ ...LOOK, tail: 'sitA', props: [...heap(1), ...tower(4)] }, 120],
+  [sit(0, 0, { tail: 'sitA' }), 200],
+  [sit(1, 2, { eye: 'down', tail: 'sitB' }), 250],
+  ...first,
+  ...second,
+  ...third,
+  ...fourth,
 ]);
 
-const towerProps = [...heap(1), ...tower(4)];
+const four = tower(4);
 
+// By its tower: it looks it over, blinks, sits back rather pleased with itself, and looks up at you.
 const towerAdmire = anim([
-  [{ ...LOOK, tail: 'sitA', props: towerProps }, 700],
-  [{ ...LOOK, head: [1, 1], tail: 'sitB', props: towerProps }, 500],
-  [{ ...SIT, tail: 'sitA', eye: 'happy', props: towerProps }, 700],
-  [{ ...SIT, tail: 'sitB', props: towerProps }, 500],
+  [sit(-1, 1, { eye: 'down', tail: 'sitA', props: four }), 600],
+  [sit(-1, 1, { eye: 'down', tail: 'sitB', props: four }), 280],
+  [sit(-1, 1, { eye: 'closed', tail: 'sitA', props: four }), 110],
+  [sit(-1, 0, { eye: 'happy', tail: 'sitB', props: four }), 480],
+  [sit(-1, 0, { bob: 1, eye: 'happy', tail: 'sitA', props: four }), 280],
+  [sit(0, 0, { tail: 'sitB', props: four }), 350],
+  [sit(0, 0, { tail: 'sitA', props: four }), 300],
 ]);
 
-const seatTop = seatOf(4); // where the last pebble lands, on the tower of four
-
-// Reach for the last stone of the heap, carry it up, set it on top.
-const fetch: [Pose, number][] = [
-  [{ ...LOOK, tail: 'sitA', head: [3, 4], props: towerProps }, 190],
-  [{ ...SIT, tail: 'sitB', head: [3, 3], eye: 'down', mouth: 'flat', props: [...tower(4), held(4, 35, 27)] }, 150],
-  [{ ...SIT, tail: 'sitA', head: [1, 1], eye: 'down', mouth: 'flat', props: [...tower(4), held(4, 31, seatTop - 7)] }, 160],
-  [{ ...SIT, tail: 'sitB', head: [0, 2], eye: 'down', mouth: 'flat', props: [...tower(4), held(4, TOWER_X, seatTop - 3)] }, 210],
-  [{ ...SIT, tail: 'sitA', head: [0, 2], eye: 'down', props: [...tower(4), held(4, TOWER_X, seatTop - 1)] }, 90],
+const five = tower(5);
+// Nose, then chin on the top stone, it presses the tower into the ground and follows it down:
+// [how far in the tower is, head forward by, head down by, for how long].
+const PRESS: readonly (readonly [number, number, number, number])[] = [
+  [0, 1, 0, 110],
+  [1, 1, 1, 80],
+  [3, 1, 3, 70],
+  [6, 3, 4, 70],
+  [9, 3, 7, 70],
+  [12, 3, 10, 80],
+  [14, 3, 10, 80],
+  [16, 3, 10, 80],
 ];
-
-const glad = { ...SIT, eye: 'happy', mouth: 'open' } as const;
-// The tower slides off, a nudge at a time.
-const slide = (dx: number): Overlay[] => tower(5, () => [Math.min(dx, 22), 0]);
 
 const towerDone = anim([
-  ...fetch,
-  [{ ...SIT, tail: 'sitA', head: [0, 2], mouth: 'open', props: tower(5) }, 90],
-  [{ ...glad, tail: 'sitA', extras: ['sparkleA'], props: tower(5) }, 220],
-  [{ ...glad, tail: 'sitB', extras: ['sparkleB'], props: tower(5) }, 220],
-  [{ ...SIT, tail: 'sitA', head: [1, 3], eye: 'closed', props: tower(5) }, 100],
-  [{ ...SIT, tail: 'sitB', head: [2, 3], eye: 'closed', props: slide(2) }, 110],
-  [{ ...SIT, tail: 'sitA', head: [3, 3], eye: 'closed', props: slide(6) }, 110],
-  [{ ...SIT, tail: 'sitB', head: [3, 3], eye: 'closed', props: slide(12) }, 110],
-  [{ ...SIT, tail: 'sitA', head: [2, 2], eye: 'happy', props: slide(18) }, 110],
-  [{ ...SIT, tail: 'sitB', head: [1, 1], eye: 'happy', props: slide(22) }, 110],
-  [{ ...SIT, tail: 'sitA', eye: 'happy' }, 130],
+  ...fetch(4, four, 120),
+  [bringing(4, 3, 1, four, { tail: 'sitA' }), 100],
+  [bringing(4, 2, 2, four, { tail: 'sitB' }), 80],
+  [bringing(4, 1, 2, four, { eye: 'down', tail: 'sitB' }), 90],
+  [bringing(4, 0, 1, four, { eye: 'down' }), 170],
+  [lettingGo(4, 2, five, { eye: 'down' }), 90],
+  [sit(-1, -1, { eye: 'happy', mouth: 'open', tail: 'sitB', extras: ['sparkleA'], props: five }), 210],
+  [sit(-1, 0, { eye: 'happy', mouth: 'open', tail: 'sitA', extras: ['sparkleB'], props: five }), 210],
+  ...PRESS.map(([by, dx, down, ms]): Step => [leaning(dx, down, { eye: 'closed', tail: by % 2 ? 'sitB' : 'sitA', props: sunk(five, by) }), ms]),
+  [leaning(1, 5, { eye: 'happy', tail: 'sitB' }), 90],
+  [sit(0, 0, { eye: 'happy', tail: 'sitA' }), 250],
 ]);
 
-// [dx, dy] of each pebble in each frame of the tumble; the biggest is slowest, one bounces up and away.
-const TUMBLE: readonly (readonly (readonly [number, number])[])[] = [
-  [[0, 0], [2, 1], [5, 4], [6, 3]],
-  [[0, 0], [5, 3], [9, 6], [10, 6]],
-  [[1, 0], [10, 4], [14, 4], [14, -2]],
-  [[3, 0], [17, 4], [22, 7], [20, -6]],
-  [[7, 0], [27, 4], [31, 7], [28, -4]],
-  [[15, 0], [38, 4], [42, 7], [38, 0]],
-  [[27, 0], [50, 4], [54, 7], [50, 4]],
+// The two top stones go: [turn, middle x, middle y] frame after frame, faster and faster down.
+// The third tips over the edge of the second, lands on its edge and flops flat.
+const THIRD_FALLS: readonly (readonly [number, number, number])[] = [
+  [0, 36.5, 22],
+  [1, 40, 23.5],
+  [2, 41.5, 26],
+  [3, 41, 27.5],
+  [0, 41.5, 29],
+  [0, 41.5, 29],
 ];
-const WOBBLE: readonly (readonly (readonly [number, number])[])[] = [
-  [[0, 0], [0, 0], [1, 0], [-1, 0]],
-  [[0, 0], [-1, 0], [-1, 0], [2, 0]],
-  [[0, 0], [1, 0], [2, 0], [-2, 1]],
+// The fourth is thrown clear, lands on its edge, bounces once and comes to rest.
+const FOURTH_FALLS: readonly (readonly [number, number, number])[] = [
+  [0, 38, 19],
+  [1, 44, 20],
+  [2, 48, 23],
+  [3, 49, 28],
+  [0, 50, 26],
+  [0, 50, 29],
 ];
-const rolled = (table: typeof TUMBLE, i: number): Overlay[] => tower(4, (k) => [Math.min(table[i][k][0], 21), table[i][k][1]]);
+
+/** What is left standing, with the two that fell where they are in frame i of their fall. */
+const falling = (i: number): Overlay[] => [
+  stone(0, TOWER_X[0], TOWER_Y[0]),
+  stone(1, TOWER_X[1] + 1, TOWER_Y[1]),
+  tumbling(2, ...THIRD_FALLS[i]),
+  tumbling(3, ...FOURTH_FALLS[i]),
+];
+const mess = falling(THIRD_FALLS.length - 1);
+// The ground takes them back, the farthest first: how far in [the two still stacked, the third, the fourth] are.
+const swallowed = (pair: number, third: number, fourth: number): Overlay[] => [
+  ...sunk(mess.slice(0, 2), pair),
+  ...sunk([mess[2]], third),
+  ...sunk([mess[3]], fourth),
+];
+const wince = { eye: 'closed', ears: 'back', mouth: 'flat', bob: 1 } as const;
 
 const towerFalls = anim([
-  ...WOBBLE.map((_, i): [Pose, number] => [
-    { ...SIT, tail: 'sitA', head: [1, 2], eye: 'wide', props: rolled(WOBBLE, i) },
-    120,
-  ]),
-  ...TUMBLE.map((_, i): [Pose, number] => [
-    { ...SIT, tail: 'flat', head: [i < 2 ? 0 : 1, 2], eye: i < 2 ? 'wide' : 'down', ears: 'back', mouth: 'flat', props: rolled(TUMBLE, i) },
-    i < 2 ? 110 : 100,
-  ]),
-  [{ ...SIT, tail: 'sitA', head: [0, 2], eye: 'down', ears: 'back', mouth: 'flat' }, 350],
-  [{ ...SIT, tail: 'sitB', head: [0, 1], bob: 1, eye: 'closed', ears: 'back' }, 220],
-  [{ ...SIT, tail: 'sitA', head: [0, 0], eye: 'closed', mouth: 'smile' }, 220],
-  [{ ...SIT, tail: 'sitB', eye: 'happy' }, 250],
+  [sit(0, 0, { eye: 'wide', tail: 'sitA', props: tower(4, -1) }), 90],
+  [sit(-1, 0, { eye: 'wide', tail: 'sitA', props: tower(4, 1) }), 90],
+  [sit(-1, -1, { eye: 'wide', mouth: 'open', tail: 'sitB', props: tower(4, 2) }), 90],
+  [sit(-1, -1, { eye: 'wide', mouth: 'open', ears: 'back', tail: 'sitB', props: tower(4, 3) }), 80],
+  [sit(-2, 0, { ...wince, tail: 'sitB', props: falling(0) }), 70],
+  [sit(-2, 0, { ...wince, tail: 'sitA', props: falling(1) }), 70],
+  [sit(-2, 1, { ...wince, tail: 'sitA', props: falling(2) }), 70],
+  [sit(-2, 1, { ...wince, tail: 'sitA', props: falling(3) }), 70],
+  [sit(-1, 1, { ...wince, tail: 'sitA', props: falling(4) }), 80],
+  [sit(-1, 1, { ...wince, tail: 'sitA', props: falling(5) }), 80],
+  [sit(1, 2, { eye: 'down', ears: 'back', mouth: 'flat', tail: 'sitA', props: mess }), 320],
+  [sit(0, 2, { ...wince, tail: 'sitA', props: swallowed(0, 0, 1) }), 180],
+  [sit(0, 2, { ...wince, tail: 'sitA', props: swallowed(0, 1, 3) }), 100],
+  [sit(0, -1, { bob: -1, eye: 'closed', tail: 'sitB', props: swallowed(1, 3, 4) }), 130],
+  [sit(0, -1, { bob: -1, eye: 'closed', tail: 'sitB', props: swallowed(3, 4, 4) }), 110],
+  [sit(0, 1, { eye: 'closed', tail: 'sitA', props: swallowed(5, 4, 4) }), 100],
+  [sit(0, 0, { tail: 'sitA', props: swallowed(7, 4, 4) }), 100],
+  [sit(0, 0, { eye: 'happy', tail: 'sitB' }), 250],
 ]);
 
 export const pebblesAnims = {
