@@ -4,7 +4,12 @@
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://vsmarketplacebadges.dev/version-short/anca.foxel.svg?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
-[![Installs](https://vsmarketplacebadges.dev/installs-short/anca.foxel.svg?label=installs&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
+[![Downloads](https://vsmarketplacebadges.dev/downloads-short/anca.foxel.svg?label=downloads&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
+[![CI](https://img.shields.io/github/actions/workflow/status/therundmc/foxel/ci.yml?branch=main&label=CI)](https://github.com/therundmc/foxel/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/therundmc/foxel?color=6b4a3a)](LICENSE)
+![Productivity: 0%](https://img.shields.io/badge/productivity-0%25-ff7f8f)
+![Supervised by: a fox](https://img.shields.io/badge/supervised%20by-a%20fox-ff7f8f)
+![Naps: unlimited](https://img.shields.io/badge/naps-unlimited-ff7f8f)
 
 <img src="media/readme/foxel.gif" width="100%" alt="The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak while a signpost drops from the sky, then dozing off again">
 
