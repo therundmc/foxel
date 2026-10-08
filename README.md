@@ -1,6 +1,6 @@
 # Foxel
 
-**A fox moves into your editor. You will be expected to feed it.**
+**The agent writes the code now. Your job is the fox.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
@@ -8,7 +8,7 @@
 
 ![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak, then dozing off again](media/readme/foxel.gif)
 
-Your agent writes the code now, and you watch a spinner. Foxel is a better use of those three minutes: a small fox that gets hungry, sleepy and bored, and has decided that's your problem.
+You type a prompt, then watch a spinner. Foxel is a better use of those three minutes: a small fox that gets bored, hungry and sleepy, roughly in that order, and expects you to do something about it. Mostly, play.
 
 No score, no streak, no notifications. It's a pet, not a productivity tool. Nobody is measuring anything.
 
@@ -81,7 +81,3 @@ The rest is up to you. Some of it only shows up once in a blue moon.
 Foxel collects no telemetry and makes no network requests: nothing leaves your machine.
 
 To react to your work it listens to events of the editor: errors being counted, files changing, commands starting and ending, Git moving. It looks at the name of a command only to recognise a few of them (an AI assistant, `git stash`) and at which files change, never at what is in them. It never reads, stores or sends your code.
-
----
-
-Made with ❤️ by anca.
