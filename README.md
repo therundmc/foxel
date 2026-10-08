@@ -1,38 +1,41 @@
 # Foxel
 
-**A pixel-art fox cub that lives in your VS Code. It gets hungry, sleepy and needs you.**
+**A pixel-art fox cub moves into your VS Code. It gets hungry, it gets sleepy, and it has opinions about your code.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/anca.foxel?color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 
-![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, then bursting soap bubbles](media/readme/foxel.gif)
+![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, bursting soap bubbles, then turning its back to us to look at a great snowy peak](media/readme/foxel.gif)
 
-## A pet, not a tool
+## It will not make you more productive
 
-Foxel is a tamagotchi for people who code. It lives by your clock, has its moods and its needs, and there is not a word, a number or a gauge in its view: you read how it feels from what it does.
+Foxel does not fix your bugs, write your tests or close your tickets. It sits in a corner of your editor and needs you. That is the whole feature.
 
-It wakes up with you, begs when it is meal time, brings you its ball when you have worked too long, and curls up in its basket at night. Leave it hungry and it gets sad. Stroke it and it melts.
+It wakes up when you do. It begs at meal times, with the eyes. It drops its ball at your feet when you have been staring at the same function for an hour, which is its way of saying *go outside*. At night it drags its basket in, puts its nightcap on and is asleep before you are.
 
-## It watches your work
+There is no text in its view. No score, no streak, no notification. If you want to know how it feels, look at it. It is a tamagotchi, not a dashboard.
 
-It follows what you do, and has something to say about most of it.
+## It has opinions about your work
 
-- You **commit**: it plants a little flag. You **push**: a bird carries the letter away.
-- A **long build**: it waits with you by an hourglass, then starts stacking pebbles.
-- **Things keep failing**: it hides under a cardboard box until they get better.
-- **Errors remain**: a small rain cloud of its own hangs over its head until you have fixed them.
-- You **debug**: out comes the magnifying glass.
-- **An AI assistant writes the code for you** (Claude Code, Copilot, or any other): it puts its glasses on and supervises.
+- **You commit.** It plants a little flag, as if you had conquered something.
+- **You push.** A bird flies the letter away. No taking it back now.
+- **Your build takes forever.** It turns an hourglass over. When that gets old, it starts stacking pebbles. It has all day. So do you, apparently.
+- **Three failures in a row.** It hides under a cardboard box. Honestly, same.
+- **Errors pile up.** A small rain cloud moves in over its head and stays there until you have fixed them. No pressure.
+- **You debug.** Out comes the magnifying glass. It finds nothing either, but it looks the part.
+- **An AI writes your code** (Claude Code, Copilot, take your pick). It puts its glasses on and supervises. Somebody has to.
+
+And once or twice a day, for no reason you gave it, it stops everything, turns its back to you and watches a whole landscape for a long minute. You may want to do the same.
 
 ## Install
 
-Search for **Foxel** in the Extensions view of VS Code, or [install it from the Marketplace](https://marketplace.visualstudio.com/items?itemName=anca.foxel).
+Search for **Foxel** in the Extensions view of VS Code, or [get it from the Marketplace](https://marketplace.visualstudio.com/items?itemName=anca.foxel).
 
-Then open the **Foxel** tab in the bottom panel: that is where it has the most room to run. Two other places to keep it, with the `foxel.position` setting:
+Then open the **Foxel** tab in the bottom panel: that is where it has the most room to run. If the terminal keeps taking its place, the `foxel.position` setting gives it two other homes:
 
 - `explorer`: in the side bar, under your files.
-- `editor`: in a strip of its own across the bottom of the editor area, which stays in sight whatever the panel is showing.
+- `editor`: a strip of its own across the bottom of the editor area, which stays in sight whatever the panel is showing.
 
 ## A few things to try
 
@@ -43,9 +46,7 @@ Then open the **Foxel** tab in the bottom panel: that is where it has the most r
 - Blow it some bubbles, with the button in the title of its view.
 - Keep it company through a whole day of work, from early morning to late at night.
 
-That is all this page will tell you. The rest is yours to find: it has more habits, games and surprises than fit in a list, and some of them only come once in a long while.
-
-![The fox sitting with its back to us, looking at a great peak and an enormous cloud](media/readme/contemplation.png)
+That is all this page will tell you. It has more habits, games and surprises than fit in a list, some of them only come once in a long while, and finding them is the point.
 
 ![The fox sitting, waving, pawing at the glass, flicking its tail, in love, asleep and gazing away](media/readme/fox.png)
 
