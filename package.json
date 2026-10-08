@@ -239,6 +239,11 @@
           "default": true,
           "description": "Panic when new errors appear, cheer when they are all fixed."
         },
+        "foxel.reactToWork": {
+          "type": "boolean",
+          "default": true,
+          "description": "React to commits, pushes and merge conflicts, to commands and tasks that fail, and wait for those that take long."
+        },
         "foxel.sleepAfterSeconds": {
           "type": "integer",
           "default": 300,

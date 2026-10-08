@@ -13,6 +13,7 @@ export interface BuddyConfig {
   coat: Coat;
   reactToTyping: boolean;
   reactToErrors: boolean;
+  reactToWork: boolean;
   sleepAfterSeconds: number;
   name: string;
   dayNight: boolean;
@@ -47,6 +48,7 @@ export function readConfig(): BuddyConfig {
     coat: c.get<Coat>('coat', 'red'),
     reactToTyping: c.get('reactToTyping', true),
     reactToErrors: c.get('reactToErrors', true),
+    reactToWork: c.get('reactToWork', true),
     sleepAfterSeconds: c.get('sleepAfterSeconds', 300),
     name: c.get('name', ''),
     dayNight: c.get('dayNight', true),

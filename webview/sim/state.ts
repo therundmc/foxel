@@ -57,6 +57,7 @@ export type BuddyState =
   | 'glass'
   | 'contemplate'
   | 'come'
+  | 'waiting'
   | 'bubbles'
   | 'nudge'
   | 'mousing'

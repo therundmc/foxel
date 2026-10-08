@@ -17,6 +17,7 @@ import { TouchMemory } from './features/touch';
 import { SnackMemory } from './features/treat';
 import { TricksMemory } from './features/tricks';
 import { VisitorsMemory } from './features/visitors';
+import { WorkMemory } from './features/work';
 import { clamp } from './math';
 import { FEATURES, STATES, URGES } from './registry';
 import type { AnimRef, BuddyState, Dir, Gaze, StateDef } from './state';
@@ -64,6 +65,7 @@ export class Buddy {
   readonly snack = new SnackMemory();
   readonly meals = new MealsMemory();
   readonly rest = new RestMemory();
+  readonly work = new WorkMemory();
   readonly contemplate = new ContemplateMemory();
   readonly intro = new IntroMemory();
   private sinceTurnMs = 0;

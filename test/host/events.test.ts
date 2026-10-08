@@ -27,7 +27,6 @@ const editor = vi.hoisted(() => {
         onDidChangeWindowState: on('window'),
       },
       debug: { onDidStartDebugSession: on('debug') },
-      tasks: { onDidEndTaskProcess: on('task') },
       languages: {
         onDidChangeDiagnostics: on('diagnostics'),
         getDiagnostics: () => [['file', Array.from({ length: state.errors }, () => ({ severity: 0 }))]],
@@ -99,14 +98,25 @@ describe('ActivityWatcher', () => {
     expect(reactions).toHaveLength(2);
   });
 
-  it('reacts to tasks, debugging and switching files', () => {
-    editor.fire('task', { exitCode: 0 });
-    editor.fire('task', { exitCode: 1 });
-    editor.fire('task', { exitCode: undefined });
+  it('reacts to debugging and switching files', () => {
     editor.fire('debug');
     editor.fire('editor', {});
     editor.fire('editor', undefined);
-    expect(reactions).toEqual(['celebrate', 'sad', 'alert', 'notice']);
+    expect(reactions).toEqual(['alert', 'notice']);
+  });
+
+  it('says for how long errors remain, not only when they appear', () => {
+    const troubled: boolean[] = [];
+    const errors = (count: number): void => {
+      editor.state.errors = count;
+      editor.fire('diagnostics');
+    };
+    watcher.dispose();
+    watcher = new ActivityWatcher((r) => reactions.push(r), () => config, () => new Date(), (there) => troubled.push(there));
+    errors(2);
+    errors(1);
+    errors(0);
+    expect(troubled).toEqual([false, true, true, false]);
   });
 
   it('falls asleep when nothing happens and wakes up at the first sign of life', () => {

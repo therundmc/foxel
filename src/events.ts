@@ -38,7 +38,10 @@ export class ActivityWatcher implements vscode.Disposable {
     private readonly react: (reaction: Reaction) => void,
     private readonly config: () => BuddyConfig,
     private readonly clock: () => Date,
+    /** Errors remain in your files, or none do any more. */
+    private readonly troubled: (errors: boolean) => void = () => undefined,
   ) {
+    this.troubled(this.config().reactToErrors && this.errorCount > 0);
     this.disposables = [
       vscode.workspace.onWillSaveTextDocument((e) => this.onSave(e)),
       vscode.workspace.onDidChangeTextDocument((e) => this.onEdit(e)),
@@ -46,7 +49,6 @@ export class ActivityWatcher implements vscode.Disposable {
       vscode.window.onDidChangeActiveTextEditor((editor) => this.onEditorSwitch(editor)),
       vscode.window.onDidChangeWindowState((s) => this.onWindowState(s)),
       vscode.debug.onDidStartDebugSession(() => this.activity('alert')),
-      vscode.tasks.onDidEndTaskProcess((e) => this.onTaskEnd(e)),
       vscode.languages.onDidChangeDiagnostics(() => this.onDiagnostics()),
     ];
     this.timer = setInterval(() => this.checkSleep(), SLEEP_CHECK_MS);
@@ -55,6 +57,11 @@ export class ActivityWatcher implements vscode.Disposable {
   /** Doing something with the fox is being there too, even with the editor left alone. */
   interacted(): void {
     this.present();
+  }
+
+  /** Work done outside the editor (a command, a commit) is work all the same. */
+  worked(): void {
+    this.touch();
   }
 
   /** Playing with the fox is a break from work. */
@@ -90,6 +97,7 @@ export class ActivityWatcher implements vscode.Disposable {
   private onDiagnostics(): void {
     const previous = this.errorCount;
     this.errorCount = countErrors();
+    this.troubled(this.config().reactToErrors && this.errorCount > 0);
     if (!this.config().reactToErrors) {
       return;
     }
@@ -119,12 +127,6 @@ export class ActivityWatcher implements vscode.Disposable {
     this.touch();
     if (this.lastBlur > 0 && awayMs >= WELCOME_BACK_AFTER_MS) {
       this.emit('wave');
-    }
-  }
-
-  private onTaskEnd(e: vscode.TaskProcessEndEvent): void {
-    if (e.exitCode !== undefined) {
-      this.activity(e.exitCode === 0 ? 'celebrate' : 'sad');
     }
   }
 

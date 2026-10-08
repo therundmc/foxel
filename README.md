@@ -42,6 +42,7 @@ That is all this page will tell you. The rest is yours to find: it has more habi
 | `foxel.coat` | `red` | Fur colour: `red`, `arctic`, `silver` or `fennec` |
 | `foxel.reactToTyping` | `true` | Tap along when you type |
 | `foxel.reactToErrors` | `true` | React to errors appearing and being fixed |
+| `foxel.reactToWork` | `true` | React to commits, pushes, merge conflicts, and to commands that fail or take long |
 | `foxel.sleepAfterSeconds` | `300` | Inactivity before it falls asleep |
 | `foxel.name` | `""` | Your fox's name, shown as the title of its view |
 | `foxel.dayNight` | `true` | Live by the local clock: greetings, light, bedtime, party days |

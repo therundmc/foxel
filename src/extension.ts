@@ -14,6 +14,7 @@ import { BuddyViewProvider } from './buddyViewProvider';
 import { readConfig, SECTION, WEBVIEW_SETTINGS, webviewSettings, type Position } from './config';
 import { ActivityWatcher } from './events';
 import { Routine } from './routine';
+import { gitApi, WorkWatcher } from './work';
 
 /** The views it can live in; its third place, a strip of the editor area, is a panel of its own. */
 const VIEW_IDS: Record<Exclude<Position, 'editor'>, string> = {
@@ -71,7 +72,23 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.executeCommand('setContext', 'foxel.debug', readConfig().debug);
   void setDebugContext();
 
-  const watcher = new ActivityWatcher(react, readConfig, clock);
+  // What it frets about for as long as it lasts: errors in your files, a merge that conflicts.
+  const troubles = new Set<string>();
+  const trouble = (what: string) => (there: boolean): void => {
+    const fretting = troubles.size > 0;
+    if (there) {
+      troubles.add(what);
+    } else {
+      troubles.delete(what);
+    }
+    if (troubles.size > 0 !== fretting) {
+      react(troubles.size > 0 ? 'worry' : 'atEase');
+    }
+  };
+
+  const watcher = new ActivityWatcher(react, readConfig, clock, trouble('errors'));
+  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), trouble('conflicts'));
+  void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
   // A view forgets everything when it is closed, so the fox's needs are kept here for the next one.
@@ -85,6 +102,10 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.post({ type: 'memory', memory });
     }
     routine.viewReady();
+    // A view that has just opened does not know what the fox is fretting about.
+    if (troubles.size > 0) {
+      provider.post({ type: 'reaction', reaction: 'worry' });
+    }
   };
   const onMessage = (msg: WebviewMessage, provider: BuddyHost): void => {
     switch (msg?.type) {
@@ -157,6 +178,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     watcher,
+    work,
     routine,
     vscode.commands.registerCommand('foxel.enable', () => setEnabled(true)),
     vscode.commands.registerCommand('foxel.disable', () => setEnabled(false)),

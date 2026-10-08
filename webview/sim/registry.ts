@@ -14,6 +14,7 @@ import { touchFeature } from './features/touch';
 import { treatFeature } from './features/treat';
 import { tricksFeature } from './features/tricks';
 import { visitorsFeature } from './features/visitors';
+import { workFeature } from './features/work';
 import type { Feature, StateDefs, Urge } from './state';
 
 // The order matters where features share a hook: earlier urges win, earlier ticks run first.
@@ -32,6 +33,7 @@ export const FEATURES: readonly Feature[] = [
   treatFeature,
   mealsFeature,
   restFeature,
+  workFeature,
   contemplateFeature,
   introFeature,
 ];
@@ -52,6 +54,7 @@ export const STATES: StateDefs = {
   ...treatFeature.states,
   ...mealsFeature.states,
   ...restFeature.states,
+  ...workFeature.states,
   ...contemplateFeature.states,
   ...introFeature.states,
 };

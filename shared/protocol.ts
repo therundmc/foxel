@@ -14,7 +14,21 @@ export type Reaction =
   | 'wake'
   | 'hungry'
   | 'breakTime'
-  | 'drink';
+  | 'drink'
+  /** Your work beyond typing: a commit, a push, a merge that conflicts and its way out. */
+  | 'commit'
+  | 'push'
+  | 'conflict'
+  | 'resolved'
+  /** A command or a task failed; one it was waiting for went well, or stopped without a verdict. */
+  | 'failed'
+  | 'done'
+  | 'stopped'
+  /** Something has been running for a while: it sits down to wait for it. */
+  | 'waiting'
+  /** Errors or conflicts remain, and it frets about them; then none are left. Moods, not moments. */
+  | 'worry'
+  | 'atEase';
 
 export type Coat = 'red' | 'arctic' | 'silver' | 'fennec';
 
