@@ -146,6 +146,10 @@ export class Buddy {
     if (def.scriptedGaze) {
       return def.scriptedGaze(this);
     }
+    // Settled, with nothing else to watch, its eyes go with your scrolling.
+    if (def.calm && this.world.scroll !== 0 && !this.world.pointer) {
+      return { x: 0, y: this.world.scroll };
+    }
     const target = def.gazes || def.facesTarget ? this.focusTarget() : undefined;
     if (!target) {
       return undefined;

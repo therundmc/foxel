@@ -22,6 +22,7 @@ const VIEW_IDS: Record<Exclude<Position, 'editor'>, string> = {
   explorer: 'foxel.explorerView',
 };
 const INSTALLED_KEY = 'foxel.installedOn';
+const COMMIT_DAY_KEY = 'foxel.lastCommitDay';
 const SCENE_LABELS: Record<Scene, string> = {
   morning: 'Good morning',
   breakfast: 'Breakfast',
@@ -95,7 +96,17 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const watcher = new ActivityWatcher(react, readConfig, clock, trouble('errors'));
-  const work = new WorkWatcher(react, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0), () => watcher.typedAt);
+  // The first commit of your day is a bigger occasion than the ones after it.
+  const news = (reaction: Reaction): void => {
+    const today = dateKey(clock());
+    if (reaction === 'commit' && context.globalState.get<string>(COMMIT_DAY_KEY) !== today) {
+      void context.globalState.update(COMMIT_DAY_KEY, today);
+      react('firstCommit');
+    } else {
+      react(reaction);
+    }
+  };
+  const work = new WorkWatcher(news, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0), () => watcher.typedAt);
   void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);

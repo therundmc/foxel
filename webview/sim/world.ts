@@ -12,6 +12,9 @@ import { Bubbles } from './props/bubbles';
 import { Scenery } from './props/scenery';
 import { Treat } from './props/treat';
 
+/** How long its eyes stay on your scrolling after you stop. */
+const SCROLL_GLANCE_MS = 450;
+
 export interface WorldPoint {
   x: number;
   y: number;
@@ -36,6 +39,9 @@ export class World {
   readonly waterBowl = new Bowl();
   readonly basket = new Basket();
   readonly bubbles = new Bubbles();
+  /** Which way you are scrolling a file, for a moment after you do: up (-1), down (1), or not (0). */
+  scroll: -1 | 0 | 1 = 0;
+  private scrollMs = 0;
   readonly effects: Effect[] = [];
   /** Where the user's pointer is, while it is around. */
   pointer: WorldPoint | undefined;
@@ -58,6 +64,12 @@ export class World {
     return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
+  /** You scrolled: it shows for a moment. */
+  scrolled(way: -1 | 1): void {
+    this.scroll = way;
+    this.scrollMs = SCROLL_GLANCE_MS;
+  }
+
   setClock(now: Date, dayLife: boolean): void {
     this.now = now;
     this.dayLife = dayLife;
@@ -78,6 +90,10 @@ export class World {
     this.grass.update(dtMs);
     this.mouse.update(dt, this.width);
     this.scenery.update(dtMs);
+    this.scrollMs = Math.max(0, this.scrollMs - dtMs);
+    if (this.scrollMs === 0) {
+      this.scroll = 0;
+    }
     this.basket.update(dt);
     this.bubbles.update(dt, this.width, this.height, this.random);
     this.treat.update(dt, this.width);

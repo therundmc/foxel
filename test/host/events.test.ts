@@ -11,7 +11,7 @@ const editor = vi.hoisted(() => {
     return { dispose: () => undefined };
   };
   const doc = { uri: 'active' };
-  const state = { errors: 0 };
+  const state = { errors: 0, breakpoints: [] as unknown[] };
   return {
     doc,
     state,
@@ -26,8 +26,9 @@ const editor = vi.hoisted(() => {
         onDidChangeTextEditorSelection: on('selection'),
         onDidChangeActiveTextEditor: on('editor'),
         onDidChangeWindowState: on('window'),
+        onDidChangeTextEditorVisibleRanges: on('scroll'),
       },
-      debug: { onDidStartDebugSession: on('debug'), onDidTerminateDebugSession: on('debugEnd'), onDidChangeActiveStackItem: on('stack') },
+      debug: { breakpoints: state.breakpoints, onDidChangeBreakpoints: on('breakpoints'), onDidStartDebugSession: on('debug'), onDidTerminateDebugSession: on('debugEnd'), onDidChangeActiveStackItem: on('stack') },
       languages: {
         onDidChangeDiagnostics: on('diagnostics'),
         getDiagnostics: () => [['file', Array.from({ length: state.errors }, () => ({ severity: 0 }))]],
@@ -60,7 +61,7 @@ describe('ActivityWatcher', () => {
   });
 
   const pass = (ms: number): void => void vi.advanceTimersByTime(ms);
-  const type = (document = editor.doc): void => editor.fire('edit', { document, contentChanges: [{}] });
+  const type = (document = editor.doc): void => editor.fire('edit', { document, contentChanges: [{ text: 'a' }] });
   const errors = (n: number): void => {
     editor.state.errors = n;
     editor.fire('diagnostics');
@@ -129,11 +130,34 @@ describe('ActivityWatcher', () => {
 
   it('notices a great deal undone at once, a new file and one thrown away', () => {
     for (let i = 0; i < 8; i++) {
-      editor.fire('edit', { contentChanges: [{}], document: editor.doc, reason: 1 });
+      editor.fire('edit', { contentChanges: [{ text: 'a' }], document: editor.doc, reason: 1 });
     }
     editor.fire('created');
     editor.fire('deleted');
     expect(reactions.filter((r) => r !== 'typing')).toEqual(['undoSpree', 'newFile', 'goneFile']);
+  });
+
+  it('follows your scrolling, and gets dizzy when it is fast and long', () => {
+    const scrollTo = (line: number): void => editor.fire('scroll', { visibleRanges: [{ start: { line } }] });
+    scrollTo(10);
+    vi.advanceTimersByTime(300);
+    scrollTo(4);
+    expect(reactions).toEqual(['scrollDown', 'scrollUp']);
+    reactions.length = 0;
+    for (let line = 100; line < 100 + 20 * 40; line += 40) {
+      vi.advanceTimersByTime(250);
+      scrollTo(line);
+    }
+    expect(reactions).toContain('scrollSpree');
+  });
+
+  it('notices a breakpoint set, all of them cleared, and a great deal of text arriving at once', () => {
+    editor.state.breakpoints.push({});
+    editor.fire('breakpoints', { added: [{}], removed: [] });
+    editor.state.breakpoints.length = 0;
+    editor.fire('breakpoints', { added: [], removed: [{}] });
+    editor.fire('edit', { contentChanges: [{ text: 'one\ntwo\nthree\nfour\nfive\nsix\n' }], document: editor.doc });
+    expect(reactions.filter((r) => r !== 'typing')).toEqual(['breakpoint', 'breakpointsGone', 'paste']);
   });
 
   it('makes a reunion of your return after hours away, and a wave of a shorter absence', () => {
@@ -147,7 +171,7 @@ describe('ActivityWatcher', () => {
   });
 
   it('notices a long stretch of typing without a pause, and when it ends', () => {
-    const type = (): void => editor.fire('edit', { contentChanges: [{}], document: editor.doc });
+    const type = (): void => editor.fire('edit', { contentChanges: [{ text: 'a' }], document: editor.doc });
     for (let s = 0; s < 4 * 60; s += 5) {
       type();
       vi.advanceTimersByTime(5 * SECOND);

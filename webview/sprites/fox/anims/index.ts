@@ -7,6 +7,7 @@ import { flinchAnims } from './flinch';
 import { helperAnims } from './helper';
 import { hourglassAnims } from './hourglass';
 import { letterAnims } from './letter';
+import { parcelAnims } from './parcel';
 import { pebblesAnims } from './pebbles';
 import { tangleAnims } from './tangle';
 import { zoneAnims } from './zone';
@@ -29,4 +30,5 @@ export const WORK_ANIMATIONS = {
   ...detectiveAnims,
   ...zoneAnims,
   ...helperAnims,
+  ...parcelAnims,
 };

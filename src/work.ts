@@ -9,6 +9,9 @@ const CHECK_MS = 2000;
 const INTERRUPTED = 130;
 /** Keeps a burst of the same news from making it twitchy. */
 const COOLDOWN_MS: Partial<Record<Reaction, number>> = { commit: 3000, push: 3000, failed: 4000, done: 3000, pulled: 3000, branch: 3000 };
+/** Putting work aside in a stash, and taking it out again. */
+const STASH_OUT = /\bgit\s+stash\s+(pop|apply)\b/;
+const STASH_IN = /\bgit\s+stash(\s+(push|save|-\S+))*\s*$/;
 /** A command that starts one of these is an assistant at work in the terminal, not something to wait for. */
 const ASSISTANTS = /(^|[\s/])(claude|aider|codex|copilot|gemini|opencode|goose|cursor-agent)(\s|$)/;
 /** Files that change by themselves all the time: builds, dependencies, Git's own. */
@@ -93,7 +96,7 @@ export class WorkWatcher implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly standings = new Map<GitRepository, Standing>();
   /** What is running, since when, and whether the fox has sat down to wait for it. */
-  private readonly running = new Map<object, { since: number; awaited: boolean }>();
+  private readonly running = new Map<object, { since: number; awaited: boolean; line: string }>();
   private readonly lastEmitted = new Map<Reaction, number>();
   private readonly timer: ReturnType<typeof setInterval>;
   /** Assistants running in a terminal; the files of yours that changed lately; whether someone is helping. */
@@ -173,7 +176,7 @@ export class WorkWatcher implements vscode.Disposable {
       // It will write in your files for as long as it likes: that is watched for, not waited for.
       this.assistants.add(run);
     } else {
-      this.running.set(run, { since: Date.now(), awaited: false });
+      this.running.set(run, { since: Date.now(), awaited: false, line: commandLine.trim() });
     }
   }
 
@@ -210,6 +213,10 @@ export class WorkWatcher implements vscode.Disposable {
       }
     } else if (exitCode !== 0) {
       this.emit('failed');
+    } else if (was && STASH_OUT.test(was.line)) {
+      this.emit('unstash');
+    } else if (was && STASH_IN.test(was.line)) {
+      this.emit('stash');
     } else if (awaited) {
       this.emit('done');
     } else if (task) {

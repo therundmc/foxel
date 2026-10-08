@@ -20,11 +20,21 @@ const UNDO_SPREE = 8;
 const UNDO_SPREE_MS = 5000;
 /** Away from the window this long, coming back is a reunion. */
 const REUNION_AFTER_MS = 2 * 3_600_000;
+/** At most one glance at your scrolling this often; this many lines a second, kept up this long, makes it dizzy. */
+const SCROLL_GLANCE_MS = 200;
+const SCROLL_FAST = 60;
+const SCROLL_SPREE_MS = 3000;
+/** This many lines, or this many characters, arriving in one go is a paste. */
+const PASTE_LINES = 5;
+const PASTE_CHARS = 200;
 
 // Keeps frequent editor events from making the companion twitchy.
 const COOLDOWN_MS: Partial<Record<Reaction, number>> = {
   progress: 20_000,
   undoSpree: 20_000,
+  scrollSpree: 20_000,
+  paste: 10_000,
+  breakpoint: 3000,
   newFile: 8000,
   goneFile: 8000,
   notice: 6000,
@@ -46,6 +56,7 @@ export class ActivityWatcher implements vscode.Disposable {
   private streakSince = 0;
   private focused = false;
   private undos: number[] = [];
+  private scrolled = { line: 0, at: 0, fastSince: 0 };
   private lastBlur = 0;
   private errorCount = countErrors();
   private readonly lastEmitted = new Map<Reaction, number>();
@@ -73,6 +84,8 @@ export class ActivityWatcher implements vscode.Disposable {
       vscode.debug.onDidStartDebugSession(() => this.activity('debugging')),
       vscode.debug.onDidTerminateDebugSession(() => this.activity('debugDone')),
       vscode.languages.onDidChangeDiagnostics(() => this.onDiagnostics()),
+      vscode.window.onDidChangeTextEditorVisibleRanges((e) => this.onScroll(e.visibleRanges[0]?.start.line ?? 0)),
+      vscode.debug.onDidChangeBreakpoints((e) => this.onBreakpoints(e.added.length)),
       vscode.workspace.onDidCreateFiles(() => this.activity('newFile')),
       vscode.workspace.onDidDeleteFiles(() => this.activity('goneFile')),
     ];
@@ -125,6 +138,10 @@ export class ActivityWatcher implements vscode.Disposable {
         this.emit('undoSpree');
       }
     }
+    const arrived = e.reason === undefined ? e.contentChanges.reduce((most, change) => (change.text.length > most.length ? change.text : most), '') : '';
+    if (arrived.length >= PASTE_CHARS || arrived.split('\n').length > PASTE_LINES) {
+      this.emit('paste');
+    }
     if (now - this.lastKey > STREAK_GAP_MS) {
       this.streakSince = now;
     }
@@ -156,6 +173,34 @@ export class ActivityWatcher implements vscode.Disposable {
     this.troubled(this.trouble());
     if (this.config().reactToErrors && this.errorCount < previous && this.errorCount > 0) {
       this.activity('progress');
+    }
+  }
+
+  // Its eyes follow your scrolling, and a long fast scroll makes its head spin.
+  private onScroll(line: number): void {
+    const now = Date.now();
+    const { line: from, at } = this.scrolled;
+    const elapsed = now - at;
+    if (line === from || elapsed < SCROLL_GLANCE_MS) {
+      return;
+    }
+    const fast = at > 0 && (Math.abs(line - from) / elapsed) * 1000 >= SCROLL_FAST;
+    const fastSince = fast ? this.scrolled.fastSince || now : 0;
+    this.scrolled = { line, at: now, fastSince };
+    this.present();
+    if (fast && now - fastSince >= SCROLL_SPREE_MS) {
+      this.scrolled.fastSince = 0;
+      this.emit('scrollSpree');
+    } else {
+      this.react(line > from ? 'scrollDown' : 'scrollUp');
+    }
+  }
+
+  private onBreakpoints(added: number): void {
+    if (added > 0) {
+      this.activity('breakpoint');
+    } else if (vscode.debug.breakpoints.length === 0) {
+      this.activity('breakpointsGone');
     }
   }
 

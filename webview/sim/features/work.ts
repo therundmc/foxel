@@ -34,6 +34,8 @@ const LASTS_MS = 10 * MINUTE;
 const CLOUD_MS = 14_000;
 const CLOUD_GAP_MS = [30_000, 60_000] as const;
 const LANTERN_MS = [20_000, 40_000] as const;
+/** From this hour on, a commit is followed by a yawn. */
+const LATE_HOUR = 21;
 const TADA: Step = { anim: 'tada', hop: { at: 250, air: 400, height: 5 } };
 
 /** How each scene is brought to a close when something else comes up: the accessory goes away, it does not vanish. */
@@ -61,6 +63,8 @@ export class WorkMemory {
   cloudInMs = 0;
   /** Failures in a row. */
   failures = 0;
+  /** What it does once its script is over, when not just whatever comes next. */
+  after: BuddyState | undefined;
   /** What it is playing: the steps, which one, and for how long. */
   steps: readonly Step[] = [];
   at = 0;
@@ -121,7 +125,23 @@ export const WORK = {
   commit(b: Buddy): void {
     b.work.failures = 0;
     then(b, [once('plantFlag')]);
+    // Late in the evening, that was enough for today.
+    b.work.after = b.world.now.getHours() >= LATE_HOUR ? 'yawn' : undefined;
   },
+  firstCommit(b: Buddy): void {
+    b.work.failures = 0;
+    then(b, [once('plantFlag'), TADA]);
+  },
+  // Work put aside is a bone buried; taken out again, a bone dug up and something to be proud of.
+  stash: (b: Buddy): void => then(b, [once('dig')]),
+  unstash: (b: Buddy): void => then(b, [once('dig'), once('proud'), once('proud')]),
+  scrollUp: (b: Buddy): void => b.world.scrolled(-1),
+  scrollDown: (b: Buddy): void => b.world.scrolled(1),
+  scrollSpree: (b: Buddy): void => briefly(b, 'dizzy'),
+  // A breakpoint is a spot marked with a paw; when they are all gone, it tidies up.
+  breakpoint: (b: Buddy): void => then(b, [once('bat')]),
+  breakpointsGone: (b: Buddy): void => then(b, [once('shove')]),
+  paste: (b: Buddy): void => then(b, [once('catchParcel')]),
   push: (b: Buddy): void => then(b, [once('sendLetter')]),
   conflict(b: Buddy): void {
     b.work.conflict = true;
@@ -243,7 +263,9 @@ function updateActing(b: Buddy, dt: number, dtMs: number): void {
   }
   if (!step) {
     b.y = 0;
-    b.enterNext(b.pickNext());
+    const after = m.after;
+    m.after = undefined;
+    b.enterNext(after ?? b.pickNext());
     return;
   }
   const hop = step.hop;

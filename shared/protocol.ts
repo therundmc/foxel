@@ -51,7 +51,20 @@ export type Reaction =
   | 'newFile'
   | 'goneFile'
   /** You are back after hours away. */
-  | 'reunion';
+  | 'reunion'
+  /** The first commit of your day; work put aside in a stash, and taken out again. */
+  | 'firstCommit'
+  | 'stash'
+  | 'unstash'
+  /** You scroll through a file, up or down; and you have been at it, fast, for a while. */
+  | 'scrollUp'
+  | 'scrollDown'
+  | 'scrollSpree'
+  /** You set a breakpoint; you have cleared them all. */
+  | 'breakpoint'
+  | 'breakpointsGone'
+  /** A great deal of text arrived at once. */
+  | 'paste';
 
 export type Coat = 'red' | 'arctic' | 'silver' | 'fennec';
 

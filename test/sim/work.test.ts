@@ -174,6 +174,34 @@ describe('following your work', () => {
     expect(state('reunion')).toBe('love');
   });
 
+  it('makes more of the first commit of the day, and yawns after one late in the evening', () => {
+    expect(after('firstCommit', 8000).slice(0, 2)).toEqual(['plantFlag', 'tada']);
+    const late = fox(22);
+    react(late, 'commit');
+    simulate(late, 8000, () => late.state !== 'acting');
+    expect(late.state).toBe('yawn');
+  });
+
+  it('buries a bone for a stash and digs it up again, marks a breakpoint, and catches a parcel for a paste', () => {
+    expect(after('stash', 6000)[0]).toBe('dig');
+    expect(after('unstash', 8000).slice(0, 2)).toEqual(['dig', 'proud']);
+    expect(after('breakpoint', 3000)[0]).toBe('bat');
+    expect(after('breakpointsGone', 3000)[0]).toBe('shove');
+    expect(after('paste', 4000)[0]).toBe('catchParcel');
+  });
+
+  it('follows your scrolling with its eyes for a moment, and a long fast scroll makes it dizzy', () => {
+    const b = fox();
+    react(b, 'scrollDown');
+    expect(b.gaze({ x: 0, y: 0 })).toEqual({ x: 0, y: 1 });
+    react(b, 'scrollUp');
+    expect(b.gaze({ x: 0, y: 0 })).toEqual({ x: 0, y: -1 });
+    simulate(b, 600);
+    expect(b.gaze({ x: 0, y: 0 })).toBeUndefined();
+    react(b, 'scrollSpree');
+    expect(b.state).toBe('dizzy');
+  });
+
   it('leaves a sleeping fox alone', () => {
     const b = fox();
     react(b, 'sleep');

@@ -185,6 +185,20 @@ describe('following your work', () => {
     expect(reactions).toEqual(['waiting', 'done', 'waiting', 'stopped']);
   });
 
+  it('knows work put aside in a stash, and taken out again', () => {
+    const run = (line: string, exitCode = 0): void => {
+      const execution = { commandLine: { value: line } };
+      editor.fire('commandStart', { execution });
+      editor.fire('commandEnd', { execution, exitCode });
+    };
+    run('git stash');
+    run('git stash list');
+    vi.advanceTimersByTime(5 * SECOND);
+    run('git stash pop');
+    run('git stash -u', 1);
+    expect(reactions).toEqual(['stash', 'unstash', 'failed']);
+  });
+
   it('cheers a task that went well, and does not wait for one that runs in the background', () => {
     const task = { task: { isBackground: false } };
     editor.fire('taskStart', { execution: task });
