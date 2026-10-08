@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- It follows your work, not just your typing (`foxel.reactToWork`). A commit and it plants a little flag, made more of for the first one of the day. A push and a bird flies the letter away. A merge conflict and it gets tangled in yarn, until you are out of it.
+- When things go wrong: a command or task that fails makes it flinch, and three in a row send it under a cardboard box. Something that takes long gets an hourglass turned over, then a pile of pebbles stacked while it waits.
+- Errors that remain bring a little rain cloud over its head, a heavier one when there are many, and it clears up and cheers when they are all fixed. This replaces the old panic on new errors (`foxel.reactToErrors`).
+- Debugging: out comes the magnifying glass, and it marks your breakpoints. A long stretch of focused typing gets its headband on.
+- When an assistant writes your code, it puts its glasses on and supervises.
+- And the smaller things: it notices commits coming in, a change of branch, an undo spree, new and deleted files, a big paste (a parcel to catch), your scrolling, a stash (it buries a bone, and digs it up again) and your coming back after hours away.
+- Like everything else, none of this reads what is in your files: it only listens to editor events and the names of a few commands.
+
 ## 1.2.2
 
 - A place of its own: set `foxel.position` to `editor` and the fox lives in a strip across the bottom of the editor area, under your files, which stays in sight whatever the panel is showing. Its group takes no files, and its buttons are in the editor title bar.
