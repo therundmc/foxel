@@ -8,24 +8,21 @@
 
 ![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak, then dozing off again](media/readme/foxel.gif)
 
-You type a prompt, then watch a spinner. Foxel is a better use of those three minutes: a small fox that gets bored, hungry and sleepy, roughly in that order, and expects you to do something about it. Mostly, play.
+You used to write code. Now you write a prompt and watch a spinner. Foxel won't give you your career back, but it does give you something to do with those three minutes: a small fox that gets bored, hungry and sleepy, roughly in that order, and has made it your problem.
 
-No score, no streak, no notifications. It's a pet, not a productivity tool. Nobody is measuring anything.
+No score, no streak, no notifications. Nobody is measuring anything, which makes it the only thing in your editor that isn't.
 
-## It follows your work
+## It has a life
 
-- **You commit**: it plants a flag. Everest, `fix typo`, same ceremony.
-- **Your build drags on**: it turns an hourglass over, then starts stacking pebbles.
-- **Three failures in a row**: it hides in a cardboard box. Reasonable.
-- **An AI writes your code**: glasses on, it supervises. Someone has to.
-
-That's the short list. The long one you'll have to find yourself.
+- **Needs.** Food, sleep, a ball thrown now and then. Not unreasonable.
+- **Moods.** They depend on how you treat it. No pressure.
+- **Opinions about your work.** Commit and it plants a flag. Fail three builds and it hides in a box. Let an AI write the code and it puts its glasses on to supervise. Someone has to.
+- **A home of its choosing.** The bottom panel, the side bar, or a strip of its own under your editor, out of the terminal's way.
+- **Secrets.** Some things it does once in a blue moon. You'll probably miss them. Most people do.
 
 ## Simple, for about a day
 
-Then it starts doing things you haven't seen: new habits, moods that depend on how you treat it, and a few moments so rare you'll doubt you saw them. Every day turns up something.
-
-And this is only chapter one. It will grow up, meet others, have good days and bad ones, and one day it may well leave. Plan accordingly.
+Then it starts doing things you haven't seen, and doesn't stop. And this is only chapter one: it will grow up, meet others, have good days and bad ones, and one day it may well leave. Like everything else. Plan accordingly.
 
 ## Install
 
