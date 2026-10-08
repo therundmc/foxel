@@ -1,6 +1,6 @@
 # Foxel
 
-**The agent writes the code now. Your job is the fox.**
+**AI does your job now. Your new job is the fox.**
 
 [![Install from the Marketplace](https://img.shields.io/badge/Install-VS%20Code%20Marketplace-e8873a?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
 [![Version](https://img.shields.io/visual-studio-marketplace/v/anca.foxel?label=version&color=6b4a3a)](https://marketplace.visualstudio.com/items?itemName=anca.foxel)
@@ -8,15 +8,15 @@
 
 ![The fox asleep, waking, begging by its bowl and eating, under a little rain cloud, supervising with its glasses on, chasing soap bubbles, sitting down to watch a great snowy peak, then dozing off again](media/readme/foxel.gif)
 
-You used to write code. Now you write a prompt and watch a spinner. Foxel won't give you your career back, but it does give you something to do with those three minutes: a small fox that gets bored, hungry and sleepy, roughly in that order, and has made it your problem.
+You used to write code. Now you write a prompt and watch a spinner. Foxel won't give you your career back, but it does give your day a purpose again: a small fox that gets bored, hungry and sleepy, roughly in that order, and has made it your problem.
 
 No score, no streak, no notifications. Nobody is measuring anything, which makes it the only thing in your editor that isn't.
 
 ## It has a life
 
-- **Needs.** Food, sleep, a ball thrown now and then. Not unreasonable.
+- **Needs.** Food, a ball thrown now and then, and naps whenever it likes. Gen Z calls that boundaries.
 - **Moods.** They depend on how you treat it. No pressure.
-- **Opinions about your work.** Commit and it plants a flag. Fail three builds and it hides in a box. Let an AI write the code and it puts its glasses on to supervise. Someone has to.
+- **Opinions about your work.** Commit and it plants a flag. Fail three builds and it hides in a box. Let an AI write the code and it puts its glasses on to supervise. Someone has to, and it's no longer you.
 - **A home of its choosing.** The bottom panel, the side bar, or a strip of its own under your editor, out of the terminal's way.
 - **Secrets.** Some things it does once in a blue moon. You'll probably miss them. Most people do.
 
