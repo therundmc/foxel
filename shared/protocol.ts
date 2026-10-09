@@ -101,6 +101,8 @@ export interface BuddyMemory {
   lastVista?: Vista;
   /** Whether a mouse has made friends with it. */
   mouseFriend: boolean;
+  /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
+  toys?: Partial<Record<'ball' | 'teddy' | 'duck', number>>;
 }
 
 export const SCENES = [

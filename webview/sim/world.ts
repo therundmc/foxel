@@ -111,8 +111,8 @@ export class World {
     this.waterBowl.update(dtMs);
     // A toy that is out in the view is not in the chest.
     const { teddy, duck } = this.plushes;
-    teddy.update(dt, this.width);
-    duck.update(dt, this.width);
+    teddy.update(dt, this.width, this.height);
+    duck.update(dt, this.width, this.height);
     this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     // A pointer busy with the chest or the shelf is not there for the fox: it does not come to it, or ask it for a stroke.

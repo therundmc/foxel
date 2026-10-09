@@ -1,6 +1,5 @@
 import type { Greeting } from '../../../shared/protocol';
 import { PEEK_DUCK_MS, PEEK_HAPPY_MS, PEEK_LOOK_MS, PEEK_RETURN_MS } from '../../sprites/fox/animations';
-import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Feature, Gaze } from '../state';
 import { REACTION_MS } from './reactions';
@@ -28,11 +27,10 @@ export class IntroMemory {
   greeted: Partial<Record<Greeting, number>> = {};
 }
 
-/** First appearance: pokes its head in from an edge, looks around, then trots in to say hello. */
+/** First appearance: pokes its head in from the left edge (its chest and its shelf are on the right), looks around, then trots in to say hello. */
 export function startIntro(b: Buddy): void {
-  const fromLeft = b.world.random() < 0.5;
-  b.dir = fromLeft ? 1 : -1;
-  b.intro.peekX = fromLeft ? -PEEK_HIDDEN : b.world.width - SPRITE_SIZE + PEEK_HIDDEN;
+  b.dir = 1;
+  b.intro.peekX = -PEEK_HIDDEN;
   b.x = b.intro.peekX;
   b.intro.targetX = b.maxX * (0.25 + 0.5 * b.world.random());
   b.placed = true;

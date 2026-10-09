@@ -118,6 +118,16 @@ export const ANIMATIONS = {
   shoveCarry: anim(withBall(SHOVE)),
   rummage: anim(RUMMAGE),
   rummageCarry: anim(withBall(RUMMAGE)),
+  // A soft toy in its mouth: shaking it from side to side, then crouching and flinging it up, and watching it go.
+  toyShake: anim([
+    [{ head: [-2, 0], eye: 'closed', ears: 'back', tail: 'wagL' }, 80],
+    [{ head: [2, 1], eye: 'closed', ears: 'back', tail: 'wagR' }, 80],
+  ]),
+  toyToss: anim([
+    [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 180],
+    [{ head: [0, -3], eye: 'up', mouth: 'open', tail: 'up' }, 140],
+    [{ head: [0, -2], eye: 'up', mouth: 'open', tail: 'wagL' }, 180],
+  ]),
   // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
   tug: anim([
     [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],

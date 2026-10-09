@@ -32,6 +32,42 @@ describe('memory', () => {
     expect(after.visitors.mouseFriend).toBe(true);
   });
 
+  it('finds its toys where they were left when the view is opened again the same day', () => {
+    const before = fox();
+    before.world.ball.place(200, 0, 300, 60);
+    before.world.ball.launch(0, 0);
+    before.world.plushes.teddy.rest(60, 300);
+    before.world.plushes.duck.hold(100, 30, 300, 60);
+    simulate(before, 100);
+    const memory = remember(before, noon.getTime());
+    // A toy in your hand is not lying anywhere.
+    expect(memory.toys).toEqual({ ball: Math.round(before.world.ball.x), teddy: 60 });
+    expect(sameMemory(memory, remember(before, noon.getTime() + 1000))).toBe(true);
+    before.world.plushes.teddy.rest(90, 300);
+    simulate(before, 100);
+    expect(sameMemory(memory, remember(before, noon.getTime()))).toBe(false);
+
+    const after = fox();
+    recall(after, memory, noon.getTime() + 3 * 60 * MINUTE);
+    expect(after.world.ball.state).toBe('free');
+    expect(after.world.ball.x).toBe(memory.toys?.ball);
+    expect(after.world.plushes.teddy.landed).toBe(true);
+    expect(after.world.plushes.teddy.x).toBe(60);
+    expect(after.world.plushes.duck.state).toBe('none');
+    simulate(after, 500);
+    expect(after.world.ball.x).toBe(memory.toys?.ball);
+    expect(after.world.chest.holds).toEqual({ ball: false, treat: true, teddy: false, duck: true });
+
+    // By the next day everything is back in the chest.
+    const tomorrow = fox();
+    recall(tomorrow, memory, noon.getTime() + 24 * 60 * MINUTE);
+    expect(tomorrow.world.ball.state).toBe('none');
+    expect(tomorrow.world.plushes.teddy.state).toBe('none');
+    // And a memory from before toys were kept is still read.
+    recall(tomorrow, { ...memory, toys: undefined }, noon.getTime());
+    expect(tomorrow.world.plushes.teddy.state).toBe('none');
+  });
+
   it('is still hungry in a new view, and hungrier for the time spent away', () => {
     const before = fox();
     react(before, 'hungry');

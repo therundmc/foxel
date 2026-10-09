@@ -36,9 +36,6 @@ interface Draggable {
   release(p: WorldPoint, v: WorldPoint): void;
 }
 
-/** A soft toy lets go of gently: it drops with a little of the hand's speed. */
-const PLUSH_TOSS = 0.5;
-
 // Everything in the chest can be held. Checked in this order when two of them overlap; a new toy only needs an entry here.
 function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
   const { ball, treat } = world;
@@ -48,7 +45,7 @@ function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
     grab: (p) => holdPlush(buddy, kind, p.x, p.y),
     take: (p) => holdPlush(buddy, kind, p.x, p.y),
     move: (p) => holdPlush(buddy, kind, p.x, p.y),
-    release: (_, v) => tossPlush(buddy, kind, v.x * PLUSH_TOSS, v.y * PLUSH_TOSS),
+    release: (_, v) => tossPlush(buddy, kind, v.x, v.y),
     stow: () => stowPlush(buddy, kind),
   });
   return {

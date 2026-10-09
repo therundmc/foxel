@@ -4,14 +4,15 @@ import type { AnimName } from '../../webview/sprites/fox/animations';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('intro', () => {
-  for (const [side, random] of [['left', 0.2], ['right', 0.8]] as const) {
-    it(`peeks its head in from the ${side}, looks around, then trots in and says hello`, () => {
+  for (const random of [0.2, 0.8]) {
+    it(`always peeks its head in from the left, looks around, then trots in and says hello (${random})`, () => {
       const b = spawn(fixed(random));
       b.world.resize(300, 60);
       startIntro(b);
       expect(b.state).toBe('intro');
       expect(b.current().anim).toBe('peek');
-      const headOnScreen = side === 'left' ? b.x + 32 : 300 - b.x;
+      const headOnScreen = b.x + 32;
+      expect(b.dir).toBe(1);
       expect(headOnScreen).toBeGreaterThan(10);
       expect(headOnScreen).toBeLessThan(20);
       const glances = new Set<string>();

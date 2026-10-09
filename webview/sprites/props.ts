@@ -170,13 +170,20 @@ export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([
 /** The tile of a thing that is not in the chest right now. */
 export const CHEST_TILE_EMPTY: Glyph = tile();
 
-// The little shelf on the wall, top right: a board on a bracket, and on it what is not a toy.
+// The little shelf on the wall, top right: a plank with a lit edge on two brackets, and on it what is not a toy.
 export type ShelfItem = 'meal' | 'bubbles';
-export const SHELF: Glyph = outlined(['TTTTTTTTTTTTTTTTTTTTTT', 'tttttttttttttttttttttt', '...............tt.....', '................tt....']);
-/** A bag of kibble, and a bottle of soap with its wand: each stands on the board, this far from its left end. */
+export const SHELF: Glyph = outlined([
+  '.hhhhhhhhhhhhhhhhhhhhhhh',
+  'TTTTTTTTTTTTTTTTTTTTTTTT',
+  '.ttttttttttttttttttttttt',
+  '......kkk........kkk....',
+  '.......kk.........kk....',
+  '........k..........k....',
+]);
+/** A paper bag of kibble with its top rolled down, and a bottle of soap with its wand in it: each stands on the plank, this far from its left end. */
 export const SHELF_ITEMS: Record<ShelfItem, { glyph: Glyph; x: number }> = {
-  meal: { glyph: outlined(['.AAAA.', 'aaaaaa', 'AAAAAA', 'AccccA', 'AckkcA', 'AccccA', 'AAAAAA', 'aaaaaa']), x: 3 },
-  bubbles: { glyph: outlined(['.CCC.', '.CwC.', '.CCC.', '.WWW.', 'UUUUU', 'UwUUU', 'UwUUU', 'uuuuu']), x: 13 },
+  meal: { glyph: outlined(['.aaaaa.', 'AAAAAAA', 'ArAAAAA', 'AcccccA', 'AcckccA', 'AckkkcA', 'AcccccA', 'AAAAAAA', 'aaaaaaa']), x: 3 },
+  bubbles: { glyph: outlined(['.CCC.', '.CwC.', '.CCC.', '..Q..', '.WWW.', 'CCCCC', 'CwUUU', 'CwUUU', 'CUUUU', 'uuuuu']), x: 15 },
 };
 export const SHELF_W = SHELF[0].length;
 /** How high the board and its bracket are, and how high the tallest thing on it stands above the board. */

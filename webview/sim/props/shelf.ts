@@ -8,9 +8,20 @@ const CALL = 8;
 /** How long the pointer has to be there before it comes, and how long it may lie still before it goes. */
 const DWELL_MS = 250;
 const IDLE_MS = 4000;
-/** How quickly it slides in and out: the share of the way left that it covers in a second. */
-const SLIDE = 10;
-const CLOSE_ENOUGH = 0.4;
+/** It slides at a steady pace and stops short: that is what sets the things on it swaying. */
+const SPEED = 90;
+/**
+ * How each thing on it answers a jolt: how far it is thrown for the speed gained or lost, how fast it swings back
+ * (radians a second) and how soon it settles. The bag is heavy and squat, the bottle tall and light.
+ */
+const SWAY: Record<ShelfItem, { thrown: number; swing: number; settles: number }> = {
+  meal: { thrown: 0.3, swing: 26, settles: 8 },
+  bubbles: { thrown: 0.36, swing: 20, settles: 3.2 },
+};
+/** A thing used is knocked a little, too. */
+const KNOCK = 34;
+/** Under this it has stopped swaying. */
+const STILL = 0.06;
 /** How far from a thing on it the pointer still counts as on it, and how long a thing stays pushed down once taken. */
 const REACH = 1;
 const PRESS_MS = 160;
@@ -36,6 +47,9 @@ export class Shelf {
   private aroundMs = 0;
   private stillMs = 0;
   private pressMs = 0;
+  private speed = 0;
+  /** How far the top of each thing leans (in sprite pixels, to the right when positive), and how fast that is changing. */
+  private readonly lean: Record<ShelfItem, { at: number; speed: number }> = { meal: { at: 0, speed: 0 }, bubbles: { at: 0, speed: 0 } };
 
   /** Out at its place, its things within reach. */
   get here(): boolean {
@@ -43,7 +57,7 @@ export class Shelf {
   }
 
   get moving(): boolean {
-    return this.x !== (this.asked ? this.out : this.away) || this.pressed !== undefined;
+    return this.x !== (this.asked ? this.out : this.away) || this.pressed !== undefined || Object.values(this.lean).some((lean) => lean.at !== 0 || lean.speed !== 0);
   }
 
   place(worldWidth: number, worldHeight: number): void {
@@ -72,10 +86,17 @@ export class Shelf {
     return this.here ? (Object.keys(SHELF_ITEMS) as ShelfItem[]).find((item) => within(this.slot(item), x, y, REACH)) : undefined;
   }
 
-  /** A thing on it was used: it dips for a moment. */
+  /** By how many pixels the top of a thing leans right now: thrown back as the shelf sets off, forward as it stops, then swaying to rest. */
+  sway(item: ShelfItem): -1 | 0 | 1 {
+    const at = this.lean[item].at;
+    return at >= 0.5 ? 1 : at <= -0.5 ? -1 : 0;
+  }
+
+  /** A thing on it was used: it dips for a moment, and wobbles. */
   press(item: ShelfItem): void {
     this.pressed = item;
     this.pressMs = PRESS_MS;
+    this.lean[item].speed += KNOCK;
   }
 
   /** `free` is false while the pointer is busy with something else that comes out of the wall. */
@@ -87,11 +108,32 @@ export class Shelf {
     this.stillMs += dtMs;
     const on = near && at !== undefined && within(whole, at.x, at.y, REACH);
     this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || on);
-    const left = (this.asked ? this.out : this.away) - this.x;
-    this.x = Math.abs(left) < CLOSE_ENOUGH ? this.x + left : this.x + left * Math.min(1, (SLIDE * dtMs) / 1000);
+    const dt = dtMs / 1000;
+    const target = this.asked ? this.out : this.away;
+    const left = target - this.x;
+    const moved = Math.sign(left) * Math.min(Math.abs(left), SPEED * dt);
+    this.x = Math.abs(left) <= SPEED * dt ? target : this.x + moved;
+    this.swing(dt, dt > 0 ? moved / dt : 0);
     this.pressMs = Math.max(0, this.pressMs - dtMs);
     if (this.pressMs === 0) {
       this.pressed = undefined;
+    }
+  }
+
+  // Each thing is a weight on a spring: a change in the shelf's speed throws it the other way, and it swings back to rest.
+  private swing(dt: number, speed: number): void {
+    const jolt = speed - this.speed;
+    this.speed = speed;
+    for (const item of Object.keys(SWAY) as ShelfItem[]) {
+      const { thrown, swing, settles } = SWAY[item];
+      const lean = this.lean[item];
+      lean.speed -= jolt * thrown;
+      lean.speed += (-swing * swing * lean.at - 2 * settles * lean.speed) * dt;
+      lean.at += lean.speed * dt;
+      if (Math.abs(lean.at) < STILL && Math.abs(lean.speed) < STILL * swing) {
+        lean.at = 0;
+        lean.speed = 0;
+      }
     }
   }
 }

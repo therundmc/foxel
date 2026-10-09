@@ -62,6 +62,39 @@ describe('the shelf', () => {
     expect(shelf.slot('bubbles').y).toBe(before);
   });
 
+  it('sets its things swaying as it slides out and stops short, the tall bottle more and for longer than the bag', () => {
+    const { b, shelf } = scene();
+    const leans: Record<'meal' | 'bubbles', number[]> = { meal: [], bubbles: [] };
+    const watch = (ms: number): void => {
+      simulate(b, ms, () => {
+        for (const item of ['meal', 'bubbles'] as const) {
+          const lean = shelf.sway(item);
+          if (lean !== leans[item][leans[item].length - 1]) {
+            leans[item].push(lean);
+          }
+        }
+      });
+    };
+    shelf.point({ x: 150, y: 60 });
+    watch(3000);
+    expect(shelf.here).toBe(true);
+    // Thrown back toward the wall as it sets off to the left, forward as it stops, then back and forth to rest.
+    expect(leans.bubbles.slice(0, 4)).toEqual([0, 1, 0, -1]);
+    expect(leans.bubbles.filter((lean) => lean !== 0).length).toBeGreaterThanOrEqual(3);
+    expect(leans.meal.filter((lean) => lean !== 0).length).toBeGreaterThanOrEqual(1);
+    expect(leans.meal.length).toBeLessThan(leans.bubbles.length);
+    expect(leans.bubbles[leans.bubbles.length - 1]).toBe(0);
+    expect(shelf.moving).toBe(false);
+
+    // Used, a thing wobbles a little by itself.
+    leans.meal.length = 0;
+    shelf.press('meal');
+    watch(1000);
+    expect(leans.meal).toContain(1);
+    expect(shelf.sway('meal')).toBe(0);
+    expect(shelf.moving).toBe(false);
+  });
+
   it('stays in when the pointer is busy with the chest, and neither brings the fox over', () => {
     const { b, shelf, chest, point } = scene();
     b.world.resize(160, 40);

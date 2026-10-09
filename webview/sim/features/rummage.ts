@@ -1,12 +1,15 @@
 import { ANIMATIONS } from '../../sprites/fox/animations';
 import { totalDuration } from '../../sprites/frames';
+import type { PlushKind } from '../../sprites/props';
 import type { Buddy } from '../buddy';
 import { clamp } from '../math';
 import { LID_BACK } from '../props/chest';
-import type { AnimRef, BuddyState, Feature } from '../state';
+import type { Plush } from '../props/plush';
+import { urge, type AnimRef, type BuddyState, type Feature } from '../state';
 import { ASK_BREAK_MS, FETCH_FAR, FETCH_RUN_SPEED } from '../tuning';
 import { carrying, dropBall } from './fetch';
 import { startPlay } from './play';
+import { carryInMouth } from './plush';
 
 /** How far past the chest's near edge its nose goes. */
 const NOSE_IN = 5;
@@ -23,14 +26,19 @@ const TROT_SPEED = 16;
 /** How far from its chest it takes its ball to play, at least and at most. */
 const PLAY_NEAR = 24;
 const PLAY_FAR = 70;
+/** A soft toy left lying this long may be tidied when it thinks of its chest; left this long, it goes and tidies it. */
+const TIDY_MAYBE_MS = 60_000;
+const TIDY_MS = 5 * 60_000;
 /** A view narrower than this has no room for it beside its chest. */
 const ROOM = 80;
 
-type Step = 'reach' | 'haul' | 'open' | 'dip' | 'shut' | 'push' | 'back';
+type Step = 'pick' | 'reach' | 'haul' | 'open' | 'dip' | 'shut' | 'push' | 'back';
 
 export class RummageMemory {
-  /** Why it went to its chest: to take its ball out, or to put it away. */
-  errand: 'fetch' | 'return' = 'fetch';
+  /** Why it went to its chest: to take its ball out, to put it away, or to put away a soft toy left lying. */
+  errand: 'fetch' | 'return' | 'tidy' = 'fetch';
+  /** The soft toy it is tidying. */
+  toy: PlushKind = 'teddy';
   step: Step = 'reach';
   stepMs = 0;
   /** Where it trots to with its ball before it plays. */
@@ -52,6 +60,23 @@ export function startRummage(b: Buddy, errand: 'fetch' | 'return'): void {
   step(b, 'reach');
   b.enter('rummage', Infinity);
 }
+
+/** Picks up a soft toy that is lying about and puts it away in its chest. */
+export function startTidy(b: Buddy, toy: PlushKind): void {
+  b.rummage.errand = 'tidy';
+  b.rummage.toy = toy;
+  step(b, 'pick');
+  b.enter('rummage', Infinity);
+}
+
+/** A soft toy that has been lying about for at least this long, the one left longest first. */
+function leftLying(b: Buddy, ms: number): Plush | undefined {
+  return Object.values(b.world.plushes)
+    .filter((toy) => toy.landed && toy.lainMs >= ms)
+    .sort((one, other) => other.lainMs - one.lainMs)[0];
+}
+
+const roomy = (b: Buddy): boolean => b.world.width >= ROOM;
 
 function step(b: Buddy, to: Step): void {
   b.rummage.step = to;
@@ -89,14 +114,31 @@ function updateRummage(b: Buddy, dt: number, dtMs: number): void {
   b.moving = false;
   b.fall(dt);
   m.stepMs += dtMs;
-  // You were quicker: the ball it came for is already out, or the one it brought was taken from it.
-  const has = ball.state === 'mouth';
-  if (m.step !== 'back' && m.step !== 'push' && m.step !== 'shut' && has !== (m.errand === 'return') && !(m.step === 'dip' && m.stepMs >= TAKE_AT)) {
+  const toy = b.world.plushes[m.toy];
+  const has = ball.state === 'mouth' || toy.state === 'carried';
+  // You were quicker: what it came for is already out, or what it was bringing is no longer its to bring.
+  const settled = m.step === 'back' || m.step === 'push' || m.step === 'shut' || (m.step === 'dip' && m.stepMs >= TAKE_AT);
+  const asPlanned = m.errand === 'tidy' ? (m.step === 'pick' ? toy.landed : toy.state === 'carried') : (ball.state === 'mouth') === (m.errand === 'return');
+  if (!settled && !asPlanned) {
     chest.letGo();
     b.enterNext('sit');
     return;
   }
+  if (toy.state === 'carried') {
+    carryInMouth(b, toy);
+  }
   switch (m.step) {
+    case 'pick': {
+      const target = b.noseTargetFor(toy.center);
+      b.running = Math.abs(target - b.x) > FETCH_FAR;
+      if (b.approach(target, (b.running ? FETCH_RUN_SPEED : TROT_SPEED) * dt)) {
+        b.moving = true;
+      } else {
+        carryInMouth(b, toy);
+        step(b, 'reach');
+      }
+      break;
+    }
     case 'reach':
       b.running = !has && Math.abs(beside(b) - b.x) > FETCH_FAR;
       if (b.walkTo(beside(b), 1, (b.running ? FETCH_RUN_SPEED : TROT_SPEED) * dt)) {
@@ -122,7 +164,11 @@ function updateRummage(b: Buddy, dt: number, dtMs: number): void {
       break;
     case 'dip':
       if (passed(TAKE_AT)) {
-        ball.state = m.errand === 'fetch' ? 'mouth' : 'none';
+        if (m.errand === 'tidy') {
+          toy.state = 'none';
+        } else {
+          ball.state = m.errand === 'fetch' ? 'mouth' : 'none';
+        }
       }
       if (m.stepMs >= DIP_MS) {
         chest.lift(false);
@@ -172,7 +218,7 @@ function rummageAnim(b: Buddy): AnimRef {
     case 'push':
       return { anim: ball ? 'shoveCarry' : 'shove', elapsed: m.stepMs };
     default:
-      return m.step === 'reach' && b.running ? { anim: 'run', elapsed: b.elapsed } : carrying(b);
+      return (m.step === 'reach' || m.step === 'pick') && b.running ? { anim: 'run', elapsed: b.elapsed } : carrying(b);
   }
 }
 
@@ -182,9 +228,14 @@ export const rummageFeature = {
     rummage: {
       nightDamped: true,
       ballFocus: true,
-      available: (b) => b.world.width >= ROOM,
+      available: roomy,
       begin(b) {
-        startErrand(b);
+        const left = leftLying(b, TIDY_MAYBE_MS);
+        if (left) {
+          startTidy(b, left.kind);
+        } else {
+          startErrand(b);
+        }
         const started: BuddyState = b.state;
         if (started !== 'rummage' && started !== 'play') {
           b.enter('idle', b.ambientDuration('idle'));
@@ -194,10 +245,13 @@ export const rummageFeature = {
       anim: rummageAnim,
     },
   },
-  // Called away from its chest: it lets go of it, and the chest goes back out by itself.
+  // A soft toy left lying long enough, it tidies of its own accord.
+  urges: [urge((b) => roomy(b) && leftLying(b, TIDY_MS) !== undefined, (b) => startTidy(b, leftLying(b, TIDY_MS)?.kind ?? 'teddy'))],
+  // Called away from its chest: it lets go of it, and of what it was carrying, and the chest goes back out by itself.
   interrupted(b) {
     if (b.state === 'rummage') {
       b.world.chest.letGo();
+      Object.values(b.world.plushes).forEach((toy) => toy.state === 'carried' && toy.toss(0, 0));
     }
   },
 } satisfies Feature;
