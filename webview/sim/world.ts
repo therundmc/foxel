@@ -5,6 +5,7 @@ import { Ball } from './props/ball';
 import { Bird } from './props/bird';
 import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
+import { knockTogether } from './props/bump';
 import { Chest } from './props/chest';
 import { Grass } from './props/grass';
 import { Mouse } from './props/mouse';
@@ -113,6 +114,7 @@ export class World {
     const { teddy, duck } = this.plushes;
     teddy.update(dt, this.width, this.height);
     duck.update(dt, this.width, this.height);
+    knockTogether([teddy, duck], this.ball);
     this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     // A pointer busy with the chest or the shelf is not there for the fox: it does not come to it, or ask it for a stroke.

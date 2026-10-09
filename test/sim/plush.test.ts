@@ -62,6 +62,52 @@ describe('a soft toy thrown about', () => {
   });
 });
 
+describe('toys that knock into each other', () => {
+  it('sends off a soft toy, or the ball, that another one is thrown at', () => {
+    const b = spawn(fixed(0.5));
+    b.world.resize(300, 60);
+    b.restore(10, 1);
+    b.enter('sleep', 3_600_000);
+    const { teddy, duck } = b.world.plushes;
+    const { ball } = b.world;
+    duck.rest(150, 300);
+    ball.place(220, 0, 300, 60);
+    ball.launch(0, 0);
+    simulate(b, 100);
+    expect(duck.landed).toBe(true);
+    teddy.hold(138, 5, 300, 60);
+    teddy.toss(90, 8);
+    simulate(b, 600, () => !duck.landed);
+    // The duck is knocked on, the teddy loses what it gave.
+    expect(duck.landed).toBe(false);
+    expect(duck.velocity.x).toBeGreaterThan(20);
+    expect(teddy.velocity.x).toBeLessThan(60);
+    simulate(b, 6000);
+    expect(duck.x).toBeGreaterThan(155);
+    expect(duck.landed).toBe(true);
+    expect(teddy.landed).toBe(true);
+
+    duck.hold(208, 5, 300, 60);
+    duck.toss(100, 6);
+    simulate(b, 600, () => !ball.resting);
+    expect(ball.resting).toBe(false);
+    expect(ball.vx).toBeGreaterThan(20);
+  });
+
+  it('does nothing to toys that only lie against each other', () => {
+    const b = spawn(fixed(0.5));
+    b.world.resize(300, 60);
+    b.enter('sleep', 3_600_000);
+    const { teddy, duck } = b.world.plushes;
+    teddy.rest(100, 300);
+    duck.rest(104, 300);
+    simulate(b, 2000);
+    expect(teddy.x).toBe(100);
+    expect(duck.x).toBe(104);
+    expect(b.world.restful).toBe(true);
+  });
+});
+
 describe('the game with its soft toys', () => {
   function fox(random = 0.5) {
     const b = spawn(fixed(random));
@@ -154,6 +200,43 @@ describe('the game with its soft toys', () => {
     expect(highest).toBeGreaterThan(5);
     expect(duck.state).toBe('carried');
     expect(b.y).toBe(0);
+  });
+
+  it('is knocked silly for a moment by a toy that lands on its head, then goes after it', () => {
+    const b = fox();
+    const { teddy } = b.world.plushes;
+    const headX = b.x + 22;
+    teddy.hold(headX, 55, 300, 60);
+    teddy.toss(0, 0);
+    const anims = new Set<AnimName>();
+    simulate(b, 3000, () => {
+      anims.add(b.current().anim);
+      return phase(b, 'dazed');
+    });
+    expect(phase(b, 'dazed')).toBe(true);
+    expect(b.current().anim).toBe('dizzy');
+    // It bounced off its head.
+    expect(teddy.velocity.y).toBeGreaterThan(0);
+    simulate(b, 1000);
+    expect(phase(b, 'dazed')).toBe(true);
+    simulate(b, 3000, () => !phase(b, 'dazed'));
+    expect(phase(b, 'chase')).toBe(true);
+  });
+
+  it('is not bothered by a toy that only drops gently beside it, nor in its sleep', () => {
+    const b = fox();
+    const { duck } = b.world.plushes;
+    duck.hold(b.x + 46, 40, 300, 60);
+    duck.toss(0, 0);
+    simulate(b, 2000);
+    expect(b.state).toBe('sit');
+
+    const asleep = fox();
+    asleep.enter('sleep', 3_600_000);
+    asleep.world.plushes.teddy.hold(asleep.x + 22, 55, 300, 60);
+    asleep.world.plushes.teddy.toss(0, 0);
+    simulate(asleep, 3000);
+    expect(asleep.state).toBe('sleep');
   });
 
   it('settles down with the toy when nobody catches: it lies against its teddy, and boops its duck along', () => {

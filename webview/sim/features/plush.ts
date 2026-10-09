@@ -6,7 +6,8 @@ import { clamp } from '../math';
 import type { Plush } from '../props/plush';
 import type { AnimRef, Feature } from '../state';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
-import { tookBreak } from './rest';
+import { asleep, tookBreak } from './rest';
+import { wantBack } from './rummage';
 
 /** Where its mouth is from the middle of its head, in a frame; what it carries hangs a little under it. */
 const MOUTH = 5.5;
@@ -26,6 +27,12 @@ const LEAP_HEIGHT = 9;
 const LEAP_UNDER = 24;
 const LEAP_NEAR = 7;
 const CATCH_NEAR = 9;
+/** A toy that comes at its head this fast knocks it silly for a moment: how near its head, how long, and how the toy bounces off. */
+const BONK_SPEED = 45;
+const BONK_NEAR = 8;
+const DAZED_MS = 1400;
+const BONK_BACK = 0.4;
+const BONK_UP = 38;
 /** Throws of its own that nobody caught before it settles down with the toy; catches of yours in a row that make it cheer. */
 const MISSES = 2;
 const CHEER_EVERY = 3;
@@ -40,9 +47,10 @@ const HOP_HEIGHT = 30;
 /**
  * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shakes it, throws it up
  * (`toss`) and watches it go (`gaze`). Catch it and it waits for your throw (`ready`), cheering now and then; let
- * it fall a couple of times and it settles down with it (`settle`).
+ * it fall a couple of times and it settles down with it (`settle`). A toy that lands on its head leaves it seeing
+ * stars for a moment (`dazed`).
  */
-type Phase = 'chase' | 'leap' | 'shake' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle';
+type Phase = 'chase' | 'leap' | 'shake' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
 
 export class PlushMemory {
   /** The soft toy it is busy with. */
@@ -115,7 +123,9 @@ export function holdPlush(b: Buddy, kind: PlushKind, x: number, y: number): void
     b.tryEnter('plush', Infinity);
     return;
   }
-  phase(b, 'ready');
+  if (m.phase !== 'dazed') {
+    phase(b, 'ready');
+  }
 }
 
 /** You let go of it, your hand moving at this speed: it is off after it. */
@@ -128,14 +138,53 @@ export function tossPlush(b: Buddy, kind: PlushKind, vx: number, vy: number): vo
   if (!playingWith(b, kind)) {
     begin(b, kind, 'chase');
     b.tryEnter('plush', Infinity);
-  } else if (b.plush.phase !== 'cheer') {
+  } else if (b.plush.phase !== 'cheer' && b.plush.phase !== 'dazed') {
     phase(b, 'chase');
   }
 }
 
-/** You put it back in the chest. */
+/** You put it back in the chest. In a playful mood, it will go and get it out again. */
 export function stowPlush(b: Buddy, kind: PlushKind): void {
   plush(b, kind).state = 'none';
+  wantBack(b, kind);
+}
+
+/** It has the toy in its mouth and wants a game: it throws it up for you. */
+export function startTossing(b: Buddy, kind: PlushKind): void {
+  begin(b, kind, 'toss');
+  b.enter('plush', Infinity);
+}
+
+// A toy coming down on its head, or thrown at it, bounces off and leaves it dazed: it missed that one.
+function bonk(b: Buddy): void {
+  if (b.def.offscreen || b.def.hidden || asleep(b) || (b.state === 'plush' && (b.plush.phase === 'leap' || b.plush.phase === 'dazed'))) {
+    return;
+  }
+  const { anim, elapsed } = b.current();
+  const [hx, hy] = frameAt(ANIMATIONS[anim], elapsed).head;
+  const headX = b.x + b.offsetFor(hx);
+  const headY = b.y + SPRITE_SIZE - hy;
+  for (const toy of Object.values(b.world.plushes)) {
+    const { x: vx, y: vy } = toy.velocity;
+    const coming = toy.state === 'free' && toy.speed >= BONK_SPEED && (vy < 0 || Math.abs(vx) >= BONK_SPEED);
+    if (!coming || Math.hypot(toy.center - headX, toy.y + toy.h / 2 - headY) > BONK_NEAR) {
+      continue;
+    }
+    const away = vx !== 0 ? -Math.sign(vx) : toy.center < headX ? -1 : 1;
+    toy.toss(away * Math.max(14, Math.abs(vx) * BONK_BACK), BONK_UP);
+    if (playingWith(b, toy.kind)) {
+      b.plush.misses += b.plush.inPlay ? 1 : 0;
+      b.plush.inPlay = false;
+      b.plush.rally = 0;
+      phase(b, 'dazed');
+    } else {
+      b.tryEnter('plush', Infinity);
+      if (b.state === 'plush') {
+        begin(b, toy.kind, 'dazed');
+      }
+    }
+    return;
+  }
 }
 
 /** The soft toy lying nearest to it, if any. */
@@ -177,6 +226,11 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
       b.faceX(toy.center, 3);
       if (toy.state !== 'held') {
         phase(b, 'chase');
+      }
+      break;
+    case 'dazed':
+      if (m.phaseMs >= DAZED_MS) {
+        phase(b, toy.state === 'held' ? 'ready' : 'chase');
       }
       break;
     case 'cheer':
@@ -294,6 +348,8 @@ function plushAnim(b: Buddy): AnimRef {
       return { anim: 'ready', elapsed: b.elapsed };
     case 'cheer':
       return { anim: 'celebrate', elapsed: m.phaseMs };
+    case 'dazed':
+      return { anim: 'dizzy', elapsed: m.phaseMs };
     case 'leap':
       return { anim: 'leap', elapsed: m.phaseMs };
     case 'shake':
@@ -329,6 +385,7 @@ export const plushFeature = {
       anim: plushAnim,
     },
   },
+  tick: bonk,
   // Called away with the toy in its mouth: it drops it there.
   interrupted(b) {
     const toy = plush(b, b.plush.toy);

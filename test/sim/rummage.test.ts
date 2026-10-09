@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { grabBall } from '../../webview/sim/features/fetch';
+import { grabBall, stowBall } from '../../webview/sim/features/fetch';
+import { holdPlush, stowPlush } from '../../webview/sim/features/plush';
 import { react } from '../../webview/sim/features/reactions';
 import { startErrand, startRummage, startTidy } from '../../webview/sim/features/rummage';
 import { STATES } from '../../webview/sim/registry';
@@ -167,6 +168,57 @@ describe('its toy chest', () => {
     other.world.plushes.duck.hold(60, 30, 300, 60);
     simulate(other, 100);
     expect(other.state).not.toBe('rummage');
+  });
+
+  it('in a playful mood, gets a soft toy you have just put away out of its chest again and throws it up for you', () => {
+    const b = fox(0.3);
+    const { teddy } = b.world.plushes;
+    b.enter('sit', 60_000);
+    holdPlush(b, 'teddy', 250, 20);
+    stowPlush(b, 'teddy');
+    simulate(b, 1000);
+    expect(b.state).toBe('sit');
+    simulate(b, 2000, () => b.state === 'rummage');
+    expect(b.state).toBe('rummage');
+    expect(b.rummage.errand).toBe('retrieve');
+    simulate(b, 30_000, () => teddy.state === 'carried');
+    expect(teddy.state).toBe('carried');
+    simulate(b, 30_000, () => b.state === 'plush');
+    expect(b.plush.phase).toBe('toss');
+    simulate(b, 2000, () => b.plush.inPlay);
+    expect(teddy.state).toBe('free');
+    expect(teddy.velocity.y).toBeGreaterThan(40);
+
+    // Put away once more, it leaves it there this time.
+    holdPlush(b, 'teddy', 250, 20);
+    stowPlush(b, 'teddy');
+    simulate(b, 6000);
+    expect(b.state).not.toBe('rummage');
+    expect(teddy.state).toBe('none');
+  });
+
+  it('does the same with its ball, but not when it is not in the mood, nor in its sleep', () => {
+    const playful = fox(0.3);
+    playful.enter('sit', 60_000);
+    grabBall(playful, 250, 20);
+    stowBall(playful);
+    simulate(playful, 3000, () => playful.state === 'rummage');
+    expect(playful.state).toBe('rummage');
+    expect(playful.rummage.errand).toBe('fetch');
+
+    const calm = fox(0.5);
+    calm.enter('sit', 60_000);
+    holdPlush(calm, 'duck', 250, 20);
+    stowPlush(calm, 'duck');
+    simulate(calm, 6000);
+    expect(calm.state).toBe('sit');
+
+    const asleep = fox(0.3);
+    asleep.enter('sleep', 3_600_000);
+    asleep.world.plushes.duck.hold(250, 20, 300, 60);
+    stowPlush(asleep, 'duck');
+    simulate(asleep, 6000);
+    expect(asleep.state).toBe('sleep');
   });
 
   it('plays with a ball that is lying about rather than going to its chest', () => {

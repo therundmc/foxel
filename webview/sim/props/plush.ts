@@ -49,6 +49,15 @@ export class Plush {
     return this.x + this.w / 2;
   }
 
+  /** How fast it is going, and which way. */
+  get velocity(): { x: number; y: number } {
+    return { x: this.vx, y: this.vy };
+  }
+
+  get speed(): number {
+    return Math.hypot(this.vx, this.vy);
+  }
+
   /** Coming down. */
   get falling(): boolean {
     return this.state === 'free' && this.vy < 0;
