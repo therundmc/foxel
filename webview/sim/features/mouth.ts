@@ -54,3 +54,22 @@ export function noseTo(b: Buddy, x: number, dt: number, walk = FETCH_WALK_SPEED)
   b.moving = pace < gap && pace < room;
   return b.moving ? 'going' : 'there';
 }
+
+/** The last few steps to where it is going it may take without turning, so as not to turn round for nothing. */
+const SHUFFLE = 6;
+
+/**
+ * Goes to `x` facing the way it goes, and only turns to `facing` once there (or for the last few steps): it does
+ * not run backwards. Returns true while it is still on its way.
+ */
+export function goTo(b: Buddy, x: number, pace: number, facing: 1 | -1): boolean {
+  const left = Math.min(b.maxX, Math.max(0, x)) - b.x;
+  if (Math.abs(left) <= pace) {
+    b.x += left;
+    b.dir = facing;
+    return false;
+  }
+  b.dir = Math.abs(left) > SHUFFLE ? (left > 0 ? 1 : -1) : facing;
+  b.x += Math.sign(left) * pace;
+  return true;
+}

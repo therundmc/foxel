@@ -2,6 +2,7 @@ import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Feature } from '../state';
 import { NOSE_REACH } from '../tuning';
+import { noseTo } from './mouth';
 import { startRummage } from './rummage';
 
 const PLAY_SPEED = 28;
@@ -33,7 +34,6 @@ function updatePlay(b: Buddy, dt: number): void {
     b.enterNext('sit');
     return;
   }
-  const target = b.noseTargetFor(b.world.ball.center);
   const toNose = b.x + b.noseOffset() - b.world.ball.center;
   if (b.world.ball.y < 1 && Math.abs(toNose) <= NOSE_REACH) {
     touchBall(b);
@@ -42,8 +42,8 @@ function updatePlay(b: Buddy, dt: number): void {
   if (b.world.ball.vx !== 0 && Math.sign(b.world.ball.vx) === Math.sign(toNose)) {
     return;
   }
-  if (b.approach(target, PLAY_SPEED * dt)) {
-    b.moving = true;
+  // It goes to its ball facing the way it goes; one that lies under it, it kicks from where it stands.
+  if (noseTo(b, b.world.ball.center, dt, PLAY_SPEED) === 'going') {
     return;
   }
   if (b.world.ball.resting) {

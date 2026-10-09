@@ -6,6 +6,7 @@ import { clamp } from '../math';
 import { Ball } from '../props/ball';
 import type { AnimRef, Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, CATCH_RADIUS, FETCH_FAR, FETCH_MAX_MS, FETCH_RUN_SPEED, FETCH_WALK_SPEED, NOSE_REACH } from '../tuning';
+import { goTo, noseTo } from './mouth';
 import { tookBreak } from './rest';
 import { wantBack } from './rummage';
 import { showOff } from './tricks';
@@ -110,8 +111,8 @@ function updateFetch(b: Buddy, dt: number): void {
   }
   const plan = planIntercept(b);
   if (!plan) {
+    b.moving = noseTo(b, b.world.ball.center, dt, FETCH_RUN_SPEED) === 'going';
     b.running = true;
-    b.moving = b.approach(b.noseTargetFor(b.world.ball.center), FETCH_RUN_SPEED * dt);
     return;
   }
   b.dir = plan.dir;
@@ -125,7 +126,8 @@ function updateFetch(b: Buddy, dt: number): void {
   }
   b.running = Math.abs(plan.x - b.x) > FETCH_FAR || !b.world.ball.resting;
   const speed = b.running ? FETCH_RUN_SPEED : FETCH_WALK_SPEED;
-  b.moving = b.approach(plan.x, speed * dt);
+  // It runs to where the ball will come down facing the way it runs, and turns to the ball once there.
+  b.moving = goTo(b, plan.x, speed * dt, plan.dir);
 }
 
 function updateCatchLeap(b: Buddy, dt: number): void {
@@ -190,7 +192,8 @@ function planIntercept(b: Buddy): Intercept | undefined {
 
 function updateBring(b: Buddy, dt: number): void {
   const playerX = b.fetch.playerX ?? b.world.width / 2;
-  if (!b.approach(b.noseTargetFor(playerX), BRING_SPEED * dt)) {
+  const to = b.noseTargetFor(playerX);
+  if (!goTo(b, to, BRING_SPEED * dt, b.dir)) {
     if (b.rest.askingBreak) {
       b.rest.askingBreak = false;
       dropBall(b);
