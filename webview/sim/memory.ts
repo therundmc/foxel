@@ -1,6 +1,7 @@
 import type { BuddyMemory } from '../../shared/protocol';
 import type { Buddy } from './buddy';
 import { AFTER_OPEN_MS } from './features/contemplate';
+import { KEPT_MOST } from './props/keepsakes';
 
 /** The wait before the next contemplation runs down by itself: it is the same memory until it shifts by this much. */
 const VISTA_SLACK_MS = 60_000;
@@ -37,6 +38,8 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     lastVista: b.contemplate.last,
     mouseFriend: b.visitors.mouseFriend,
     toys: lying(b),
+    finds: [...b.world.finds.kept],
+    mound: b.world.mound.x === undefined ? undefined : Math.round(b.world.mound.x),
   };
 }
 
@@ -52,6 +55,8 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     a.lastVista === b.lastVista &&
     a.mouseFriend === b.mouseFriend &&
     JSON.stringify(a.toys ?? {}) === JSON.stringify(b.toys ?? {}) &&
+    JSON.stringify(a.finds ?? []) === JSON.stringify(b.finds ?? []) &&
+    a.mound === b.mound &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
 }
@@ -73,8 +78,15 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.contemplate.last = memory.lastVista;
   b.visitors.mouseFriend = memory.mouseFriend === true;
   // Its toys are where it left them, for the day: by the next morning they are back in the chest.
-  const { ball, plushes, width, height } = b.world;
-  const toys = new Date(memory.savedAt).toDateString() === new Date(now).toDateString() ? (memory.toys ?? {}) : {};
+  const { ball, plushes, finds, mound, width, height } = b.world;
+  const sameDay = new Date(memory.savedAt).toDateString() === new Date(now).toDateString();
+  const toys = sameDay ? (memory.toys ?? {}) : {};
+  if (sameDay && finds.kept.length === 0) {
+    finds.kept.push(...(memory.finds ?? []).slice(0, KEPT_MOST));
+  }
+  if (sameDay && memory.mound !== undefined && !mound.there) {
+    mound.restore(memory.mound);
+  }
   if (toys.ball !== undefined && ball.state === 'none') {
     ball.place(toys.ball, 0, width, height);
     ball.launch(0, 0);

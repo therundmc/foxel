@@ -170,6 +170,22 @@ export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([
 /** The tile of a thing that is not in the chest right now. */
 export const CHEST_TILE_EMPTY: Glyph = tile();
 
+// What it brings you from outside: small things, each set down in front of you.
+export type FindKind = 'flower' | 'pebble' | 'feather' | 'leaf';
+export const FINDS: Record<FindKind, Glyph> = {
+  flower: outlined(['.p.p.', 'ppSpp', '.p.p.', '..F..', '.FF..', '..F..']),
+  pebble: outlined(['.eee.', 'eeeDD', '.DDD.']),
+  feather: outlined(['..W', '.WZ', '.WZ', 'WZ.', 'WZ.', 'Q..']),
+  leaf: outlined(['..FF.', '.FFfF', 'FFfF.', 'kF...']),
+};
+// A heart scratched in the earth, stroke by stroke; and the little mound left where it dug, as it rises.
+export const DOODLE: readonly Glyph[] = [
+  ['.TT....', 'T......', 'T......', '.T.....', '..T....', '...T...'],
+  ['.TT.TT.', 'T..T..T', 'T......', '.T.....', '..T....', '...T...'],
+  ['.TT.TT.', 'T..T..T', 'T.....T', '.T...T.', '..T.T..', '...T...'],
+];
+export const MOUND: readonly Glyph[] = [outlined(['kk']), outlined(['.kk.', 'kkkk']), outlined(['..kk..', '.kTkk.', 'kkkkkk'])];
+
 // The little shelf on the wall, top right: a plank with a lit edge on two brackets, and on it what is not a toy.
 export type ShelfItem = 'meal' | 'bubbles';
 export const SHELF: Glyph = outlined([

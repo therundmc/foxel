@@ -39,14 +39,14 @@ export const ambientFeature = {
       calm: true,
       restful: true,
       facesTarget: true,
-      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3]],
+      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3]],
     },
     walk: {
       speed: WALK_SPEED,
       free: true,
       gazes: true,
       duration: between(4000, 9000),
-      next: [['idle', 30], ['sit', 20], ['sniff', 20], ['play', 10], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['jump', 3], ['run', 3], ['mousing', 5]],
+      next: [['idle', 30], ['sit', 20], ['sniff', 20], ['play', 10], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['jump', 3], ['run', 3], ['mousing', 5]],
     },
     run: {
       speed: 35,

@@ -8,6 +8,7 @@ import { Bug } from './props/bug';
 import { knockTogether } from './props/bump';
 import { Chest } from './props/chest';
 import { Grass } from './props/grass';
+import { Finds, newDoodle, newMound } from './props/keepsakes';
 import { Mouse } from './props/mouse';
 import { Plush } from './props/plush';
 import { Shelf } from './props/shelf';
@@ -45,6 +46,10 @@ export class World {
   readonly bubbles = new Bubbles();
   readonly chest = new Chest();
   readonly shelf = new Shelf();
+  /** What it brought you, the heart it scratched in the earth, the mound where it dug. */
+  readonly finds = new Finds();
+  readonly doodle = newDoodle();
+  readonly mound = newMound();
   /** Its soft toys. */
   readonly plushes = { teddy: new Plush('teddy'), duck: new Plush('duck') };
   /** Which way you are scrolling a file, for a moment after you do: up (-1), down (1), or not (0). */
@@ -73,7 +78,7 @@ export class World {
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
     const plushes = Object.values(this.plushes);
     const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
-    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.shelf.moving && plushes.every((p) => p.state === 'none' || p.landed) && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
+    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.shelf.moving && !this.finds.moving && !this.doodle.moving && !this.mound.moving && plushes.every((p) => p.state === 'none' || p.landed) && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
   /** You scrolled: it shows for a moment. */
@@ -120,6 +125,9 @@ export class World {
     knockTogether([teddy, duck], this.ball);
     this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
+    this.finds.update(dtMs);
+    this.doodle.update(dtMs);
+    this.mound.update(dtMs);
     // A pointer busy with the chest or the shelf is not there for the fox: it does not come to it, or ask it for a stroke.
     if (this.chest.asked || this.shelf.asked) {
       this.pointer = undefined;

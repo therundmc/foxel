@@ -24,6 +24,8 @@ export type BuddyState =
   | 'rummage'
   | 'plush'
   | 'sulk'
+  | 'gift'
+  | 'doodle'
   | 'makeUp'
   | 'mope'
   | 'overjoyed'

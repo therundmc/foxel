@@ -103,6 +103,9 @@ export interface BuddyMemory {
   mouseFriend: boolean;
   /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
   toys?: Partial<Record<'ball' | 'teddy' | 'duck', number>>;
+  /** What it brought you today that you accepted, in the order it sits in its corner; and where the mound is, if it dug. */
+  finds?: readonly ('flower' | 'pebble' | 'feather' | 'leaf')[];
+  mound?: number;
 }
 
 export const SCENES = [

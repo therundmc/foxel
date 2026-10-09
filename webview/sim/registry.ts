@@ -7,6 +7,7 @@ import { introFeature } from './features/intro';
 import { mealsFeature } from './features/meals';
 import { mousingFeature } from './features/mousing';
 import { bondFeature } from './features/bond';
+import { giftsFeature } from './features/gifts';
 import { playFeature } from './features/play';
 import { plushFeature } from './features/plush';
 import { rummageFeature } from './features/rummage';
@@ -32,6 +33,7 @@ export const FEATURES: readonly Feature[] = [
   tricksFeature,
   playFeature,
   bondFeature,
+  giftsFeature,
   plushFeature,
   rummageFeature,
   touchFeature,
@@ -56,6 +58,7 @@ export const STATES: StateDefs = {
   ...tricksFeature.states,
   ...playFeature.states,
   ...bondFeature.states,
+  ...giftsFeature.states,
   ...plushFeature.states,
   ...rummageFeature.states,
   ...touchFeature.states,

@@ -32,7 +32,7 @@ import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
 import { drawBubbles } from './bubbles';
-import { drawChest, drawChestTiles, drawPlushes, drawShelf } from './things';
+import { drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
@@ -75,6 +75,7 @@ export class Renderer {
     stage.ctx.clearRect(0, 0, stage.width, stage.height);
     this.scenery.drawBack(stage, world.scenery);
     this.drawCake(now);
+    drawGround(stage, this.bitmaps, world);
     const frame = currentFrame(buddy);
     this.drawBasket(BASKET_BACK, BASKET_FRONT.length + BASKET_BACK.length);
     this.drawBowl(world.foodBowl, FOOD_BOWL);
@@ -89,6 +90,7 @@ export class Renderer {
     const shadow = (centerX: number, widthPx: number): void => this.drawShadow(centerX, widthPx);
     // What it carries in its mouth goes into the chest behind its front.
     drawPlushes(stage, this.bitmaps, world, shadow, true);
+    drawFind(stage, this.bitmaps, world);
     drawChest(stage, this.bitmaps, world.chest, shadow);
     this.drawMouse();
     this.drawGrass();

@@ -2,6 +2,7 @@ import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
+import { acceptFind } from './sim/features/gifts';
 import { grabBall, moveHeldBall, spawnBall, stowBall, throwBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
@@ -177,6 +178,11 @@ export class Input {
     return this.session.world.bubbles.at(at.x, at.y, 3) !== undefined;
   }
 
+  private overFind(x: number, y: number): boolean {
+    const { offered, box } = this.session.world.finds;
+    return offered?.state === 'down' && box !== undefined && this.over(box, x, y);
+  }
+
   private overFoodBowl(x: number, y: number): boolean {
     const bowl = this.session.world.foodBowl;
     return bowl.active && this.over(bowl.box, x, y);
@@ -207,7 +213,7 @@ export class Input {
       cursor = 'grabbing';
     } else if (this.draggableAt(x, y) || this.chestItemAt(x, y)) {
       cursor = 'grab';
-    } else if (this.shelfItemAt(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
+    } else if (this.shelfItemAt(x, y) || this.overFind(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
       cursor = 'pointer';
     }
     this.stage.canvas.style.cursor = cursor;
@@ -318,6 +324,10 @@ export class Input {
     // A bubble under the pointer bursts, whatever is behind it.
     const at = this.stage.toWorld(e.clientX, e.clientY);
     if (popBubbleAt(buddy, at.x, at.y)) {
+      this.onInteraction();
+      return;
+    }
+    if (this.overFind(e.clientX, e.clientY) && acceptFind(buddy)) {
       this.onInteraction();
       return;
     }

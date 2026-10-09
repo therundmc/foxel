@@ -3,7 +3,7 @@ import { CHEST_ITEMS } from '../sim/props/chest';
 import type { Shelf } from '../sim/props/shelf';
 import type { World } from '../sim/world';
 import type { Glyph } from '../sprites/frames';
-import { CHEST, CHEST_BALL, CHEST_BALL_X, CHEST_RIM, CHEST_TILE_EMPTY, CHEST_TILES, CHEST_W, PLUSH, SHELF, SHELF_H, SHELF_ITEMS, type ShelfItem } from '../sprites/props';
+import { CHEST, CHEST_BALL, CHEST_BALL_X, CHEST_RIM, CHEST_TILE_EMPTY, CHEST_TILES, CHEST_W, DOODLE, FINDS, MOUND, PLUSH, SHELF, SHELF_H, SHELF_ITEMS, type ShelfItem } from '../sprites/props';
 import type { Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 
@@ -32,6 +32,31 @@ export function drawPlushes(stage: Stage, bitmaps: Bitmaps, world: World, shadow
     ctx.rotate((toy.quarter * Math.PI) / 2);
     ctx.drawImage(bitmaps.get(PLUSH[toy.kind]), -Math.round(r.w / 2), -Math.round(r.h / 2), toy.w * scale, toy.h * scale);
     ctx.restore();
+  }
+}
+
+/** What is on the ground behind it: the mound where it dug, the heart it scratched, and what it brought you, kept in its corner. */
+export function drawGround(stage: Stage, bitmaps: Bitmaps, world: World): void {
+  const draw = (glyph: Glyph, box: { x: number; y: number; w: number; h: number } | undefined): void => {
+    if (box) {
+      const r = stage.rect(box);
+      stage.ctx.drawImage(bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+    }
+  };
+  for (const [mark, glyphs] of [[world.mound, MOUND], [world.doodle, DOODLE]] as const) {
+    if (mark.stage !== undefined) {
+      draw(glyphs[mark.stage], mark.box);
+    }
+  }
+  world.finds.kept.forEach((kind, i) => draw(FINDS[kind], world.finds.keptBox(i)));
+}
+
+/** What it is bringing you, in its mouth or set down in front of you, or hopping off to its corner. */
+export function drawFind(stage: Stage, bitmaps: Bitmaps, world: World): void {
+  const { offered, box } = world.finds;
+  if (offered && box) {
+    const r = stage.rect(box);
+    stage.ctx.drawImage(bitmaps.get(FINDS[offered.kind]), r.x, r.y, r.w, r.h);
   }
 }
 
