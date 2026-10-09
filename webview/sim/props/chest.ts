@@ -49,7 +49,7 @@ const within = (box: Box, x: number, y: number, pad: number): boolean => x >= bo
 
 /**
  * The toy chest: everything you can give it is in there. It waits at the edge of the view, only a bit of it showing,
- * and fidgets now and then to be noticed. It rolls out into its corner when the pointer comes close, and back when
+ * and fidgets now and then to be noticed. It slides out into its corner when the pointer comes close, and back when
  * it goes. Bring the pointer to it and its lid opens and its
  * drawers rise out; bring it to a drawer and its things come out in a row. A hand that holds a toy only gets the
  * lid: that is where the toy goes back. It only knows where the pointer is and how far open it is: what taking a

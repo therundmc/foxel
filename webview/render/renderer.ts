@@ -126,12 +126,11 @@ export class Renderer {
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
   }
 
-  // Its toy chest: a bit of it at the edge of the view, rolled out into its corner while the pointer is close.
+  // Its toy chest: a bit of it at the edge of the view, slid out into its corner while the pointer is close.
   private drawChest(): void {
     const { chest } = this.session.world;
     const lid = chest.lid;
-    // Its wheels turn as it rolls.
-    const glyph = CHEST[2 * lid + (Math.floor(chest.x / 2) & 1)];
+    const glyph = CHEST[lid];
     const r = this.stage.rect({ x: chest.x - chest.nudge, y: 0, w: glyph[0].length, h: glyph.length });
     this.drawShadow(r.x + r.w / 2, CHEST_W - 3);
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
