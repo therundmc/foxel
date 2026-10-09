@@ -8,6 +8,8 @@ export interface BuddyHost {
   live: boolean;
   post(msg: HostMessage): void;
   setTitle(title: string | undefined): void;
+  /** Loads its page afresh: the fox it shows starts from nothing. */
+  reload(): void;
 }
 
 export function webviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {

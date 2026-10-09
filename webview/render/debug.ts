@@ -33,7 +33,7 @@ const [PLAYFUL_FROM, LISTLESS_TO] = [MOOD_NEXT[0].from, MOOD_NEXT[1].to];
 const percent = (share: number): string => `${Math.round(share * 100)}%`;
 const minutes = (ms: number): string => `${Math.max(1, Math.ceil(ms / 60_000))} min`;
 
-/** What a button of the corner does. `hide` folds the corner away, `live` hands its feelings back to the extension. */
+/** What a button of the corner does. `hide` folds the corner away, `live` hands its feelings back to the extension, `new game` starts its life over. */
 const BUTTONS: readonly { label: string; press(session: Session): void }[] = [
   { label: 'hide', press: (session) => void (session.debugOpen = false) },
   { label: 'live', press: (session) => force(session, {}) },
@@ -44,6 +44,8 @@ const BUTTONS: readonly { label: string; press(session: Session): void }[] = [
   { label: 'heart', press: ({ buddy }) => (buddy.interrupt(), (buddy.gift.sinceDoodleMs = DOODLE_EVERY_MS), buddy.enterNext('doodle')) },
   { label: 'back 3 d', press: ({ buddy }) => welcomeBack(buddy, 3) },
   { label: 'back 20 d', press: ({ buddy }) => welcomeBack(buddy, 20) },
+  // Asks first, then forgets everything: the first meeting again.
+  { label: 'new game', press: (session) => session.startOver() },
 ];
 const BUTTON_PAD = 4;
 const BUTTON_GAP = 4;

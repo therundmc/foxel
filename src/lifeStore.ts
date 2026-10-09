@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode';
 import { dateKey } from '../shared/day';
-import { attachmentOn, peakOn, daysAway, mergeLives, moodOn, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
+import { attachmentOn, peakOn, daysAway, mergeLives, moodOn, newLife, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
 import type { BuddyMemory } from '../shared/protocol';
 
 /** Its life: follows you from one machine to another. */
@@ -33,7 +33,7 @@ export class LifeStore implements vscode.Disposable {
 
   constructor(
     private readonly keep: Keep,
-    private readonly born: string,
+    private born: string,
     private readonly clock: () => Date,
   ) {
     keep.setKeysForSync?.([LIFE_KEY]);
@@ -99,6 +99,19 @@ export class LifeStore implements vscode.Disposable {
     }
     this.current = trimmed(this.current, this.today);
     return this.keep.update(LIFE_KEY, this.current);
+  }
+
+  /**
+   * Forgets everything and starts a new life on `born`. It writes over what is kept without merging with it, and
+   * that goes to your other machines too: for trying things out, from the debug corner only.
+   */
+  startOver(born: string): Thenable<void> {
+    this.born = born;
+    this.current = newLife(born);
+    this.dirtySince = undefined;
+    this.urgent = false;
+    void this.keep.update(NEEDS_KEY, undefined);
+    return this.foreign ? Promise.resolve() : this.keep.update(LIFE_KEY, this.current);
   }
 
   dispose(): void {

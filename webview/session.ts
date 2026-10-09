@@ -20,6 +20,8 @@ export interface Session {
   forced: { mood?: number; attachment?: number };
   /** Whether the debug corner is unfolded, or only its button shows. */
   debugOpen: boolean;
+  /** Asks the extension to forget everything and start a new life: the `new game` button of the debug corner. */
+  startOver(): void;
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */

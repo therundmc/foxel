@@ -184,6 +184,23 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.post({ type: 'reaction', reaction: mood() });
     }
   };
+  // From the debug corner: everything it has lived is forgotten, and its views start again from the first meeting.
+  const startOver = async (): Promise<void> => {
+    if (!readConfig().debug) {
+      return;
+    }
+    const sure = 'Start over';
+    const answer = await vscode.window.showWarningMessage('Start a new life with your fox? Everything it has lived with you is forgotten, on all your machines.', { modal: true }, sure);
+    if (answer !== sure) {
+      return;
+    }
+    const today = dateKey(clock());
+    await context.globalState.update(INSTALLED_KEY, today);
+    await context.globalState.update(WELCOMED_KEY, undefined);
+    await store.startOver(today);
+    missed = undefined;
+    providers.forEach((p) => p.reload());
+  };
   const onMessage = (msg: WebviewMessage, provider: BuddyHost): void => {
     switch (msg?.type) {
       case 'ready':
@@ -216,6 +233,9 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'memory':
         store.noteNeeds(msg.memory);
+        break;
+      case 'newLife':
+        void startOver();
         break;
       default:
         // Anything else is ignored; the compiler flags a message of ours left unhandled.

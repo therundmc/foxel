@@ -31,6 +31,13 @@ export class BuddyPanel implements BuddyHost {
     }
   }
 
+  reload(): void {
+    this.live = false;
+    if (this.panel) {
+      this.panel.webview.html = buddyPage(this.panel.webview, this.extensionUri);
+    }
+  }
+
   post(msg: HostMessage): void {
     void this.panel?.webview.postMessage(msg);
   }

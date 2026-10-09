@@ -201,4 +201,6 @@ export type WebviewMessage =
   | { type: 'cared'; care: 'petted' | 'treated' }
   /** The fox had to put up with something: a meal time gone by unfed, a break it asked for in vain. */
   | { type: 'slighted'; slight: 'unfed' | 'unheard' }
-  | { type: 'memory'; memory: BuddyMemory };
+  | { type: 'memory'; memory: BuddyMemory }
+  /** From the debug corner: forget everything and start a new life, as on the day it was installed. */
+  | { type: 'newLife' };

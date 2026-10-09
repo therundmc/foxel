@@ -44,6 +44,13 @@ export class BuddyViewProvider implements vscode.WebviewViewProvider, BuddyHost 
     });
   }
 
+  reload(): void {
+    this.live = false;
+    if (this.view) {
+      this.view.webview.html = buddyPage(this.view.webview, this.extensionUri);
+    }
+  }
+
   post(msg: HostMessage): void {
     void this.view?.webview.postMessage(msg);
   }

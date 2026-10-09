@@ -16,7 +16,12 @@ function keeper() {
     get: <T>(key: string) => (stored.has(key) ? (JSON.parse(stored.get(key)!) as T) : undefined),
     update: async (key: string, value: unknown) => {
       writes.push(key);
-      stored.set(key, JSON.stringify(value));
+      // Like the real one, it forgets a key that is given nothing.
+      if (value === undefined) {
+        stored.delete(key);
+      } else {
+        stored.set(key, JSON.stringify(value));
+      }
     },
     setKeysForSync: (keys) => void synced.splice(0, synced.length, ...keys),
   };
@@ -146,6 +151,26 @@ describe('LifeStore', () => {
     store.care('fed');
     await store.save();
     expect(kept.saved()?.days[TODAY].cares.fed).toBe(1);
+  });
+
+  it('starts over from nothing when asked to: its life and its needs are forgotten, and written so at once', async () => {
+    const store = open('2026-09-01');
+    store.care('fed');
+    store.present(50, []);
+    await store.save();
+    store.noteNeeds({ savedAt: Date.now(), thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: true, stage: 3 });
+    store.care('petted');
+    expect(store.feelings.attachment).toBeGreaterThan(0);
+
+    await store.startOver(TODAY);
+    expect(store.life).toEqual({ version: LIFE_VERSION, born: TODAY, days: {}, past: { attachment: 0, peak: 0 } });
+    expect(store.feelings).toEqual({ attachment: 0, peak: 0, mood: 0, daysAway: undefined });
+    expect(store.needs).toBeUndefined();
+    expect(kept.saved()).toEqual({ version: LIFE_VERSION, born: TODAY, days: {}, past: { attachment: 0, peak: 0 } });
+    // What it had not written yet is gone too, and another window opening finds a new life.
+    vi.advanceTimersByTime(10 * MINUTE);
+    expect(kept.saved()?.days).toEqual({});
+    expect(open(TODAY).life.born).toBe(TODAY);
   });
 
   it('keeps its needs of the moment on this machine, apart from its life', () => {

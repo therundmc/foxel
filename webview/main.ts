@@ -53,6 +53,7 @@ const session: Session = {
   felt: { mood: 0, attachment: 0 },
   forced: {},
   debugOpen: true,
+  startOver: () => vscode.postMessage({ type: 'newLife' }),
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
