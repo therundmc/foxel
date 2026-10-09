@@ -2,7 +2,7 @@ import type { Session } from '../session';
 import { asleep } from '../sim/features/rest';
 import { moodLevel, type MoodLevel } from '../sim/tuning';
 import { SPRITE_SIZE, type Frame, type Glyph } from '../sprites/frames';
-import { NOTE, TEMPER, TWINKLE } from '../sprites/moods';
+import { DROP, NOTE, SAD_CLOUD, TWINKLE } from '../sprites/moods';
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 
@@ -12,14 +12,15 @@ const OVER_HEAD = 12;
 const SHOWN_MS = 2200;
 const AGAIN_EVERY_MS = 75_000;
 const GROWS_MS = 260;
-/** How fast the vein at its temple throbs when it is furious; half as fast when it is only angry. */
-const PULSE_MS = 330;
+/** A drop slides down this far while it shows; under the cloud, one falls now on one side, now on the other, this often. */
+const DROP_SLIDES = 4;
+const DRIP_MS = 700;
 /** A note rises this high while it shows. */
 const NOTE_RISES = 7;
 
 /**
- * What says, by its head, that its mood has changed: a vein at its temple as its day gets worse, bigger and
- * throbbing harder the worse it gets; a twinkle, a note of a tune as it gets better. It shows once when the mood sets in, and then only once in a long
+ * What says, by its head, that its mood has changed: a drop, a bigger one that slides down, then a little sad
+ * cloud as its day gets worse; a twinkle, a note of a tune as it gets better. It shows once when the mood sets in, and then only once in a long
  * while: the rest of the time its mood is on its face.
  */
 export class MoodMarks {
@@ -52,17 +53,23 @@ export class MoodMarks {
       stage.ctx.drawImage(bitmaps.get(glyph), x, y, w * stage.scale, glyph.length * stage.scale);
     };
     const grown = t >= GROWS_MS && t < SHOWN_MS - GROWS_MS;
-    // At its temple, a vein: small when it is annoyed, throbbing when it is angry, standing out and throbbing fast when it is furious.
-    const throb = (everyMs: number): number => Math.floor(t / everyMs) % 2;
+    // How far a drop has slid down since it showed.
+    const slid = Math.round((t / SHOWN_MS) * DROP_SLIDES);
     switch (level) {
       case -1:
-        put(TEMPER[0], 6, -5);
+        // A little down: one small drop by its head.
+        put(DROP[0], 7, -3 - (grown ? 1 : 0));
         break;
       case -2:
-        put(TEMPER[grown ? throb(PULSE_MS * 2) : 0], 6, -5);
+        // Sad: a full drop that slides down beside it.
+        put(DROP[grown ? 1 : 0], 7, -2 - slid);
         break;
       case -3:
-        put(TEMPER[grown ? 1 - throb(PULSE_MS) : 0], 6, -5);
+        // At its saddest: a little cloud over it, that lets a drop fall.
+        put(SAD_CLOUD, -2, grown ? 2 : 1);
+        if (grown) {
+          put(DROP[0], -2 + (Math.floor(t / DRIP_MS) % 2), -slid);
+        }
         break;
       case 1:
         put(TWINKLE[grown ? 1 : 0], 6, 0);
