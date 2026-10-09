@@ -48,6 +48,8 @@ const session: Session = {
   clock: new Date(),
   introPending: true,
   light: false,
+  felt: { mood: 0, attachment: 0 },
+  forced: {},
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -152,8 +154,9 @@ function onMessage(msg: HostMessage): void {
       recall(buddy, msg.memory, Date.now());
       break;
     case 'feelings':
-      world.mood = msg.mood;
-      world.attachment = msg.attachment;
+      session.felt = { mood: msg.mood, attachment: msg.attachment };
+      world.mood = session.forced.mood ?? msg.mood;
+      world.attachment = session.forced.attachment ?? msg.attachment;
       session.facts = msg.facts;
       break;
     case 'welcome':

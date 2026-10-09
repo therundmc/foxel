@@ -1,5 +1,6 @@
 import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
+import { pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { acceptFind } from './sim/features/gifts';
@@ -81,6 +82,8 @@ export class Input {
   private readonly draggables: readonly Draggable[];
   private pointer: { x: number; y: number; time: number } | undefined;
   private dragged = false;
+  /** The press started on the debug corner: dragging goes on setting its gauges. */
+  private onDebug = false;
   private pressedOnBuddy: { x: number; y: number } | undefined;
   private readonly throwing = new ThrowTracker();
   private readonly stroke = new StrokeTracker();
@@ -222,6 +225,13 @@ export class Input {
   private onMouseDown(e: MouseEvent): void {
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
     this.dragged = false;
+    // The debug corner takes what is pressed on it: the fox does not get that click.
+    this.onDebug = this.session.settings.debug === true && pressDebug(this.stage, this.session, e.clientX, e.clientY);
+    if (this.onDebug) {
+      this.dragged = true;
+      e.preventDefault();
+      return;
+    }
     const p = this.stage.toWorld(e.clientX, e.clientY);
     const item = this.chestItemAt(e.clientX, e.clientY);
     const picked = this.draggableAt(e.clientX, e.clientY);
@@ -256,6 +266,10 @@ export class Input {
   }
 
   private onMouseMove(e: MouseEvent): void {
+    if (this.onDebug && (e.buttons & 1) !== 0) {
+      pressDebug(this.stage, this.session, e.clientX, e.clientY, true);
+      return;
+    }
     const { buddy } = this.session;
     const pressed = this.pressedOnBuddy;
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
@@ -288,6 +302,7 @@ export class Input {
 
   private onMouseUp(e: MouseEvent): void {
     this.pressedOnBuddy = undefined;
+    this.onDebug = false;
     if (this.holding) {
       this.releaseHeld(e.clientX, e.clientY);
       // The hand is empty again.

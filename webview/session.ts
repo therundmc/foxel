@@ -15,6 +15,9 @@ export interface Session {
   light: boolean;
   /** What the extension sends for the debug corner, with the hidden `foxel.debug` setting. */
   facts?: LifeFacts;
+  /** What the extension says it feels, and what the debug corner makes it feel instead while you try things out. */
+  felt: { mood: number; attachment: number };
+  forced: { mood?: number; attachment?: number };
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */
