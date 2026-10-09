@@ -65,8 +65,14 @@ function gauges({ world, buddy, facts }: Session): Gauge[] {
     const cares = (['fed', 'played', 'petted', 'treated'] as const).map((care) => `[${facts.off.includes(care) ? '-' : (facts.cares[care] ?? 0) > 0 ? 'x' : ' '}]${care}`).join(' ');
     const slights = Object.entries(facts.slights).map(([what, n]) => `${what} ×${n}`).join(' ');
     lines.push(
-      { label: 'Today', share: facts.worth, colour: FAIR, note: `${percent(facts.worth)} ${cares}` },
-      { label: 'Together', share: facts.togetherMin / facts.togetherFullMin, colour: FAIR, note: `${facts.togetherMin} of ${facts.togetherFullMin} min${slights ? `, let down: ${slights}` : ''}` },
+      // Both are full once everything that counts has been done: more of it adds nothing.
+      { label: 'Today', share: facts.worth, colour: facts.worth >= 1 ? GOOD : FAIR, note: `${percent(facts.worth)}${facts.worth >= 1 ? ' full' : ''} ${cares}` },
+      {
+        label: 'Together',
+        share: facts.togetherMin / facts.togetherFullMin,
+        colour: facts.togetherMin >= facts.togetherFullMin ? GOOD : FAIR,
+        note: `${facts.togetherMin} min${facts.togetherMin >= facts.togetherFullMin ? ` (full from ${facts.togetherFullMin})` : ` of ${facts.togetherFullMin}`}${slights ? ` · let down: ${slights}` : ''}`,
+      },
     );
   }
   lines.push(
