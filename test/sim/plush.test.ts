@@ -467,6 +467,21 @@ describe('the game with its soft toys', () => {
     expect(other.world.plushes.duck.state).toBe('none');
   });
 
+  it('drops the toy it had in its mouth when you throw it the other one', () => {
+    const b = fox(0.2);
+    const { teddy } = b.world.plushes;
+    holdPlush(b, 'teddy', 150, 30);
+    tossPlush(b, 'teddy', 0, 0);
+    simulate(b, 30_000, () => teddy.state === 'carried');
+    expect(teddy.state).toBe('carried');
+    holdPlush(b, 'duck', 220, 30);
+    tossPlush(b, 'duck', 0, 0);
+    expect(b.plush.toy).toBe('duck');
+    expect(teddy.state).toBe('free');
+    simulate(b, 3000);
+    expect(teddy.landed).toBe(true);
+  });
+
   it('plays by itself with a soft toy that is lying about', () => {
     const b = fox();
     expect(STATES.plush.available?.(b)).toBe(false);

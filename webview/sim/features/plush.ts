@@ -73,6 +73,8 @@ export function phase(b: Buddy, to: Phase): void {
 
 export function begin(b: Buddy, kind: PlushKind, at: Phase): void {
   const m = b.plush;
+  // One toy at a time: the other one, if it had it in its mouth, it drops.
+  Object.values(b.world.plushes).forEach((other) => other.kind !== kind && other.state === 'carried' && other.toss(0, 0));
   m.toy = kind;
   m.inPlay = false;
   m.rally = 0;
