@@ -130,27 +130,46 @@ describe('the game with its soft toys', () => {
     expect(b.world.plushes.teddy.state).toBe('held');
   });
 
-  it('runs after a toy you throw, picks it up, shakes it and throws it back up in the air', () => {
-    const b = fox();
+  /** Throws the teddy for a fox whose next pick is decided by `random`, and watches until it has thrown it back up. */
+  const round = (random: number) => {
+    const b = fox(random);
     const { teddy } = b.world.plushes;
     holdPlush(b, 'teddy', 150, 30);
     tossPlush(b, 'teddy', 30, 20);
-    expect(phase(b, 'chase')).toBe(true);
     const anims = new Set<AnimName>();
     const seen = new Set<string>();
-    let wiggle = new Set<number>();
-    simulate(b, 30_000, () => {
+    const quarters = new Set<number>();
+    const dirs = new Set<number>();
+    const offsets = new Set<number>();
+    let highest = 0;
+    let from: number | undefined;
+    let travelled = 0;
+    let ups = 0;
+    let rising = false;
+    simulate(b, 40_000, () => {
       anims.add(b.current().anim);
       seen.add(b.plush.phase);
-      if (b.plush.phase === 'shake') {
-        wiggle = wiggle.add(Math.round(teddy.center - b.x));
+      if (b.plush.phase === 'trick') {
+        from ??= b.x;
+        travelled = Math.abs(b.x - from);
+        quarters.add(b.quarter);
+        dirs.add(b.dir);
+        offsets.add(Math.round(teddy.center - b.x));
+        highest = Math.max(highest, b.y);
+        const up = teddy.state === 'free' && teddy.velocity.y > 0;
+        ups += up && !rising ? 1 : 0;
+        rising = up;
       }
       return phase(b, 'gaze');
     });
-    expect([...seen]).toEqual(expect.arrayContaining(['chase', 'shake', 'toss', 'gaze']));
-    expect([...anims]).toEqual(expect.arrayContaining(['run', 'toyShake', 'toyToss']));
-    // The toy goes from side to side with its head as it shakes it.
-    expect(wiggle.size).toBeGreaterThan(1);
+    return { b, teddy, anims, seen, quarters, dirs, offsets, highest, travelled, ups };
+  };
+
+  it('runs after a toy you throw, picks it up and throws it back up in the air', () => {
+    const { b, teddy, seen, anims } = round(0.1);
+    expect([...seen]).toEqual(expect.arrayContaining(['chase', 'toss', 'gaze']));
+    expect(seen.has('trick')).toBe(false);
+    expect([...anims]).toEqual(expect.arrayContaining(['run', 'toyToss']));
     expect(teddy.state).toBe('free');
     expect(b.plush.inPlay).toBe(true);
     let top = 0;
@@ -158,8 +177,91 @@ describe('the game with its soft toys', () => {
       top = Math.max(top, teddy.y);
       return teddy.landed;
     });
-    expect(top).toBeGreaterThan(25);
+    expect(top).toBeGreaterThan(18);
     expect(b.current().anim).not.toBe('toyToss');
+  });
+
+  it('shakes it from side to side before it throws', () => {
+    const { b, anims, offsets } = round(0.2);
+    expect(b.plush.trick.last).toBe('shake');
+    expect(anims).toContain('toyShake');
+    // The toy goes with its head.
+    expect(offsets.size).toBeGreaterThan(1);
+  });
+
+  it('leaps with it in its mouth and lands in a roll, curled up, then gets up proud of itself', () => {
+    const { b, teddy, anims, quarters, highest, travelled } = round(0.3);
+    expect(b.plush.trick.last).toBe('frolic');
+    expect([...anims]).toEqual(expect.arrayContaining(['leap', 'tumble', 'proud']));
+    expect(highest).toBeGreaterThan(8);
+    expect(travelled).toBeGreaterThan(25);
+    // A whole turn, a quarter at a time, and the right way up at the end.
+    expect([...quarters].sort()).toEqual([0, 1, 2, 3, 4]);
+    expect(b.quarter).toBe(0);
+    expect(b.y).toBe(0);
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x).toBeLessThanOrEqual(b.maxX);
+    expect(teddy.state).toBe('free');
+  });
+
+  it('bounces it on its nose a few times, shuffling under it, then catches it', () => {
+    const { b, anims, ups } = round(0.5);
+    expect(b.plush.trick.last).toBe('juggle');
+    expect(anims).toContain('toyBoop');
+    expect(anims).toContain('bubbleWatch');
+    // Up from its mouth, then three times off its nose.
+    expect(ups).toBe(4);
+    expect(b.plush.trick.bounces).toBe(4);
+  });
+
+  it('spins round with it on little hops, and ends up facing the way it was', () => {
+    const { b, dirs, highest } = round(0.8);
+    expect(b.plush.trick.last).toBe('spin');
+    expect(dirs.size).toBe(2);
+    expect(highest).toBeGreaterThan(1);
+    expect(b.y).toBe(0);
+  });
+
+  it('never does the same trick twice running, and never throws the same way twice', () => {
+    const b = fox();
+    let seed = 5;
+    (b.world as { random: () => number }).random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    const { teddy } = b.world.plushes;
+    holdPlush(b, 'teddy', 150, 30);
+    tossPlush(b, 'teddy', 0, 0);
+    const tricks: string[] = [];
+    const throws: string[] = [];
+    let backwards = 0;
+    let before = b.x;
+    let wasInPlay = false;
+    let wasTrick = false;
+    simulate(b, 600_000, () => {
+      const tricking = b.plush.phase === 'trick';
+      if (tricking && !wasTrick) {
+        tricks.push(b.plush.trick.now);
+      }
+      wasTrick = tricking;
+      if (b.plush.inPlay && !wasInPlay) {
+        throws.push(`${teddy.velocity.x.toFixed(1)},${teddy.velocity.y.toFixed(1)}`);
+        // Somebody always catches it, so the game goes on.
+        holdPlush(b, 'teddy', teddy.center, teddy.y);
+        tossPlush(b, 'teddy', 40 * (throws.length % 2 === 0 ? 1 : -1), 30);
+      }
+      wasInPlay = b.plush.inPlay;
+      // Whenever it walks or runs, it is facing the way it goes.
+      const moved = b.x - before;
+      backwards += b.moving && Math.abs(moved) > 0.01 && Math.sign(moved) !== b.dir ? 1 : 0;
+      before = b.x;
+      return throws.length >= 12;
+    });
+    expect(throws.length).toBe(12);
+    expect(new Set(throws).size).toBe(12);
+    expect(new Set(tricks).size).toBeGreaterThanOrEqual(3);
+    tricks.forEach((trick, i) => expect(i > 0 && trick !== 'roll' && trick === tricks[i - 1]).toBe(false));
+    expect(backwards).toBe(0);
   });
 
   it('keeps the game going when you catch its throw, and cheers every third catch', () => {
@@ -199,6 +301,16 @@ describe('the game with its soft toys', () => {
     expect(leapt).toBe(true);
     expect(highest).toBeGreaterThan(5);
     expect(duck.state).toBe('carried');
+    // It lands in a roll.
+    expect(phase(b, 'trick')).toBe(true);
+    expect(b.plush.trick.now).toBe('roll');
+    const quarters = new Set<number>();
+    simulate(b, 3000, () => {
+      quarters.add(b.quarter);
+      return !phase(b, 'trick');
+    });
+    expect(quarters.size).toBe(5);
+    expect(phase(b, 'toss')).toBe(true);
     expect(b.y).toBe(0);
   });
 

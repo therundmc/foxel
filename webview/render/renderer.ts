@@ -192,6 +192,15 @@ export class Renderer {
     this.drawShadow(rect.x + rect.w / 2, 16 - Math.min(buddy.y, 8));
 
     const flip = buddy.dir === -1;
+    // Rolling, the whole of it turns by quarters round its middle, the way it is going.
+    ctx.save();
+    if (buddy.quarter % 4 !== 0) {
+      const cx = rect.x + rect.w / 2;
+      const cy = rect.y + rect.h / 2 + 6 * s;
+      ctx.translate(cx, cy);
+      ctx.rotate((buddy.dir * buddy.quarter * Math.PI) / 2);
+      ctx.translate(-cx, -cy);
+    }
     this.drawOverlays(frame, rect, flip, true);
     // A frame is the sprite and a margin round it, for what reaches past its box.
     const img = this.bitmaps.get(frame.pixels);
@@ -210,6 +219,7 @@ export class Renderer {
     this.drawHat(frame, rect, flip);
 
     this.drawOverlays(frame, rect, flip, false);
+    ctx.restore();
   }
 
   // Overlays follow the side the fox faces. What it holds turns round with it; a Zzz or a heart never does.

@@ -2,23 +2,22 @@ import { ANIMATIONS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, frameAt, totalDuration } from '../../sprites/frames';
 import type { PlushKind } from '../../sprites/props';
 import type { Buddy } from '../buddy';
-import { clamp } from '../math';
 import type { Plush } from '../props/plush';
 import type { AnimRef, Feature } from '../state';
-import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
-import { mouthPoint } from './mouth';
-import { asleep, tookBreak } from './rest';
+import { carryInMouth, noseTo } from './mouth';
+import { tookBreak } from './rest';
 import { wantBack } from './rummage';
+import { bonk } from './bonk';
+import { TrickMemory, pickTrick, startTrick, trickAnim, updateTrick } from './toyTricks';
 
-/** It shakes the toy for this long, more often than not, before it throws it. */
-const SHAKE_MS = 720;
-const SHAKES = 0.6;
 /** The throw: when in the animation the toy leaves its mouth, how hard it goes up, how far to the side it can aim. */
 const TOSS_MS = totalDuration(ANIMATIONS.toyToss);
 const TOSS_AT = 180;
-const TOSS_UP = 74;
-const TOSS_UP_MORE = 14;
-const TOSS_ASIDE = 30;
+/** No two throws alike: it goes up this hard at least and this much more at most, and this far to the side at most. */
+const TOSS_UP = 62;
+const TOSS_UP_MORE = 34;
+const TOSS_ASIDE = 6;
+const TOSS_ASIDE_MORE = 42;
 /** How far under the middle of its head its mouth is. */
 const MOUTH_UNDER_HEAD = 5.5;
 /** A toy coming down within its reach, it jumps and catches: how long the jump lasts, how high, and what is within reach. */
@@ -27,12 +26,8 @@ const LEAP_HEIGHT = 9;
 const LEAP_UNDER = 24;
 const LEAP_NEAR = 7;
 const CATCH_NEAR = 9;
-/** A toy that comes at its head this fast knocks it silly for a moment: how near its head, how long, and how the toy bounces off. */
-const BONK_SPEED = 45;
-const BONK_NEAR = 8;
+/** How long it sees stars after a toy has landed on its head. */
 const DAZED_MS = 1400;
-const BONK_BACK = 0.4;
-const BONK_UP = 38;
 /** Throws of its own that nobody caught before it settles down with the toy; catches of yours in a row that make it cheer. */
 const MISSES = 2;
 const CHEER_EVERY = 3;
@@ -45,12 +40,12 @@ const HOP_SPEED = 16;
 const HOP_HEIGHT = 30;
 
 /**
- * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shakes it, throws it up
+ * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shows off with it (`trick`), throws it up
  * (`toss`) and watches it go (`gaze`). Catch it and it waits for your throw (`ready`), cheering now and then; let
  * it fall a couple of times and it settles down with it (`settle`). A toy that lands on its head leaves it seeing
  * stars for a moment (`dazed`).
  */
-type Phase = 'chase' | 'leap' | 'shake' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
+type Phase = 'chase' | 'leap' | 'trick' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
 
 export class PlushMemory {
   /** The soft toy it is busy with. */
@@ -65,17 +60,18 @@ export class PlushMemory {
   /** Settling down: it has got to the toy, and how many times it has booped it. */
   with = false;
   boops = 0;
+  readonly trick = new TrickMemory();
 }
 
 const plush = (b: Buddy, kind: PlushKind): Plush => b.world.plushes[kind];
 
-function phase(b: Buddy, to: Phase): void {
+export function phase(b: Buddy, to: Phase): void {
   b.plush.phase = to;
   b.plush.phaseMs = 0;
   b.plush.with = false;
 }
 
-function begin(b: Buddy, kind: PlushKind, at: Phase): void {
+export function begin(b: Buddy, kind: PlushKind, at: Phase): void {
   const m = b.plush;
   m.toy = kind;
   m.inPlay = false;
@@ -85,13 +81,7 @@ function begin(b: Buddy, kind: PlushKind, at: Phase): void {
   phase(b, at);
 }
 
-const playingWith = (b: Buddy, kind: PlushKind): boolean => b.state === 'plush' && b.plush.toy === kind;
-
-/** The toy hangs from its mouth. */
-export function carryInMouth(b: Buddy, toy: Plush): void {
-  const at = mouthPoint(b);
-  toy.carry(at.x, at.y);
-}
+export const playingWith = (b: Buddy, kind: PlushKind): boolean => b.state === 'plush' && b.plush.toy === kind;
 
 /** A soft toy is in your hand, at this point: out of the chest, picked up from where it lay, or caught as it flew. */
 export function holdPlush(b: Buddy, kind: PlushKind, x: number, y: number): void {
@@ -154,38 +144,6 @@ export function startTossing(b: Buddy, kind: PlushKind): void {
   b.enter('plush', Infinity);
 }
 
-// A toy coming down on its head, or thrown at it, bounces off and leaves it dazed: it missed that one.
-function bonk(b: Buddy): void {
-  if (b.def.offscreen || b.def.hidden || asleep(b) || (b.state === 'plush' && (b.plush.phase === 'leap' || b.plush.phase === 'dazed'))) {
-    return;
-  }
-  const { anim, elapsed } = b.current();
-  const [hx, hy] = frameAt(ANIMATIONS[anim], elapsed).head;
-  const headX = b.x + b.offsetFor(hx);
-  const headY = b.y + SPRITE_SIZE - hy;
-  for (const toy of Object.values(b.world.plushes)) {
-    const { x: vx, y: vy } = toy.velocity;
-    const coming = toy.state === 'free' && toy.speed >= BONK_SPEED && (vy < 0 || Math.abs(vx) >= BONK_SPEED);
-    if (!coming || Math.hypot(toy.center - headX, toy.y + toy.h / 2 - headY) > BONK_NEAR) {
-      continue;
-    }
-    const away = vx !== 0 ? -Math.sign(vx) : toy.center < headX ? -1 : 1;
-    toy.toss(away * Math.max(14, Math.abs(vx) * BONK_BACK), BONK_UP);
-    if (playingWith(b, toy.kind)) {
-      b.plush.misses += b.plush.inPlay ? 1 : 0;
-      b.plush.inPlay = false;
-      b.plush.rally = 0;
-      phase(b, 'dazed');
-    } else {
-      b.tryEnter('plush', Infinity);
-      if (b.state === 'plush') {
-        begin(b, toy.kind, 'dazed');
-      }
-    }
-    return;
-  }
-}
-
 /** The soft toy lying nearest to it, if any. */
 function lying(b: Buddy): Plush | undefined {
   return Object.values(b.world.plushes)
@@ -195,10 +153,17 @@ function lying(b: Buddy): Plush | undefined {
 
 /** Runs to where its nose is on the toy; true once it is there. */
 function reach(b: Buddy, toy: Plush, dt: number): boolean {
-  const target = b.noseTargetFor(toy.center);
-  b.running = Math.abs(target - b.x) > FETCH_FAR;
-  b.moving = b.approach(target, (b.running ? FETCH_RUN_SPEED : FETCH_WALK_SPEED) * dt);
-  return !b.moving;
+  return noseTo(b, toy.center, dt);
+}
+
+// It has the toy: a trick first, most of the time, then the throw.
+function showOff(b: Buddy, toy: Plush, landing: boolean): void {
+  const trick = landing ? 'roll' : pickTrick(b);
+  phase(b, trick ? 'trick' : 'toss');
+  if (trick) {
+    b.startDir = b.dir;
+    startTrick(b, toy, trick);
+  }
 }
 
 const mouthHeight = (b: Buddy): number => b.y + SPRITE_SIZE - (frameAt(ANIMATIONS.leap, 0).head[1] + MOUTH_UNDER_HEAD);
@@ -209,7 +174,7 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
   const passed = (ms: number): boolean => m.phaseMs >= ms && m.phaseMs - dtMs < ms;
   b.moving = false;
   m.phaseMs += dtMs;
-  if (m.phase !== 'leap') {
+  if (m.phase !== 'leap' && m.phase !== 'trick') {
     b.fall(dt);
   }
   if (toy.state === 'none') {
@@ -243,7 +208,7 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
         break;
       }
       const there = reach(b, toy, dt);
-      const near = Math.abs(b.noseTargetFor(toy.center) - b.x) <= LEAP_NEAR;
+      const near = Math.abs(toy.center - (b.x + b.noseOffset())) <= LEAP_NEAR;
       if (!toy.landed) {
         if (near && toy.falling && toy.y < LEAP_UNDER && toy.y > mouthHeight(b) && b.y === 0) {
           phase(b, 'leap');
@@ -253,7 +218,7 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
           phase(b, 'settle');
         } else {
           carryInMouth(b, toy);
-          phase(b, b.world.random() < SHAKES ? 'shake' : 'toss');
+          showOff(b, toy, false);
         }
       }
       break;
@@ -268,21 +233,30 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
       }
       if (p === 1) {
         b.y = 0;
-        phase(b, toy.state === 'carried' ? 'shake' : 'chase');
+        // Caught in the air: it lands in a roll.
+        if (toy.state === 'carried') {
+          showOff(b, toy, true);
+        } else {
+          phase(b, 'chase');
+        }
       }
       break;
     }
-    case 'shake':
-      if (m.phaseMs >= SHAKE_MS) {
-        phase(b, 'toss');
+    case 'trick':
+      if (updateTrick(b, toy, m.phaseMs, dt, dtMs)) {
+        b.y = 0;
+        b.quarter = 0;
+        phase(b, toy.state === 'carried' ? 'toss' : toy.state === 'held' ? 'ready' : 'chase');
       }
       break;
     case 'toss':
       if (passed(TOSS_AT) && toy.state === 'carried') {
-        // Up it goes, toward your pointer if it is around.
-        const to = b.world.pointer;
-        const aside = to ? clamp((to.x - toy.center) * 1.2, -TOSS_ASIDE, TOSS_ASIDE) : (b.world.random() - 0.5) * TOSS_ASIDE;
-        toy.toss(aside, TOSS_UP + TOSS_UP_MORE * b.world.random());
+        // Up it goes: how high and how far is never the same, but it is toward your pointer if it is around,
+        // and never into the wall it stands against.
+        const { pointer, random, width } = b.world;
+        const walled = toy.center < width * 0.2 ? 1 : toy.center > width * 0.8 ? -1 : 0;
+        const side = walled || (pointer ? (pointer.x >= toy.center ? 1 : -1) : random() < 0.5 ? -1 : 1);
+        toy.toss(side * (TOSS_ASIDE + TOSS_ASIDE_MORE * random()), TOSS_UP + TOSS_UP_MORE * random());
         m.inPlay = true;
       }
       if (m.phaseMs >= TOSS_MS) {
@@ -351,8 +325,8 @@ function plushAnim(b: Buddy): AnimRef {
       return { anim: 'dizzy', elapsed: m.phaseMs };
     case 'leap':
       return { anim: 'leap', elapsed: m.phaseMs };
-    case 'shake':
-      return { anim: 'toyShake', elapsed: m.phaseMs };
+    case 'trick':
+      return trickAnim(b, m.phaseMs);
     case 'toss':
       return { anim: 'toyToss', elapsed: m.phaseMs };
     case 'gaze':

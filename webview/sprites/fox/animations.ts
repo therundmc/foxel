@@ -143,6 +143,9 @@ export const ANIMATIONS = {
     [{ head: [0, -3], eye: 'up', mouth: 'open', tail: 'up' }, 140],
     [{ head: [0, -2], eye: 'up', mouth: 'open', tail: 'wagL' }, 180],
   ]),
+  // Rolled up in a ball, for a roll along the ground; and a nudge of the nose that sends a toy back up.
+  tumble: anim([[{ body: 'curl', eye: 'happy', ears: 'back' }, 400]]),
+  toyBoop: anim([[{ head: [0, -2], eye: 'closed', ears: 'back', tail: 'up' }, 200]]),
   // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
   tug: anim([
     [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],

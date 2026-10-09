@@ -10,7 +10,8 @@ import { ASK_BREAK_MS, FETCH_FAR, FETCH_RUN_SPEED } from '../tuning';
 import { carrying, dropBall } from './fetch';
 import { startPlay } from './play';
 import { asleep } from './rest';
-import { carryInMouth, startTossing } from './plush';
+import { carryInMouth, noseTo } from './mouth';
+import { startTossing } from './plush';
 
 /** How far past the chest's near edge its nose goes. */
 const NOSE_IN = 5;
@@ -182,11 +183,7 @@ function updateRummage(b: Buddy, dt: number, dtMs: number): void {
   }
   switch (m.step) {
     case 'pick': {
-      const target = b.noseTargetFor(toy.center);
-      b.running = Math.abs(target - b.x) > FETCH_FAR;
-      if (b.approach(target, (b.running ? FETCH_RUN_SPEED : TROT_SPEED) * dt)) {
-        b.moving = true;
-      } else {
+      if (noseTo(b, toy.center, dt, TROT_SPEED)) {
         carryInMouth(b, toy);
         step(b, 'reach');
       }
