@@ -31,6 +31,7 @@ const SENT: Record<keyof Omit<BuddySettings, 'installedOn'>, true> = {
   coat: true,
   dayNight: true,
   debugHour: true,
+  debug: true,
 };
 export const WEBVIEW_SETTINGS = Object.keys(SENT) as (keyof typeof SENT)[];
 

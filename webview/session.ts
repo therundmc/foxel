@@ -13,6 +13,8 @@ export interface Session {
   introPending: boolean;
   /** Whether the editor's theme is a light one: pale things are drawn darker on it. */
   light: boolean;
+  /** Lines the extension sends for the debug corner. */
+  notes: readonly string[];
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */

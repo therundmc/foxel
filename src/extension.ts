@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
-import type { Care } from '../shared/life';
+import { dayWorth, type Care } from '../shared/life';
 import {
   SCENES,
   type HostMessage,
@@ -125,10 +125,21 @@ export function activate(context: vscode.ExtensionContext): void {
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
   /** Cares switched off in the settings: not doing them is never held against you. */
   const caresOff = (): Care[] => (readConfig().meals ? [] : ['fed']);
+  // For the debug corner of its view: the facts its feelings are worked out from.
+  const lifeNotes = (): string[] => {
+    const { life, feelings: felt } = store;
+    const today = life.days[dateKey(clock())] ?? { cares: {}, slights: {}, presentMin: 0, off: [] };
+    const counts = (record: Partial<Record<string, number>>): string => Object.entries(record).map(([what, n]) => `${what} ${n}`).join(', ') || 'none';
+    return [
+      `born ${life.born} · ${Object.keys(life.days).length} days kept · away ${felt.daysAway ?? '-'} d before today`,
+      `today ${today.presentMin} min together, worth ${dayWorth(today).toFixed(2)}${today.off.length > 0 ? ` · off: ${today.off.join(', ')}` : ''}`,
+      `cares: ${counts(today.cares)} · slights: ${counts(today.slights)}`,
+    ];
+  };
   /** What it feels, as its life stands right now. */
   const feelings = (): HostMessage => {
     const { mood, attachment } = store.feelings;
-    return { type: 'feelings', mood, attachment };
+    return { type: 'feelings', mood, attachment, notes: readConfig().debug ? lifeNotes() : undefined };
   };
   // A minute with its view open and you there is a minute spent together.
   const together = setInterval(() => {
@@ -284,6 +295,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       if (WEBVIEW_SETTINGS.some((key) => e.affectsConfiguration(`${SECTION}.${key}`))) {
         broadcast(settingsMessage());
+        broadcast(feelings());
       }
     }),
   );

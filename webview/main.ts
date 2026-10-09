@@ -2,6 +2,7 @@ import { clockAt, lightTint, partyKind } from '../shared/day';
 import type { HostMessage, WebviewMessage } from '../shared/protocol';
 import { Input } from './input';
 import { Bitmaps } from './render/bitmaps';
+import { drawDebug } from './render/debug';
 import { Renderer } from './render/renderer';
 import { Sky } from './render/sky';
 import type { Session } from './session';
@@ -47,6 +48,7 @@ const session: Session = {
   clock: new Date(),
   introPending: true,
   light: false,
+  notes: [],
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -134,6 +136,9 @@ function tick(now: number): void {
   saveMemory();
   renderer.blink(now);
   renderer.draw(now, dt);
+  if (session.settings.debug) {
+    drawDebug(stage, session);
+  }
 }
 
 function onMessage(msg: HostMessage): void {
@@ -150,6 +155,7 @@ function onMessage(msg: HostMessage): void {
     case 'feelings':
       world.mood = msg.mood;
       world.attachment = msg.attachment;
+      session.notes = msg.notes ?? [];
       break;
     case 'welcome':
       welcomeBack(buddy, msg.daysAway);
