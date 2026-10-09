@@ -1,6 +1,7 @@
 import type { Session } from '../session';
 import { slighted, welcomeBack } from '../sim/features/bond';
 import { startGift } from '../sim/features/gifts';
+import { startMilestone } from '../sim/features/growth';
 import { MOOD_NEXT } from '../sim/features/ambient';
 import { LOW } from '../sim/features/bond';
 import { DOODLE_EVERY_MS, GIFTS_A_DAY, GIFT_EVERY_MS, broughtToday } from '../sim/features/gifts';
@@ -38,7 +39,7 @@ const BUTTONS: readonly { label: string; press(session: Session): void }[] = [
   { label: 'hide', press: (session) => void (session.debugOpen = false) },
   { label: 'live', press: (session) => force(session, {}) },
   { label: 'stage -', press: (session) => toStage(session, session.world.stage - 1) },
-  { label: 'stage +', press: (session) => toStage(session, session.world.stage + 1) },
+  { label: 'stage +', press: (session) => (session.world.stage < 0 ? startMilestone(session.buddy, 0) : toStage(session, session.world.stage + 1)) },
   { label: 'let down', press: ({ buddy }) => slighted(buddy) },
   { label: 'find', press: ({ buddy }) => (buddy.interrupt(), startGift(buddy)) },
   { label: 'heart', press: ({ buddy }) => (buddy.interrupt(), (buddy.gift.sinceDoodleMs = DOODLE_EVERY_MS), buddy.enterNext('doodle')) },
@@ -199,13 +200,30 @@ export function pressDebug(stage: Stage, session: Session, x: number, y: number,
   if (pressed && !dragging) {
     pressed.press(session);
   }
-  return pressed !== undefined || (x < NOTE_X && y < PAD + (lines.length + 2) * ROW + BUTTON_H);
+  return pressed !== undefined || coversDebug(stage, session, x, y);
 }
+
+/** Whether this point of the view is on the unfolded corner: what is under it does not get the pointer. */
+export function coversDebug(stage: Stage, session: Session, x: number, y: number): boolean {
+  if (!session.debugOpen || stepsAside(session)) {
+    return false;
+  }
+  const rows = gauges(session).length;
+  const row = buttons(stage, rows + 1);
+  const last = row[row.length - 1];
+  return x < Math.max(NOTE_X + 160, last.x + last.w + PAD) && y < last.y + last.h + PAD;
+}
+
+// While the box of keepsakes is out, in the same corner, the debug corner leaves it the room.
+const stepsAside = (session: Session): boolean => !session.world.album.tucked;
 
 /** The debug corner, top left. */
 export function drawDebug(stage: Stage, session: Session): void {
   const { ctx } = stage;
   const { buddy, facts, light } = session;
+  if (session.debugOpen && stepsAside(session)) {
+    return;
+  }
   if (!session.debugOpen) {
     const fold = unfoldButton(stage);
     ctx.save();

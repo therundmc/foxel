@@ -1,6 +1,6 @@
 import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
-import { pressDebug } from './render/debug';
+import { coversDebug, pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { acceptFind } from './sim/features/gifts';
@@ -240,9 +240,11 @@ export class Input {
     }
     const { chest } = this.session.world;
     const at = this.stage.toWorld(e.clientX, e.clientY);
-    chest.point(at, this.holding !== undefined && this.holding !== this.toys.treat);
-    this.session.world.shelf.point(this.holding ? undefined : at);
-    this.session.world.album.point(this.holding ? undefined : at);
+    // Over the debug corner, the pointer is on it and on nothing under it.
+    const onCorner = this.session.settings.debug === true && coversDebug(this.stage, this.session, e.clientX, e.clientY);
+    chest.point(onCorner ? undefined : at, this.holding !== undefined && this.holding !== this.toys.treat);
+    this.session.world.shelf.point(this.holding || onCorner ? undefined : at);
+    this.session.world.album.point(this.holding || onCorner ? undefined : at);
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);

@@ -191,7 +191,8 @@ export const growthFeature = {
   urges: [
     // One stage at a time, as soon as it has a quiet moment.
     urge(
-      (b) => !asleep(b) && b.world.stage < stageFor(b.world.peak),
+      // The first one is the entrance itself, with its ball: nothing to go and get before that.
+      (b) => !asleep(b) && b.world.stage >= 0 && b.world.stage < stageFor(b.world.peak),
       (b) => startMilestone(b, b.world.stage + 1),
     ),
   ],

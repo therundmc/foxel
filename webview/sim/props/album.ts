@@ -29,7 +29,7 @@ export type Keepsake = { picture: number } | { find: FindKind };
  * looked at.
  */
 export class Album {
-  x = 0;
+  x = -(ALBUM_W - PEEK);
   /** The height of its bottom above the ground. */
   y = 0;
   asked = false;
@@ -38,7 +38,7 @@ export class Album {
   readonly finds: Partial<Record<FindKind, number>> = {};
   /** What is on its way into it, from where, and for how long it has been flying. */
   flying: { what: Keepsake; fromX: number; fromY: number; ms: number } | undefined;
-  private away = 0;
+  private away = -(ALBUM_W - PEEK);
   private pointer: { x: number; y: number } | undefined;
   private aroundMs = 0;
   private stillMs = 0;
@@ -46,6 +46,11 @@ export class Album {
 
   get here(): boolean {
     return this.x === 0;
+  }
+
+  /** Waiting at the edge of the view, only its handle showing. */
+  get tucked(): boolean {
+    return this.x === this.away;
   }
 
   get moving(): boolean {

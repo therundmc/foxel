@@ -58,6 +58,17 @@ describe('the stages of a life together', () => {
     expect(has(b.world, 'hearts')).toBe(true);
   });
 
+  it('does nothing about the first one before it has come in: the box stays shut, and it does not go off for its ball', () => {
+    const b = spawn(fixed(0.3));
+    b.world.stage = -1;
+    expect(b.world.album.tucked).toBe(true);
+    b.world.resize(300, 60);
+    simulate(b, 5000);
+    expect(b.state).not.toBe('milestone');
+    expect(b.world.album.tucked).toBe(true);
+    expect(b.world.stage).toBe(-1);
+  });
+
   it('start with it coming in with its ball: it puts it down in front of you, and a picture goes into its box', () => {
     const b = spawn(fixed(0.3));
     b.world.resize(300, 60);

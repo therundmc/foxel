@@ -142,6 +142,8 @@ export function activate(context: vscode.ExtensionContext): void {
       off: today.off,
     };
   };
+  /** Between starting its life over and its views being loaded afresh. */
+  let forgetting = false;
   /** What it feels, as its life stands right now. */
   const feelings = (): HostMessage => {
     const { mood, attachment, peak } = store.feelings;
@@ -157,6 +159,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Opening its view is coming to see it: it is awake for that.
   const onReady = (provider: BuddyHost): void => {
+    forgetting = false;
     watcher.interacted();
     provider.post(settingsMessage());
     // A view forgets everything when it is closed: it is told what the fox needed when the last one noted it.
@@ -194,6 +197,8 @@ export function activate(context: vscode.ExtensionContext): void {
     if (answer !== sure) {
       return;
     }
+    // What its views still say they remember, until they have been loaded afresh, is of the life that is over.
+    forgetting = true;
     const today = dateKey(clock());
     await context.globalState.update(INSTALLED_KEY, today);
     await context.globalState.update(WELCOMED_KEY, undefined);
@@ -232,7 +237,9 @@ export function activate(context: vscode.ExtensionContext): void {
         broadcast(feelings());
         break;
       case 'memory':
-        store.noteNeeds(msg.memory);
+        if (!forgetting) {
+          store.noteNeeds(msg.memory);
+        }
         break;
       case 'newLife':
         void startOver();
