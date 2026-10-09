@@ -199,6 +199,10 @@ export function activate(context: vscode.ExtensionContext): void {
         broadcast(feelings());
         break;
       case 'slighted':
+        // A meal missed while you were away from your desk is not held against you.
+        if (msg.slight === 'unfed' && watcher.asleep) {
+          break;
+        }
         store.slight(msg.slight);
         broadcast(feelings());
         break;

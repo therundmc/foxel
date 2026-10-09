@@ -40,6 +40,7 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     toys: lying(b),
     finds: [...b.world.finds.kept],
     mound: b.world.mound.x === undefined ? undefined : Math.round(b.world.mound.x),
+    treat: b.world.treat.landed ? { x: Math.round(b.world.treat.centerX), stage: b.world.treat.stage, facing: b.world.treat.facing } : undefined,
   };
 }
 
@@ -57,6 +58,7 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     JSON.stringify(a.toys ?? {}) === JSON.stringify(b.toys ?? {}) &&
     JSON.stringify(a.finds ?? []) === JSON.stringify(b.finds ?? []) &&
     a.mound === b.mound &&
+    JSON.stringify(a.treat) === JSON.stringify(b.treat) &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
 }
@@ -83,6 +85,9 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   const toys = sameDay ? (memory.toys ?? {}) : {};
   if (sameDay && finds.kept.length === 0) {
     finds.kept.push(...(memory.finds ?? []).slice(0, KEPT_MOST));
+  }
+  if (sameDay && memory.treat && !b.world.treat.active) {
+    b.world.treat.rest(memory.treat.x, memory.treat.stage, memory.treat.facing, width);
   }
   if (sameDay && memory.mound !== undefined && !mound.there) {
     mound.restore(memory.mound);

@@ -8,6 +8,7 @@ import { carryInMouth, noseTo } from './mouth';
 import { tookBreak } from './rest';
 import { wantBack } from './rummage';
 import { bonk } from './bonk';
+import { settle } from './plushSettle';
 import { TrickMemory, pickTrick, startTrick, trickAnim, updateTrick } from './toyTricks';
 
 /** The throw: when in the animation the toy leaves its mouth, how hard it goes up, how far to the side it can aim. */
@@ -32,13 +33,6 @@ const DAZED_MS = 1400;
 const MISSES = 2;
 const CHEER_EVERY = 3;
 const CHEER_MS = 900;
-/** Settling down: how long it lies against its teddy; how many times it boops its duck, how long a boop lasts, how the duck hops off. */
-const CUDDLE_MS = 4500;
-const BOOPS = 3;
-const BOOP_MS = 400;
-const HOP_SPEED = 16;
-const HOP_HEIGHT = 30;
-
 /**
  * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shows off with it (`trick`), throws it up
  * (`toss`) and watches it go (`gaze`). Catch it and it waits for your throw (`ready`), cheering now and then; let
@@ -288,40 +282,6 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
     case 'settle':
       settle(b, toy, dt);
       break;
-  }
-}
-
-// The game winds down: it lies against its teddy for a while, or boops its duck along a few times.
-function settle(b: Buddy, toy: Plush, dt: number): void {
-  const m = b.plush;
-  if (toy.state === 'held') {
-    phase(b, 'ready');
-    m.misses = 0;
-    return;
-  }
-  if (!toy.landed) {
-    b.faceX(toy.center, 3);
-    return;
-  }
-  if (!m.with) {
-    m.with = noseTo(b, toy.center, dt) !== 'going';
-    m.phaseMs = 0;
-    return;
-  }
-  if (m.toy === 'teddy') {
-    if (m.phaseMs >= CUDDLE_MS) {
-      tookBreak(b);
-      b.enterNext('lie');
-    }
-  } else if (m.phaseMs >= BOOP_MS) {
-    if (++m.boops >= BOOPS) {
-      tookBreak(b);
-      b.enterNext('sit');
-      return;
-    }
-    // A boop with its nose, and the duck hops off: it goes after it again.
-    toy.toss((toy.center < b.world.width / 2 ? 1 : -1) * HOP_SPEED, HOP_HEIGHT);
-    m.with = false;
   }
 }
 

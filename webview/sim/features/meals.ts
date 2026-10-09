@@ -5,6 +5,7 @@ import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import { BOWL_CAPACITY } from '../../sprites/props';
 import type { Buddy } from '../buddy';
 import { cared, slighted } from './bond';
+import { asleep } from './rest';
 import { urge, type Feature } from '../state';
 import { FETCH_RUN_SPEED, FETCH_WALK_SPEED, WALK_SPEED } from '../tuning';
 import { REACTION_MS } from './reactions';
@@ -34,11 +35,25 @@ export class MealsMemory {
   /** The bowl it is done with and sends off, and for how long it has been at it. */
   done: 'foodBowl' | 'waterBowl' = 'foodBowl';
   batMs = 0;
+  /** When it last finished a bowl, by the world's clock. */
+  ateAt = -Infinity;
 }
+
+/** For this long after a bowl it has had enough: offered another one, it says no. */
+const FULL_MS = 45 * 60_000;
+const NO_THANKS: TouchReaction = { anim: 'toyShake', ms: 640, then: 'sit' };
+
+/** Its belly is full: it is not meal time, and it has just eaten. */
+export const full = (b: Buddy): boolean => !b.meals.hungry && b.world.now.getTime() - b.meals.ateAt < FULL_MS;
 
 /** Fills the food bowl (bringing it out if needed); it then eats, kibble by kibble. */
 export function fillBowl(b: Buddy): void {
   const bowl = b.world.foodBowl;
+  if (full(b) && !(bowl.amount > 0)) {
+    // No thank you: it shakes its head, and no bowl comes.
+    perform(b, NO_THANKS);
+    return;
+  }
   if (!bowl.active) {
     bowl.show(b.x + b.offsetFor(BOWL_SIT_X), b.world.width, b.world.height, b.x + SPRITE_SIZE / 2);
   }
@@ -110,6 +125,7 @@ function updateFeast(b: Buddy, dt: number): void {
     b.meals.hungerMs = 0;
     b.meals.done = 'foodBowl';
     b.world.effects.push('fed');
+    b.meals.ateAt = b.world.now.getTime();
     cared(b);
     perform(b, FULL);
   }
@@ -230,8 +246,11 @@ export const mealsFeature = {
     const bowl = b.world.foodBowl;
     if (!mealAt(b.world.now) && !(bowl.amount > 0)) {
       m.hungry = false;
-      b.world.effects.push('unfed');
-      slighted(b);
+      // Asleep because you were gone (at lunch yourself, most likely), it does not hold it against you.
+      if (!asleep(b)) {
+        b.world.effects.push('unfed');
+        slighted(b);
+      }
       bowl.hide();
       if (b.state === 'hungry') {
         b.tryEnter('sad', REACTION_MS.sad);

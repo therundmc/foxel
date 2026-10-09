@@ -1,5 +1,5 @@
 import { ANIMATIONS } from '../../sprites/fox/animations';
-import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
+import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, FETCH_MAX_MS, WALK_SPEED } from '../tuning';
@@ -84,8 +84,8 @@ export function goToSleep(b: Buddy): void {
 export function startBedtime(b: Buddy): void {
   const { basket } = b.world;
   if (!basket.staying) {
-    const left = b.x + SPRITE_SIZE / 2 < b.world.width / 2;
-    basket.bring(left ? 0 : b.maxX, left ? -1 : 1);
+    // Always on the left, where its corner is: the right is for its chest and its shelf.
+    basket.bring(0, -1);
   }
   b.rest.basketStep = basket.x === basket.home ? 'settle' : 'reach';
   b.rest.basketMs = 0;

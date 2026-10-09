@@ -56,6 +56,16 @@ export class Treat {
     this.y = clamp(centerY - TREAT_H / 2, 0, Math.max(0, worldHeight - TREAT_H - 1));
   }
 
+  /** Lying at `centerX`, eaten down to `stage`, as it was left. */
+  rest(centerX: number, stage: number, facing: 1 | -1, worldWidth: number): void {
+    this.state = 'free';
+    this.stage = stage;
+    this.facing = facing;
+    this.x = clamp(centerX - TREAT_W / 2, 0, Math.max(0, worldWidth - TREAT_W));
+    this.y = 0;
+    this.vy = 0;
+  }
+
   release(): void {
     if (this.state === 'held') {
       this.state = 'free';
