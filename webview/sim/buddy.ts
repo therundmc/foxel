@@ -12,7 +12,6 @@ import { MealsMemory } from './features/meals';
 import { MousingMemory } from './features/mousing';
 import { BondMemory } from './features/bond';
 import { GiftMemory } from './features/gifts';
-import { LessonMemory } from './features/lessons';
 import { PlayMemory } from './features/play';
 import { PlushMemory } from './features/plush';
 import { RummageMemory } from './features/rummage';
@@ -67,7 +66,6 @@ export class Buddy {
   readonly play = new PlayMemory();
   readonly bond = new BondMemory();
   readonly gift = new GiftMemory();
-  readonly lessons = new LessonMemory();
   readonly plush = new PlushMemory();
   readonly rummage = new RummageMemory();
   readonly touch = new TouchMemory();

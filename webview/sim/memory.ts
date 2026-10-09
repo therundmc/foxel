@@ -40,7 +40,6 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     toys: lying(b),
     finds: [...b.world.finds.kept],
     mound: b.world.mound.x === undefined ? undefined : Math.round(b.world.mound.x),
-    learned: b.lessons.learned,
     treat: b.world.treat.landed ? { x: Math.round(b.world.treat.centerX), stage: b.world.treat.stage, facing: b.world.treat.facing } : undefined,
   };
 }
@@ -60,7 +59,6 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     JSON.stringify(a.finds ?? []) === JSON.stringify(b.finds ?? []) &&
     a.mound === b.mound &&
     JSON.stringify(a.treat) === JSON.stringify(b.treat) &&
-    JSON.stringify(a.learned ?? {}) === JSON.stringify(b.learned ?? {}) &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
 }
@@ -81,8 +79,6 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.contemplate.dream = memory.dream;
   b.contemplate.last = memory.lastVista;
   b.visitors.mouseFriend = memory.mouseFriend === true;
-  // What you taught it, it does not forget.
-  b.lessons.learned = JSON.parse(JSON.stringify(memory.learned ?? {})) as typeof b.lessons.learned;
   // Its toys are where it left them, for the day: by the next morning they are back in the chest.
   const { ball, plushes, finds, mound, width, height } = b.world;
   const sameDay = new Date(memory.savedAt).toDateString() === new Date(now).toDateString();

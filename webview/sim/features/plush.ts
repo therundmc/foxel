@@ -10,7 +10,6 @@ import { wantBack } from './rummage';
 import { bonk } from './bonk';
 import { settle } from './plushSettle';
 import { TrickMemory, pickTrick, startTrick, trickAnim, updateTrick } from './toyTricks';
-import { TugMemory, dropTug, pullTug, startTug, tugAnim, updateTug } from './tug';
 
 /** The throw: when in the animation the toy leaves its mouth, how hard it goes up, how far to the side it can aim. */
 const TOSS_MS = totalDuration(ANIMATIONS.toyToss);
@@ -38,9 +37,9 @@ const CHEER_MS = 900;
  * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shows off with it (`trick`), throws it up
  * (`toss`) and watches it go (`gaze`). Catch it and it waits for your throw (`ready`), cheering now and then; let
  * it fall a couple of times and it settles down with it (`settle`). A toy that lands on its head leaves it seeing
- * stars for a moment (`dazed`). Take hold of the toy while it has it in its mouth and it is a tug of war (`tug`). One that lies right under it, where its nose cannot go, it pulls out with a paw (`paw`).
+ * stars for a moment (`dazed`). One that lies right under it, where its nose cannot go, it pulls out with a paw (`paw`).
  */
-type Phase = 'chase' | 'paw' | 'leap' | 'trick' | 'toss' | 'tug' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
+type Phase = 'chase' | 'paw' | 'leap' | 'trick' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
 
 export class PlushMemory {
   /** The soft toy it is busy with. */
@@ -56,7 +55,6 @@ export class PlushMemory {
   with = false;
   boops = 0;
   readonly trick = new TrickMemory();
-  readonly tug = new TugMemory();
 }
 
 const plush = (b: Buddy, kind: PlushKind): Plush => b.world.plushes[kind];
@@ -87,13 +85,6 @@ export function holdPlush(b: Buddy, kind: PlushKind, x: number, y: number): void
   const m = b.plush;
   const taken = toy.state !== 'held' && toy.state !== 'carried';
   if (toy.state === 'carried') {
-    // In its mouth: taking hold of it is a tug of war.
-    if (m.phase === 'tug') {
-      pullTug(b, x, y);
-    } else if (tuggable(b, kind) && !m.tug.slipped) {
-      phase(b, 'tug');
-      startTug(b, x, y);
-    }
     return;
   }
   const caught = taken && playingWith(b, kind) && m.inPlay && !toy.landed;
@@ -125,11 +116,6 @@ export function holdPlush(b: Buddy, kind: PlushKind, x: number, y: number): void
 /** You let go of it, your hand moving at this speed: it is off after it. */
 export function tossPlush(b: Buddy, kind: PlushKind, vx: number, vy: number): void {
   const toy = plush(b, kind);
-  if (playingWith(b, kind) && toy.state === 'carried') {
-    // Let go of in the middle of a tug, or after it slipped from your hand.
-    dropTug(b);
-    return;
-  }
   if (toy.state !== 'held') {
     return;
   }
@@ -140,11 +126,6 @@ export function tossPlush(b: Buddy, kind: PlushKind, vx: number, vy: number): vo
   } else if (b.plush.phase !== 'cheer' && b.plush.phase !== 'dazed') {
     phase(b, 'chase');
   }
-}
-
-/** Whether you can take hold of the toy it has in its mouth: it is playing with it, and has its paws on the ground. */
-export function tuggable(b: Buddy, kind: PlushKind): boolean {
-  return playingWith(b, kind) && plush(b, kind).state === 'carried' && b.y === 0 && b.plush.phase !== 'leap';
 }
 
 /** You put it back in the chest. In a playful mood, it will go and get it out again. */
@@ -192,9 +173,6 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
   m.phaseMs += dtMs;
   if (m.phase !== 'leap' && m.phase !== 'trick') {
     b.fall(dt);
-  }
-  if (m.phase !== 'tug') {
-    m.tug.slipped &&= toy.state === 'carried';
   }
   if (toy.state === 'none') {
     // Back in the chest: the game is over.
@@ -271,18 +249,6 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
         phase(b, 'chase');
       }
       break;
-    case 'tug': {
-      const over = updateTug(b, toy, dt, dtMs);
-      if (over === 'won') {
-        // Its prize: off it goes with the game.
-        tookBreak(b);
-        showOff(b, toy, false);
-      } else if (over === 'lost') {
-        tookBreak(b);
-        phase(b, toy.state === 'held' ? 'ready' : 'chase');
-      }
-      break;
-    }
     case 'trick':
       if (updateTrick(b, toy, m.phaseMs, dt, dtMs)) {
         b.y = 0;
@@ -333,8 +299,6 @@ function plushAnim(b: Buddy): AnimRef {
       return { anim: 'leap', elapsed: m.phaseMs };
     case 'paw':
       return { anim: 'toyPaw', elapsed: m.phaseMs };
-    case 'tug':
-      return tugAnim(b, m.phaseMs);
     case 'trick':
       return trickAnim(b, m.phaseMs);
     case 'toss':

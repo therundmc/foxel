@@ -12,7 +12,7 @@ const BONK_UP = 38;
 
 // A toy coming down on its head, or thrown at it, bounces off and leaves it dazed: it missed that one.
 export function bonk(b: Buddy): void {
-  if (b.def.offscreen || b.def.hidden || asleep(b) || (b.state === 'plush' && (b.plush.phase === 'leap' || b.plush.phase === 'dazed' || b.plush.phase === 'trick' || b.plush.phase === 'tug'))) {
+  if (b.def.offscreen || b.def.hidden || asleep(b) || (b.state === 'plush' && (b.plush.phase === 'leap' || b.plush.phase === 'dazed' || b.plush.phase === 'trick'))) {
     return;
   }
   const { anim, elapsed } = b.current();

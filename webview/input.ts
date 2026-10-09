@@ -1,10 +1,9 @@
-import { SignTracker, StrokeTracker, ThrowTracker } from './gestures';
+import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
 import { pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { acceptFind } from './sim/features/gifts';
-import { signed } from './sim/features/lessons';
 import { spawnBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
@@ -36,7 +35,6 @@ export class Input {
   private pressedOnBuddy: { x: number; y: number } | undefined;
   private readonly throwing = new ThrowTracker();
   private readonly stroke = new StrokeTracker();
-  private readonly signs = new SignTracker();
 
   constructor(
     private readonly stage: Stage,
@@ -232,15 +230,6 @@ export class Input {
     const at = this.stage.toWorld(e.clientX, e.clientY);
     chest.point(at, this.holding !== undefined);
     this.session.world.shelf.point(this.holding ? undefined : at);
-    // A sign made with an empty hand, away from the chest and the shelf, is for the fox to answer.
-    if (this.holding || pressed || (e.buttons & 1) !== 0 || chest.asked || this.session.world.shelf.asked) {
-      this.signs.reset();
-    } else {
-      const sign = this.signs.move(at, performance.now());
-      if (sign && signed(buddy, sign)) {
-        this.onInteraction();
-      }
-    }
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);

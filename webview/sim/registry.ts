@@ -9,7 +9,6 @@ import { mousingFeature } from './features/mousing';
 import { bondFeature } from './features/bond';
 import { giftsFeature } from './features/gifts';
 import { hoopFeature } from './features/hoop';
-import { lessonsFeature } from './features/lessons';
 import { playFeature } from './features/play';
 import { plushFeature } from './features/plush';
 import { rummageFeature } from './features/rummage';
@@ -37,7 +36,6 @@ export const FEATURES: readonly Feature[] = [
   bondFeature,
   giftsFeature,
   hoopFeature,
-  lessonsFeature,
   plushFeature,
   rummageFeature,
   touchFeature,

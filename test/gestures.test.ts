@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SignTracker, StrokeTracker, ThrowTracker } from '../webview/gestures';
+import { StrokeTracker, ThrowTracker } from '../webview/gestures';
 
 describe('ThrowTracker', () => {
   const away = { x: 1, y: 0 };
@@ -58,47 +58,3 @@ describe('StrokeTracker', () => {
     expect(s.move(20, 200, 12)).toBe(false);
   });
 });
-
-describe('SignTracker', () => {
-  /** Feeds the points of a path, a few milliseconds apart, and says which sign came out of it, if any. */
-  const read = (points: readonly [number, number][], stepMs = 12): string | undefined => {
-    const signs = new SignTracker();
-    let found: string | undefined;
-    points.forEach(([x, y], i) => {
-      found ??= signs.move({ x, y }, i * stepMs);
-    });
-    return found;
-  };
-  const circle = (turns: number, radius = 12, clockwise = true): [number, number][] =>
-    Array.from({ length: Math.round(40 * turns) + 1 }, (_, i) => {
-      const a = ((clockwise ? 1 : -1) * i * 2 * Math.PI) / 40;
-      return [100 + radius * Math.cos(a), 30 + radius * Math.sin(a)];
-    });
-  const zigzag = (strokes: number, along: 'x' | 'y', length = 16): [number, number][] =>
-    Array.from({ length: strokes * 8 + 1 }, (_, i) => {
-      const stroke = Math.floor(i / 8);
-      const within = (i % 8) / 8;
-      const at = (stroke % 2 === 0 ? within : 1 - within) * length;
-      return along === 'x' ? [100 + at, 30] : [100, 20 + at];
-    });
-
-  it('reads a circle drawn either way round, but not an arc', () => {
-    expect(read(circle(1.1))).toBe('circle');
-    expect(read(circle(1.1, 12, false))).toBe('circle');
-    expect(read(circle(0.6))).toBeUndefined();
-    expect(read(circle(1.1, 3))).toBeUndefined();
-  });
-
-  it('reads a wave from side to side and a nod up and down, by their strokes', () => {
-    expect(read(zigzag(4, 'x'))).toBe('wave');
-    expect(read(zigzag(4, 'y'))).toBe('nod');
-    expect(read(zigzag(2, 'x'))).toBeUndefined();
-    expect(read(zigzag(4, 'x', 4))).toBeUndefined();
-  });
-
-  it('sees nothing in a pointer that just crosses the view, or dawdles', () => {
-    expect(read(Array.from({ length: 60 }, (_, i) => [i * 4, 30 + Math.sin(i / 9) * 6] as [number, number]))).toBeUndefined();
-    expect(read(circle(1.1), 80)).toBeUndefined();
-  });
-});
-

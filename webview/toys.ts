@@ -1,6 +1,6 @@
 import type { Session } from './session';
 import { grabBall, moveHeldBall, stowBall, throwBall } from './sim/features/fetch';
-import { holdPlush, stowPlush, tossPlush, tuggable } from './sim/features/plush';
+import { holdPlush, stowPlush, tossPlush } from './sim/features/plush';
 import { grabTreat, moveHeldTreat, releaseTreat, stowTreat, takeTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
@@ -27,8 +27,7 @@ export interface Draggable {
 export function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
   const { ball, treat } = world;
   const plush = (kind: PlushKind): Draggable => ({
-    // Lying about or flying, it can be picked up; in its mouth, it can be pulled at.
-    free: () => world.plushes[kind].state === 'free' || tuggable(buddy, kind),
+    free: () => world.plushes[kind].state === 'free',
     box: () => world.plushes[kind].box,
     grab: (p) => holdPlush(buddy, kind, p.x, p.y),
     take: (p) => holdPlush(buddy, kind, p.x, p.y),
