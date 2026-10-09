@@ -173,7 +173,7 @@ describe('what it brings you', () => {
 });
 
 describe('the heart it draws for you', () => {
-  it('scratches it in the earth stroke by stroke, then sits looking at you; the wind takes it after a while', () => {
+  it('scratches it in the earth stroke by stroke, then sits looking at you; then the heart lifts off and floats away', () => {
     const b = fox(4, 0.6);
     const { doodle } = b.world;
     expect(STATES.doodle.available?.(fox(3, 0.6))).toBe(false);
@@ -182,23 +182,34 @@ describe('the heart it draws for you', () => {
     b.enterNext('doodle');
     const stages: number[] = [];
     const anims = new Set<AnimName>();
-    const watch = (): void => {
+    simulate(b, 4400, () => {
       if (doodle.stage !== undefined && doodle.stage !== stages[stages.length - 1]) {
         stages.push(doodle.stage);
       }
       anims.add(b.current().anim);
-    };
-    simulate(b, 10_000, () => {
-      watch();
-      return b.state !== 'doodle';
     });
     expect(stages).toEqual([0, 1, 2]);
     expect([...anims]).toEqual(expect.arrayContaining(['dig', 'proud']));
+    // Drawn on the ground for a moment...
+    expect(doodle.lifted).toBe(0);
+    expect(doodle.box?.y).toBe(0);
     expect(STATES.doodle.available?.(b)).toBe(false);
-    b.enter('sleep', 3_600_000);
-    simulate(b, 5 * 60_000, watch);
-    expect(stages).toEqual([0, 1, 2, 1, 0]);
+    // ...then up it goes, whole, swaying, until it is gone.
+    const heights: number[] = [];
+    const sides = new Set<number>();
+    simulate(b, 6000, () => {
+      const box = doodle.box;
+      if (box) {
+        heights.push(box.y);
+        sides.add(Math.round(box.x));
+        expect(doodle.stage).toBe(2);
+      }
+    });
+    expect(heights[heights.length - 1]).toBeGreaterThan(50);
+    expect(heights.every((y, i) => i === 0 || y >= heights[i - 1])).toBe(true);
+    expect(sides.size).toBeGreaterThan(2);
     expect(doodle.there).toBe(false);
+    expect(doodle.moving).toBe(false);
   });
 });
 

@@ -52,6 +52,7 @@ const session: Session = {
   light: false,
   felt: { mood: 0, attachment: 0 },
   forced: {},
+  debugOpen: true,
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -157,7 +158,8 @@ function onMessage(msg: HostMessage): void {
       break;
     case 'feelings':
       session.felt = { mood: msg.mood, attachment: msg.attachment };
-      world.peak = Math.max(msg.peak, session.forced.attachment ?? 0);
+      // While its attachment is forced from the debug corner, so is the most it ever was.
+      world.peak = session.forced.attachment === undefined ? msg.peak : world.peak;
       world.mood = session.forced.mood ?? msg.mood;
       world.attachment = session.forced.attachment ?? msg.attachment;
       session.facts = msg.facts;

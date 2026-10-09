@@ -194,9 +194,11 @@ export const growthFeature = {
       (b) => startMilestone(b, b.world.stage + 1),
     ),
   ],
+  // Called away on its way back with something: it drops it there, and will mark the stage another time.
   interrupted(b) {
     if (b.state === 'milestone') {
       b.y = 0;
+      Object.values(b.world.plushes).forEach((plush) => plush.state === 'carried' && plush.toss(0, 0));
     }
   },
 } satisfies Feature;

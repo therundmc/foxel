@@ -30,7 +30,7 @@ const PRESS_MS = 160;
 const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
 
 /**
- * The little shelf on the wall, top right: what is not a toy stands on it, its kibble and its soap. Like the chest
+ * The little shelf on the wall, top right: what is not a toy stands on it, its kibble, its biscuits and its soap. Like the chest
  * it waits at the edge of the view, only its end showing, and slides out when the pointer comes close. It only knows
  * where the pointer is: what using a thing does is the business of whoever uses it.
  */

@@ -18,6 +18,8 @@ export interface Session {
   /** What the extension says it feels, and what the debug corner makes it feel instead while you try things out. */
   felt: { mood: number; attachment: number };
   forced: { mood?: number; attachment?: number };
+  /** Whether the debug corner is unfolded, or only its button shows. */
+  debugOpen: boolean;
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */

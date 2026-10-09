@@ -1,8 +1,8 @@
-import { ALBUM_CELL, ALBUM_COLUMNS, ALBUM_H, ALBUM_W, FIND_ORDER, type FindKind } from '../../sprites/props';
+import { ALBUM_CELL, ALBUM_COLUMNS, ALBUM_H, ALBUM_IN, ALBUM_W, FIND_ORDER, type FindKind } from '../../sprites/props';
 import type { Box } from '../math';
 
-/** How much of it shows at the edge of the view while it waits. */
-const PEEK = 4;
+/** How much of it shows at the edge of the view while it waits: its handle, and a little of its wicker. */
+const PEEK = 5;
 /** It comes out for a pointer this close to its place, after this long; and goes back for one that lies still this long. */
 const CALL = 8;
 const DWELL_MS = 250;
@@ -19,8 +19,8 @@ const within = (box: Box, x: number, y: number, pad: number): boolean => x >= bo
 export type Keepsake = { picture: number } | { find: FindKind };
 
 /**
- * The box of keepsakes, top left: a tray with a picture for each stage of your life together, and one of each kind
- * of thing it has found for you. Like the chest and the shelf it waits at the edge of the view and slides out when
+ * The box of keepsakes, top left: a little case lying open, with a photograph for each stage of your life together
+ * and one of each kind of thing it has found for you. Like the chest and the shelf it waits at the edge of the view and slides out when
  * the pointer comes close; it also comes out by itself when something new goes into it. It is only there to be
  * looked at.
  */
@@ -68,7 +68,7 @@ export class Album {
   /** Where a keepsake has its place in the tray: pictures along the top, finds under them. */
   slot(what: Keepsake): Box {
     const [column, row] = 'picture' in what ? [what.picture, 0] : [FIND_ORDER.indexOf(what.find), 1];
-    return { x: this.x + 1 + (column % ALBUM_COLUMNS) * (ALBUM_CELL + 1), y: this.y + ALBUM_H - 1 - (row + 1) * (ALBUM_CELL + 1), w: ALBUM_CELL, h: ALBUM_CELL };
+    return { x: this.x + ALBUM_IN + (column % ALBUM_COLUMNS) * (ALBUM_CELL + 1), y: this.y + ALBUM_H - ALBUM_IN - ALBUM_CELL - row * (ALBUM_CELL + 1), w: ALBUM_CELL, h: ALBUM_CELL };
   }
 
   /** Where the thing on its way in is right now. */

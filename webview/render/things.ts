@@ -5,7 +5,6 @@ import type { Glyph } from '../sprites/frames';
 import {
   ALBUM,
   ALBUM_H,
-  ALBUM_W,
   BIRD_FRAMES,
   BIRD_H,
   BIRD_W,
@@ -17,6 +16,7 @@ import {
   CHEST_TILES,
   CHEST_W,
   DOODLE,
+  DOODLE_FLYING,
   FIND_ORDER,
   FINDS,
   FINDS_KEPT,
@@ -66,10 +66,13 @@ export function drawGround(stage: Stage, bitmaps: Bitmaps, world: World): void {
       stage.ctx.drawImage(bitmaps.get(glyph), r.x, r.y, r.w, r.h);
     }
   };
-  for (const [mark, glyphs] of [[world.mound, MOUND], [world.doodle, DOODLE]] as const) {
-    if (mark.stage !== undefined) {
-      draw(glyphs[mark.stage], mark.box);
-    }
+  const { mound, doodle } = world;
+  if (mound.stage !== undefined) {
+    draw(MOUND[mound.stage], mound.box);
+  }
+  if (doodle.stage !== undefined) {
+    // Scratched in the earth, then it lifts off, pink, and floats away.
+    draw(doodle.lifted > 0 ? DOODLE_FLYING : DOODLE[doodle.stage], doodle.box);
   }
 }
 
@@ -83,7 +86,7 @@ export function drawAlbum(stage: Stage, bitmaps: Bitmaps, world: World): void {
     const r = stage.rect(box);
     stage.ctx.drawImage(bitmaps.get(glyph), r.x, r.y, r.w, r.h);
   };
-  draw(ALBUM, { x: album.x, y: album.y, w: ALBUM_W, h: ALBUM_H });
+  draw(ALBUM, { x: album.x, y: album.y, w: ALBUM[0].length, h: ALBUM_H });
   for (let picture = 0; picture < album.pictures; picture++) {
     draw(PICTURES[Math.min(picture, PICTURES.length - 1)], album.slot({ picture }));
   }

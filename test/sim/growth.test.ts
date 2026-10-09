@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { welcomeBack } from '../../webview/sim/features/bond';
 import { startIntro } from '../../webview/sim/features/intro';
+import { react } from '../../webview/sim/features/reactions';
 import { callOver } from '../../webview/sim/features/pointer';
 import { holdPlush, tossPlush } from '../../webview/sim/features/plush';
 import { pet, touch } from '../../webview/sim/features/touch';
@@ -116,6 +118,32 @@ describe('the stages of a life together', () => {
     b.enter('sit', 5000);
     simulate(b, 10_000);
     expect(b.state).not.toBe('milestone');
+  });
+
+  it('drops what it was bringing when called away in the middle, and marks the stage another time', () => {
+    const b = fox(0);
+    b.world.peak = 0.1;
+    const { duck } = b.world.plushes;
+    simulate(b, 30_000, () => duck.state === 'carried' && b.growth.step === 'bring');
+    simulate(b, 600);
+    react(b, 'panic');
+    expect(b.state).toBe('panic');
+    expect(duck.state).toBe('free');
+    expect(b.world.stage).toBe(0);
+    simulate(b, 120_000, () => b.world.stage === 1 && b.state !== 'milestone');
+    expect(b.world.stage).toBe(1);
+    expect(duck.state).toBe('free');
+  });
+
+  it('only leaves about, while you are away, toys that have come into its life', () => {
+    for (const stage of [0, 1]) {
+      const b = fox(stage, 0.2);
+      welcomeBack(b, 3);
+      simulate(b, 10_000);
+      expect(b.world.plushes.teddy.state).toBe('none');
+      expect(b.world.plushes.duck.state === 'free').toBe(stage === 1);
+      expect(b.world.ball.state).toBe('free');
+    }
   });
 
   it('are remembered: what has come into its life is still there when the view is opened again', () => {

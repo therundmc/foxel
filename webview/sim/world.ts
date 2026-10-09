@@ -71,6 +71,8 @@ export class World {
   stage = LAST_STAGE;
   /** For when it grows up: how old it is. Nothing depends on it yet. */
   age = 0;
+  /** The stage its chest and its shelf were last filled for. */
+  private stocked = NaN;
   /** Your pointer when it is in no mood for it: it does not look at it, and keeps away from it. */
   shunned: WorldPoint | undefined;
   now = new Date();
@@ -136,8 +138,11 @@ export class World {
     duck.update(dt, this.width, this.height);
     knockTogether([teddy, duck], this.ball);
     // Only what has come into its life is in its chest and on its shelf, and a picture hangs for each stage.
-    this.chest.items = CHEST_ITEMS.filter((item) => owns(this, item));
-    this.shelf.items = owns(this, 'bubbles') ? ['meal', 'treat', 'bubbles'] : ['meal', 'treat'];
+    if (this.stocked !== this.stage) {
+      this.stocked = this.stage;
+      this.chest.items = CHEST_ITEMS.filter((item) => owns(this, item));
+      this.shelf.items = owns(this, 'bubbles') ? ['meal', 'treat', 'bubbles'] : ['meal', 'treat'];
+    }
     this.chest.update(dtMs, { ball: this.ball.state === 'none', teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     this.album.update(dtMs, !this.chest.asked && !this.shelf.asked);

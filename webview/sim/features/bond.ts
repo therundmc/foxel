@@ -3,7 +3,7 @@ import { ANIMATIONS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { urge, type AnimRef, type Feature } from '../state';
-import { has } from '../unlocks';
+import { has, owns } from '../unlocks';
 
 /** How long it sulks over something it had to put up with, and how long it holds out when you come back after weeks. */
 const SULK_MS = 40_000;
@@ -116,12 +116,14 @@ function makeUp(b: Buddy): void {
 // It lived without you: its ball rolled off somewhere, a soft toy was left lying.
 function leaveTraces(b: Buddy): void {
   const { ball, plushes, width, height, random } = b.world;
-  if (ball.state === 'none' && random() < BALL_LEFT) {
+  if (owns(b.world, 'ball') && ball.state === 'none' && random() < BALL_LEFT) {
     ball.place(width * (0.15 + 0.6 * random()), 0, width, height);
     ball.launch(0, 0);
   }
-  const toy = random() < 0.5 ? plushes.teddy : plushes.duck;
-  if (toy.state === 'none' && random() < TOY_LEFT) {
+  // One of the soft toys that have come into its life, if any.
+  const mine = Object.values(plushes).filter((plush) => owns(b.world, plush.kind));
+  const toy = mine[Math.floor(random() * mine.length) % Math.max(1, mine.length)];
+  if (toy && toy.state === 'none' && random() < TOY_LEFT) {
     toy.rest(width * (0.1 + 0.6 * random()), width);
   }
 }

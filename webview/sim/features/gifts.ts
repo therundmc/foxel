@@ -95,7 +95,7 @@ export function startGift(b: Buddy, way?: Way): void {
   } else if (m.way === 'bird') {
     const ahead = b.dir === 1 ? b.maxX - b.x : b.x;
     b.dir = ahead >= BIRD_AHEAD ? b.dir : b.flipped();
-    b.world.finds.flyIn(m.kind, b.x + b.noseOffset() + b.dir * BIRD_AHEAD);
+    b.world.finds.flyIn(m.kind, Math.min(b.world.width - 8, Math.max(4, b.x + b.noseOffset() + b.dir * BIRD_AHEAD)));
     step(b, 'await');
   } else {
     step(b, 'leave');

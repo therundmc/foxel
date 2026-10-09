@@ -1,6 +1,10 @@
 import { DOODLE, FINDS, MOUND, type FindKind } from '../../sprites/props';
 import type { Box } from '../math';
 
+/** A mark that floats away sways this far, once for every so many pixels it rises. */
+const SWAY = 2;
+const SWAY_EVERY = 5;
+
 /** A little bird that brings it something: how fast it flies, how high, and how fast what it lets go of falls. */
 const BIRD_SPEED = 46;
 const BIRD_HEIGHT = 30;
@@ -100,6 +104,8 @@ export class Mark {
     private readonly comesMs: number,
     private readonly staysMs: number,
     private readonly goesMs: number,
+    /** Instead of fading where it is, it lifts off and floats up at this speed, swaying, until it is gone. */
+    private readonly floats = 0,
   ) {}
 
   get there(): boolean {
@@ -117,7 +123,7 @@ export class Mark {
       return undefined;
     }
     const going = this.ageMs - this.comesMs - this.staysMs;
-    const share = going > 0 ? 1 - going / this.goesMs : Math.min(1, this.ageMs / this.comesMs);
+    const share = going > 0 ? (this.floats > 0 ? 1 : 1 - going / this.goesMs) : Math.min(1, this.ageMs / this.comesMs);
     const stage = Math.ceil(share * this.glyphs.length) - 1;
     return stage < 0 ? undefined : Math.min(this.glyphs.length - 1, stage);
   }
@@ -128,7 +134,13 @@ export class Mark {
       return undefined;
     }
     const glyph = this.glyphs[stage];
-    return { x: this.x - glyph[0].length / 2, y: 0, w: glyph[0].length, h: glyph.length };
+    const sway = this.lifted > 0 ? Math.sin(this.lifted / SWAY_EVERY) * SWAY : 0;
+    return { x: this.x - glyph[0].length / 2 + sway, y: this.lifted, w: glyph[0].length, h: glyph.length };
+  }
+
+  /** How high off the ground it has floated. */
+  get lifted(): number {
+    return (this.floats * Math.max(0, this.ageMs - this.comesMs - this.staysMs)) / 1000;
   }
 
   /** Starts to appear, its middle at `x`. */
@@ -154,7 +166,7 @@ export class Mark {
   }
 }
 
-/** The heart it scratches in the earth: a couple of seconds to draw, a few minutes there, then the wind takes it. */
-export const newDoodle = (): Mark => new Mark(DOODLE, 1800, 4 * 60_000, 8000);
+/** The heart it scratches in the earth: a couple of seconds to draw, a moment for you to see it, then it lifts off and floats away. */
+export const newDoodle = (): Mark => new Mark(DOODLE, 1800, 2800, 4500, 16);
 /** The mound where it dug: it rises as it digs, stays twenty minutes, then settles. */
 export const newMound = (): Mark => new Mark(MOUND, 1600, 20 * 60_000, 6000);
