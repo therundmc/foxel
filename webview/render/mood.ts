@@ -2,7 +2,7 @@ import type { Session } from '../session';
 import { asleep } from '../sim/features/rest';
 import { moodLevel, type MoodLevel } from '../sim/tuning';
 import { SPRITE_SIZE, type Frame, type Glyph } from '../sprites/frames';
-import { BOLT, GLOOM, NOTE, TEMPER, TWINKLE } from '../sprites/moods';
+import { NOTE, TEMPER, TWINKLE } from '../sprites/moods';
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 
@@ -12,17 +12,14 @@ const OVER_HEAD = 12;
 const SHOWN_MS = 2200;
 const AGAIN_EVERY_MS = 75_000;
 const GROWS_MS = 260;
-/** The cloud sways a pixel from side to side this often; in the worst of them, its temple throbs and the cloud flashes once. */
-const SWAY_MS = 520;
+/** How fast the vein at its temple throbs when it is furious; half as fast when it is only angry. */
 const PULSE_MS = 330;
-const FLASH_AT_MS = 900;
-const FLASH_MS = 150;
 /** A note rises this high while it shows. */
 const NOTE_RISES = 7;
 
 /**
- * What says, by its head, that its mood has changed: a wisp of cloud, a cloud, a storm as its day gets worse; a
- * twinkle, a note of a tune as it gets better. It shows once when the mood sets in, and then only once in a long
+ * What says, by its head, that its mood has changed: a vein at its temple as its day gets worse, bigger and
+ * throbbing harder the worse it gets; a twinkle, a note of a tune as it gets better. It shows once when the mood sets in, and then only once in a long
  * while: the rest of the time its mood is on its face.
  */
 export class MoodMarks {
@@ -54,23 +51,18 @@ export class MoodMarks {
       const y = Math.max(0, rect.y + Math.round(top) * stage.scale);
       stage.ctx.drawImage(bitmaps.get(glyph), x, y, w * stage.scale, glyph.length * stage.scale);
     };
-    const sway = Math.floor(t / SWAY_MS) % 2;
     const grown = t >= GROWS_MS && t < SHOWN_MS - GROWS_MS;
+    // At its temple, a vein: small when it is annoyed, throbbing when it is angry, standing out and throbbing fast when it is furious.
+    const throb = (everyMs: number): number => Math.floor(t / everyMs) % 2;
     switch (level) {
       case -1:
-        put(GLOOM[0], -3 + sway, grown ? 1 : 0);
+        put(TEMPER[0], 6, -5);
         break;
       case -2:
-        put(GLOOM[grown ? 1 : 0], -3 + sway, 1);
+        put(TEMPER[grown ? throb(PULSE_MS * 2) : 0], 6, -5);
         break;
       case -3:
-        put(GLOOM[grown ? 2 : 1], -3 + sway, 1);
-        if (t >= FLASH_AT_MS && t < FLASH_AT_MS + FLASH_MS) {
-          put(BOLT, -4 + sway, -3);
-        }
-        if (grown) {
-          put(TEMPER[Math.floor(t / PULSE_MS) % 2], 6, -5);
-        }
+        put(TEMPER[grown ? 1 - throb(PULSE_MS) : 0], 6, -5);
         break;
       case 1:
         put(TWINKLE[grown ? 1 : 0], 6, 0);
