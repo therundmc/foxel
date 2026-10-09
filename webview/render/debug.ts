@@ -6,7 +6,7 @@ import { MOOD_NEXT } from '../sim/features/ambient';
 import { LOW } from '../sim/features/bond';
 import { DOODLE_EVERY_MS, GIFTS_A_DAY, GIFT_EVERY_MS, broughtToday } from '../sim/features/gifts';
 import { LAST_STAGE, STAGES, STAGE_NAMES, UNLOCKS, has, owns, stageFor, type Unlock } from '../sim/unlocks';
-import { FIND_ORDER } from '../sprites/props';
+import { FIND_ORDER } from '../sprites/keepsakes';
 import type { Stage } from '../stage';
 
 // The debug corner, top left, laid out the way its life is: first the day (its mood, and what today was made of),

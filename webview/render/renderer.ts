@@ -15,7 +15,6 @@ import {
   BIRD_W,
   BUG_FRAMES,
   CAKE,
-  NECKERCHIEF,
   EMOTE_BUD,
   type Hat,
   EMOTES,
@@ -30,6 +29,7 @@ import {
   TREAT_W,
   WATER_BOWL,
 } from '../sprites/props';
+import { NECKERCHIEF } from '../sprites/keepsakes';
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';

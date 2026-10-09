@@ -159,7 +159,7 @@ function putTreatDown(b: Buddy): void {
   b.world.treat.facing = b.dir;
 }
 
-// The bone: begging for it while you hold it, then eating it bite by bite.
+// The cookie: begging for it while you hold it, then eating it bite by bite.
 export const treatFeature = {
   states: {
     beg: {

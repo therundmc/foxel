@@ -1,4 +1,4 @@
-import { DOODLE, FINDS, MOUND, type FindKind } from '../../sprites/props';
+import { DOODLE, FINDS, MOUND, type FindKind } from '../../sprites/keepsakes';
 import type { Box } from '../math';
 
 /** A mark that floats away sways this far, once for every so many pixels it rises. */

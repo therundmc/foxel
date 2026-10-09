@@ -3,8 +3,6 @@ import type { Shelf } from '../sim/props/shelf';
 import type { World } from '../sim/world';
 import type { Glyph } from '../sprites/frames';
 import {
-  ALBUM,
-  ALBUM_H,
   BIRD_FRAMES,
   BIRD_H,
   BIRD_W,
@@ -15,20 +13,12 @@ import {
   CHEST_TILE_EMPTY,
   CHEST_TILES,
   CHEST_W,
-  DOODLE,
-  DOODLE_FLYING,
-  FIND_ORDER,
-  FINDS,
-  FINDS_KEPT,
-  FINDS_TO_COME,
-  FIND_SHINE,
-  MOUND,
-  PICTURES,
   PLUSH,
   SHELF,
   SHELF_H,
   SHELF_ITEMS,
 } from '../sprites/props';
+import { ALBUM, ALBUM_H, DOODLE, DOODLE_FLYING, FIND_ORDER, FINDS, FINDS_KEPT, FINDS_TO_COME, FIND_SHINE, MOUND, PICTURES } from '../sprites/keepsakes';
 import type { Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 

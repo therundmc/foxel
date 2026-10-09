@@ -1,5 +1,5 @@
 import { SPRITE_SIZE } from '../../sprites/frames';
-import type { FindKind } from '../../sprites/props';
+import type { FindKind } from '../../sprites/keepsakes';
 import type { Buddy } from '../buddy';
 import type { AnimRef, Feature } from '../state';
 import { has, owns } from '../unlocks';

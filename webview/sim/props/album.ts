@@ -1,4 +1,4 @@
-import { ALBUM_CELL, ALBUM_COLUMNS, ALBUM_H, ALBUM_IN, ALBUM_W, FIND_ORDER, type FindKind } from '../../sprites/props';
+import { ALBUM_CELL, ALBUM_COLUMNS, ALBUM_H, ALBUM_IN, ALBUM_W, FIND_ORDER, type FindKind } from '../../sprites/keepsakes';
 import type { Box } from '../math';
 
 /** How much of it shows at the edge of the view while it waits: its handle, and a little of its wicker. */

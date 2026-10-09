@@ -10,7 +10,8 @@ import { recall, remember } from '../../webview/sim/memory';
 import { Plush } from '../../webview/sim/props/plush';
 import type { BuddyState } from '../../webview/sim/state';
 import { LAST_STAGE, STAGES, UNLOCKS, has, owns, stageFor } from '../../webview/sim/unlocks';
-import type { AnimName } from '../../webview/sprites/fox/animations';
+import { ANIMATIONS, type AnimName } from '../../webview/sprites/fox/animations';
+import { frameAt } from '../../webview/sprites/frames';
 import { fixed, simulate, spawn } from './helpers';
 
 function fox(stage: number, random = 0.5) {
@@ -324,9 +325,18 @@ describe('out of sorts', () => {
     touch(b, 'head');
     expect(b.state).toBe('shun');
     const anims = new Set<AnimName>();
+    // It walks off on its legs: the frames of its walk go by as it goes.
+    const strides = new Set<readonly string[]>();
     simulate(b, 4000, () => {
       anims.add(b.current().anim);
+      if (b.moving) {
+        const { anim, elapsed } = b.current();
+        expect(anim).toBe('walk');
+        strides.add(frameAt(ANIMATIONS.walk, elapsed).pixels);
+      }
     });
+    expect(strides.size).toBeGreaterThan(2);
+    expect(anims).toContain('sulk');
     expect(Math.abs(b.x - from)).toBeGreaterThan(20);
     expect([...anims].some((anim) => ['pat', 'love', 'cuddle', 'makeUp'].includes(anim))).toBe(false);
     expect(b.world.effects).not.toContain('petted');

@@ -44,6 +44,8 @@ export class BondMemory {
   /** Keeping away from your pointer: where it is walking off to, and how long since it last did. */
   shunTo = 0;
   sinceShunMs = SHUN_REST_MS;
+  /** For how long it has been sat there since it walked off. */
+  satMs = 0;
   /** It was out of sorts a moment ago. */
   wasLow = false;
   /** You are back after this many days: the welcome it has not given yet. */
@@ -191,17 +193,24 @@ function shun(b: Buddy): void {
   b.dir = room >= SHUN_STEP ? away : (-away as 1 | -1);
   b.bond.shunTo = Math.min(b.maxX, Math.max(0, b.x + b.dir * SHUN_STEP));
   b.bond.sinceShunMs = 0;
+  b.bond.satMs = 0;
+  b.moving = true;
   b.tryEnter('shun', Infinity);
 }
 
-function updateShun(b: Buddy, dt: number): boolean {
+function updateShun(b: Buddy, dt: number, dtMs: number): boolean {
+  const m = b.bond;
   b.fall(dt);
-  const left = (b.bond.shunTo - b.x) * b.dir;
+  const left = (m.shunTo - b.x) * b.dir;
   b.moving = left > SHUN_SPEED * dt;
   if (b.moving) {
     b.x += b.dir * SHUN_SPEED * dt;
-    b.elapsed = 0;
-  } else if (b.elapsed >= SHUN_SIT_MS || !outOfSorts(b)) {
+    m.satMs = 0;
+    return true;
+  }
+  // Sat down with its back to you, for a while.
+  m.satMs += dtMs;
+  if (m.satMs >= SHUN_SIT_MS || !outOfSorts(b)) {
     b.enterNext('mope');
   }
   return true;
@@ -230,7 +239,7 @@ export const bondFeature = {
     shun: {
       priority: 1,
       update: updateShun,
-      anim: (b) => (b.moving ? { anim: 'walk', elapsed: b.elapsed } : { anim: 'sulk', elapsed: b.elapsed }),
+      anim: (b) => (b.moving ? { anim: 'walk', elapsed: b.elapsed } : { anim: 'sulk', elapsed: b.bond.satMs }),
     },
     mope: {
       duration: () => totalDuration(ANIMATIONS.sigh),
