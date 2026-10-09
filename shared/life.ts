@@ -38,7 +38,7 @@ const DAY_MS = 86_400_000;
 /** How much each thing counts in a day well spent together (they add up to 1). Being there is one of them. */
 const WORTH: Record<Care | 'present', number> = { fed: 0.25, played: 0.25, petted: 0.2, treated: 0.05, present: 0.25 };
 /** Being there counts in full from this many minutes. */
-const PRESENT_FULL_MIN = 45;
+export const PRESENT_FULL_MIN = 45;
 /** A perfect day closes this share of the gap to full attachment: about a month of them to get there. */
 const GAIN = 0.08;
 /** Days away that cost nothing; then each one loses this share of what is above the floor. */

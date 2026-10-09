@@ -9,7 +9,7 @@ const SULK_MS = 40_000;
 const GRUDGE_MS = 7000;
 const MAKE_UP_MS = totalDuration(ANIMATIONS.makeUp);
 /** A day this bad and it sulks without being given a reason; it is over it once its mood is back above the second. */
-const LOW = -0.4;
+export const LOW = -0.4;
 const OVER_IT = -0.15;
 /** Days away after which it is beside itself to see you, and after which it needs a moment to forgive you. */
 const MISSED_YOU = 2;

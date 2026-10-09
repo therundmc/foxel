@@ -48,7 +48,6 @@ const session: Session = {
   clock: new Date(),
   introPending: true,
   light: false,
-  notes: [],
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -155,7 +154,7 @@ function onMessage(msg: HostMessage): void {
     case 'feelings':
       world.mood = msg.mood;
       world.attachment = msg.attachment;
-      session.notes = msg.notes ?? [];
+      session.facts = msg.facts;
       break;
     case 'welcome':
       welcomeBack(buddy, msg.daysAway);

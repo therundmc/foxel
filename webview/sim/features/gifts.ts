@@ -6,13 +6,13 @@ import { mouthPoint } from './mouth';
 
 const KINDS: readonly FindKind[] = ['flower', 'pebble', 'feather', 'leaf'];
 /** It brings you things once it is this attached and in a decent mood: this many a day at most, this long apart. */
-const GIFT_BOND = 0.25;
-const GIFTS_A_DAY = 2;
-const GIFT_EVERY_MS = 25 * 60_000;
+export const GIFT_BOND = 0.25;
+export const GIFTS_A_DAY = 2;
+export const GIFT_EVERY_MS = 25 * 60_000;
 /** It draws for you once it is this attached and in a good mood, this long apart. */
-const DOODLE_BOND = 0.5;
-const DOODLE_MOOD = 0.2;
-const DOODLE_EVERY_MS = 30 * 60_000;
+export const DOODLE_BOND = 0.5;
+export const DOODLE_MOOD = 0.2;
+export const DOODLE_EVERY_MS = 30 * 60_000;
 const TROT = 16;
 /** How long it stays out of sight looking for something, puts it down, waits for you to take it, and thanks you. */
 const OUT_MS = 2200;

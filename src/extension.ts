@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
-import { dayWorth, type Care } from '../shared/life';
+import { PRESENT_FULL_MIN, dayWorth, type Care } from '../shared/life';
 import {
   SCENES,
   type HostMessage,
+  type LifeFacts,
   type Reaction,
   type Scene,
   type WebviewMessage,
@@ -125,21 +126,26 @@ export function activate(context: vscode.ExtensionContext): void {
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
   /** Cares switched off in the settings: not doing them is never held against you. */
   const caresOff = (): Care[] => (readConfig().meals ? [] : ['fed']);
-  // For the debug corner of its view: the facts its feelings are worked out from.
-  const lifeNotes = (): string[] => {
+  // For the gauges of the debug corner of its view: the facts its feelings are worked out from.
+  const lifeFacts = (): LifeFacts => {
     const { life, feelings: felt } = store;
     const today = life.days[dateKey(clock())] ?? { cares: {}, slights: {}, presentMin: 0, off: [] };
-    const counts = (record: Partial<Record<string, number>>): string => Object.entries(record).map(([what, n]) => `${what} ${n}`).join(', ') || 'none';
-    return [
-      `born ${life.born} · ${Object.keys(life.days).length} days kept · away ${felt.daysAway ?? '-'} d before today`,
-      `today ${today.presentMin} min together, worth ${dayWorth(today).toFixed(2)}${today.off.length > 0 ? ` · off: ${today.off.join(', ')}` : ''}`,
-      `cares: ${counts(today.cares)} · slights: ${counts(today.slights)}`,
-    ];
+    return {
+      born: life.born,
+      daysKept: Object.keys(life.days).length,
+      daysAway: felt.daysAway,
+      togetherMin: today.presentMin,
+      togetherFullMin: PRESENT_FULL_MIN,
+      worth: dayWorth(today),
+      cares: today.cares,
+      slights: today.slights,
+      off: today.off,
+    };
   };
   /** What it feels, as its life stands right now. */
   const feelings = (): HostMessage => {
     const { mood, attachment } = store.feelings;
-    return { type: 'feelings', mood, attachment, notes: readConfig().debug ? lifeNotes() : undefined };
+    return { type: 'feelings', mood, attachment, facts: readConfig().debug ? lifeFacts() : undefined };
   };
   // A minute with its view open and you there is a minute spent together.
   const together = setInterval(() => {

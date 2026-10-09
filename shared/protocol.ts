@@ -81,6 +81,23 @@ export interface BuddySettings {
   debug?: boolean;
 }
 
+/** The facts its feelings are worked out from, for the gauges of the debug corner. */
+export interface LifeFacts {
+  born: string;
+  daysKept: number;
+  /** Days since you were last there, today aside. */
+  daysAway?: number;
+  /** Minutes spent together today, and how many count in full. */
+  togetherMin: number;
+  togetherFullMin: number;
+  /** How well today has been spent so far, from 0 to 1. */
+  worth: number;
+  /** How many times each care was given and each slight suffered today; the cares switched off in the settings. */
+  cares: Partial<Record<'fed' | 'played' | 'petted' | 'treated', number>>;
+  slights: Partial<Record<'unfed' | 'unheard', number>>;
+  off: readonly string[];
+}
+
 /** The welcomes it keeps for the first time it sees you. */
 export type Greeting = 'morning' | 'night' | 'party';
 
@@ -156,8 +173,8 @@ export type HostMessage =
   | { type: 'reaction'; reaction: Reaction }
   | { type: 'settings'; settings: BuddySettings }
   | { type: 'memory'; memory: BuddyMemory }
-  /** What it feels today, and how attached to you it has grown: worked out by the extension from its life. `notes` are lines for the debug corner. */
-  | { type: 'feelings'; mood: number; attachment: number; notes?: readonly string[] }
+  /** What it feels today, and how attached to you it has grown: worked out by the extension from its life. `facts` come with the hidden `foxel.debug` setting only. */
+  | { type: 'feelings'; mood: number; attachment: number; facts?: LifeFacts }
   /** You are back after this many days away: sent once, the first time its view opens that day. */
   | { type: 'welcome'; daysAway: number }
   /** Something happened in your work while its view was out of sight: the last such thing, to be played once it is back. */
