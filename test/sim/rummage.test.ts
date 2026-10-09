@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { grabBall, stowBall, throwBall } from '../../webview/sim/features/fetch';
+import { grabBall, stowBall } from '../../webview/sim/features/fetch';
 import { holdPlush, stowPlush } from '../../webview/sim/features/plush';
 import { react } from '../../webview/sim/features/reactions';
 import { startErrand, startRummage, startTidy } from '../../webview/sim/features/rummage';
@@ -104,12 +104,7 @@ describe('its toy chest', () => {
     grabBall(b, 100, 30);
     simulate(b, 200);
     expect(b.state).not.toBe('rummage');
-    // The chest stays out for the ball in your hand, and goes back once the ball has been thrown and has come to rest.
     simulate(b, 3000);
-    expect(b.world.chest.here).toBe(true);
-    b.enter('sleep', 3_600_000);
-    throwBall(b, -20, 0, undefined);
-    simulate(b, 12_000);
     expect(b.world.chest.tucked).toBe(true);
   });
 

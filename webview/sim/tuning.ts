@@ -12,3 +12,5 @@ export const CHASE_FLIP_MS = 280;
 export const CATCH_RADIUS = 4;
 /** How close to the nose a ball on the ground must be to be picked up or nudged. */
 export const NOSE_REACH = 3;
+/** Its mood at or under which it is out of sorts: listless, and in no mood for your pointer. */
+export const SHUNS_UNDER = -0.2;

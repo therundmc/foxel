@@ -3,6 +3,8 @@ import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { clamp } from '../math';
 import type { Feature } from '../state';
+import { has } from '../unlocks';
+import { approachWarily } from './growth';
 import type { WorldPoint } from '../world';
 
 /** It first looks at the pointer, and turns to it; only if it is still around after this long does it set off. */
@@ -81,7 +83,7 @@ export function callOver(b: Buddy, x: number): boolean {
     b.pointer.called = true;
     return true;
   }
-  if (!atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
+  if (!has(b.world, 'trusts') || !atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
     return false;
   }
   startCome(b, x);
@@ -187,7 +189,12 @@ export const pointerFeature = {
     if (!pointer || !atLeisure(b)) {
       return;
     }
-    if (m.hoverMs >= HOVER_MS) {
+    if (!has(b.world, 'trusts')) {
+      // Wary of you still: it does not come, nor ask for anything. It dares a sniff toward your pointer, from a distance.
+      if (m.hereMs >= NOTICE_MS && !over(b, pointer) && b.state !== 'lie') {
+        approachWarily(b, pointer.x);
+      }
+    } else if (m.hoverMs >= HOVER_MS) {
       if (m.sinceNudgeMs >= NUDGE_REST_MS) {
         startNudge(b);
       }

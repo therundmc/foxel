@@ -56,7 +56,7 @@ describe('memory', () => {
     expect(after.world.plushes.duck.state).toBe('none');
     simulate(after, 500);
     expect(after.world.ball.x).toBe(memory.toys?.ball);
-    expect(after.world.chest.holds).toEqual({ ball: false, treat: true, teddy: false, duck: true });
+    expect(after.world.chest.holds).toEqual({ ball: false, teddy: false, duck: true });
 
     // By the next day everything is back in the chest.
     const tomorrow = fox();
@@ -88,7 +88,7 @@ describe('memory', () => {
 
   it('still wants the drink and the break it could not get to', () => {
     const after = fox();
-    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: false }, MINUTE);
+    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: false, stage: 5 }, MINUTE);
     simulate(after, 3000, () => after.state === 'drink');
     expect(after.state).toBe('drink');
   });

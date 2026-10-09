@@ -16,6 +16,7 @@ const SPEED = 90;
  */
 const SWAY: Record<ShelfItem, { thrown: number; swing: number; settles: number }> = {
   meal: { thrown: 0.3, swing: 26, settles: 8 },
+  treat: { thrown: 0.22, swing: 30, settles: 10 },
   bubbles: { thrown: 0.36, swing: 20, settles: 3.2 },
 };
 /** A thing used is knocked a little, too. */
@@ -39,6 +40,8 @@ export class Shelf {
   y = 0;
   /** The pointer is asking for it. */
   asked = false;
+  /** What stands on it: the things that have come into its life so far. */
+  items: readonly ShelfItem[] = Object.keys(SHELF_ITEMS) as ShelfItem[];
   /** The thing just used, pushed down a little for a moment. */
   pressed: ShelfItem | undefined;
   private out = 0;
@@ -49,7 +52,7 @@ export class Shelf {
   private pressMs = 0;
   private speed = 0;
   /** How far the top of each thing leans (in sprite pixels, to the right when positive), and how fast that is changing. */
-  private readonly lean: Record<ShelfItem, { at: number; speed: number }> = { meal: { at: 0, speed: 0 }, bubbles: { at: 0, speed: 0 } };
+  private readonly lean: Record<ShelfItem, { at: number; speed: number }> = { meal: { at: 0, speed: 0 }, treat: { at: 0, speed: 0 }, bubbles: { at: 0, speed: 0 } };
 
   /** Out at its place, its things within reach. */
   get here(): boolean {
@@ -83,7 +86,7 @@ export class Shelf {
 
   /** The thing on it at this point, once it is out. */
   itemAt(x: number, y: number): ShelfItem | undefined {
-    return this.here ? (Object.keys(SHELF_ITEMS) as ShelfItem[]).find((item) => within(this.slot(item), x, y, REACH)) : undefined;
+    return this.here ? this.items.find((item) => within(this.slot(item), x, y, REACH)) : undefined;
   }
 
   /** By how many pixels the top of a thing leans right now: thrown back as the shelf sets off, forward as it stops, then swaying to rest. */

@@ -1,6 +1,7 @@
 import type { Buddy } from '../buddy';
 import type { Plush } from '../props/plush';
 import type { AnimRef } from '../state';
+import { has } from '../unlocks';
 import { carryInMouth, mouthPoint } from './mouth';
 
 /**
@@ -8,7 +9,7 @@ import { carryInMouth, mouthPoint } from './mouth';
  * belly, bounces it on its nose, or spins round with it. `slide` is how it lands when it has caught one in the air.
  */
 export type Trick = 'shake' | 'frolic' | 'juggle' | 'spin' | 'slide';
-const SHOWS: readonly Trick[] = ['shake', 'frolic', 'juggle', 'spin'];
+const SHOWS = ['shake', 'frolic', 'juggle', 'spin'] as const satisfies readonly Trick[];
 /** Now and then it just throws. */
 const NO_SHOW = 0.15;
 
@@ -52,7 +53,11 @@ export function pickTrick(b: Buddy): Trick | undefined {
   if (b.world.random() < NO_SHOW) {
     return undefined;
   }
-  const others = SHOWS.filter((trick) => trick !== b.plush.trick.last);
+  // Only the tricks that have come into its life, and that it is in the mood for.
+  const others = SHOWS.filter((trick) => trick !== b.plush.trick.last && has(b.world, trick));
+  if (others.length === 0) {
+    return SHOWS.find((trick) => has(b.world, trick));
+  }
   return others[Math.floor(b.world.random() * others.length) % others.length];
 }
 

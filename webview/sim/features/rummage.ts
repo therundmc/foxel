@@ -6,6 +6,7 @@ import { clamp } from '../math';
 import { LID_BACK } from '../props/chest';
 import type { Plush } from '../props/plush';
 import { urge, type AnimRef, type BuddyState, type Feature } from '../state';
+import { has } from '../unlocks';
 import { ASK_BREAK_MS, FETCH_FAR, FETCH_RUN_SPEED } from '../tuning';
 import { carrying, dropBall } from './fetch';
 import { startPlay } from './play';
@@ -85,7 +86,7 @@ export function wantBack(b: Buddy, toy: PlushKind | 'ball'): void {
   const again = m.gotOut === toy;
   m.gotOut = undefined;
   // The better its day, the more often.
-  if (!again && roomy(b) && b.world.random() < clamp(PLAYFUL + PLAYFUL_MOOD * b.world.mood, 0.05, 0.9)) {
+  if (!again && roomy(b) && has(b.world, 'fetchesBack') && b.world.random() < clamp(PLAYFUL + PLAYFUL_MOOD * b.world.mood, 0.05, 0.9)) {
     m.wants = toy;
     m.wantsInMs = BACK_AFTER_MS;
   }

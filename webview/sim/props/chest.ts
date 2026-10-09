@@ -1,8 +1,8 @@
 import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestItem } from '../../sprites/props';
 import type { Box } from '../math';
 
-/** What is in it, as its tiles are laid out above it: from the bottom row up, left to right. */
-export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'treat', 'teddy', 'duck'];
+/** Everything it may come to hold, as its tiles are laid out above it: from the bottom row up, left to right. */
+export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'duck', 'teddy'];
 const COLUMNS = 2;
 
 /** Air left between the chest and the edge of the view, and between two of its tiles. */
@@ -36,11 +36,6 @@ const IDLE_MS = 4000;
 /** How quickly it slides in and out: the share of the way left that it covers in a second. */
 const SLIDE = 10;
 const CLOSE_ENOUGH = 0.4;
-/** How long it stays out after a toy was last in your hand. */
-const EXPECT_MS = 2500;
-/** Its mouth, for a toy thrown in: this far in from each side, and this deep under the top of its body. */
-const MOUTH_IN = 3;
-const MOUTH_DEEP = 7;
 /** A thing can be taken once the chest is this far open. */
 const TAKEABLE = 0.9;
 
@@ -75,7 +70,9 @@ export class Chest {
   /** How far its lid is open and its things are out, from 0 to 1. */
   open = 0;
   /** What is in it right now. A toy that is out in the view is not in the chest. */
-  readonly holds: Record<ChestItem, boolean> = { ball: true, treat: true, teddy: true, duck: true };
+  readonly holds: Record<ChestItem, boolean> = { ball: true, teddy: true, duck: true };
+  /** The toys that have come into its life so far: the others have no place in it yet. */
+  items: readonly ChestItem[] = CHEST_ITEMS;
   private pointer: { x: number; y: number } | undefined;
   /** The hand holds a toy. */
   private carrying = false;
@@ -84,9 +81,6 @@ export class Chest {
   private lingerMs = 0;
   /** Something was just put back in it: it stays shut until the pointer has left it. */
   private full = false;
-  /** A toy is in your hand, or was a moment ago: it stays out, in case it comes back. And one is flying close by. */
-  private expectMs = 0;
-  private incoming = false;
 
   get box(): Box {
     return { x: this.x, y: 0, w: CHEST_W, h: this.open > 0 ? CHEST_OPEN_H : CHEST_H };
@@ -143,20 +137,6 @@ export class Chest {
     this.carrying = carrying;
   }
 
-  /**
-   * `inHand` while you hold a toy; `flying` are the toys in the air. It comes out and waits for as long as a toy is
-   * about, and lifts its lid for one that flies close: a good shot goes in.
-   */
-  expect(inHand: boolean, flying: readonly { x: number; y: number }[]): void {
-    this.expectMs = inHand || (this.expectMs > 0 && flying.length > 0) ? EXPECT_MS : this.expectMs;
-    this.incoming = flying.some((toy) => within(this.box, toy.x, toy.y, NEAR));
-  }
-
-  /** Whether a toy coming down at this point drops into it: it is in its corner, its lid up, and the point is over its mouth. */
-  catches(x: number, y: number): boolean {
-    return this.here && this.lid === 2 && x >= this.x + MOUTH_IN && x < this.x + CHEST_W - MOUTH_IN && y >= CHEST_RIM - 2 && y <= CHEST_RIM + MOUTH_DEEP;
-  }
-
   /** Whether a toy held at this point is over the chest, to be put back in it. */
   accepts(x: number, y: number): boolean {
     return this.here && within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, x, y, REACH);
@@ -180,12 +160,13 @@ export class Chest {
     if (this.open < TAKEABLE || this.carrying) {
       return undefined;
     }
-    return CHEST_ITEMS.find((item) => this.holds[item] && within(this.home(item), x, y, GAP / 2));
+    return this.items.find((item) => this.holds[item] && within(this.home(item), x, y, GAP / 2));
   }
 
-  /** `holds` says, for the toys that can be out in the view, whether they are in the chest. */
+  /** `holds` says, for the toys that can be out in the view, whether they are in the chest; one that has not come into its life yet is not. */
   update(dtMs: number, holds: Partial<Record<ChestItem, boolean>> = {}): void {
     Object.assign(this.holds, holds);
+    CHEST_ITEMS.forEach((item) => (this.holds[item] &&= this.items.includes(item)));
     const over = this.here && this.over();
     const at = this.pointer;
     const near = at !== undefined && (over !== false || within({ x: this.corner, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, CALL));
@@ -193,8 +174,7 @@ export class Chest {
     this.stillMs += dtMs;
     // It comes for a pointer that is close to its corner and doing something, and never leaves while it is open.
     this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false);
-    this.expectMs = Math.max(0, this.expectMs - dtMs);
-    this.share = this.asked || this.open > 0 || this.expectMs > 0 ? 1 : (this.hauled ?? 0);
+    this.share = this.asked || this.open > 0 ? 1 : (this.hauled ?? 0);
     this.fidget(dtMs);
     const left = this.target - this.x;
     this.x = Math.abs(left) < CLOSE_ENOUGH ? this.x + left : this.x + left * Math.min(1, (SLIDE * dtMs) / 1000);
@@ -204,7 +184,7 @@ export class Chest {
     const wanted = this.lingerMs > 0;
     // A full hand only gets the lid.
     const forPointer = !wanted ? 0 : this.carrying ? LID_BACK : 1;
-    const upTo = Math.max(forPointer, this.here && (this.lifted || this.incoming) ? LID_BACK : 0);
+    const upTo = Math.max(forPointer, this.lifted && this.here ? LID_BACK : 0);
     this.open = toward(this.open, upTo, dtMs / OPEN_MS);
   }
 
@@ -237,14 +217,14 @@ export class Chest {
       return true;
     }
     // Open, it is the chest and its tiles above it, all in one piece.
-    const rows = Math.ceil(CHEST_ITEMS.length / COLUMNS);
+    const rows = Math.ceil(this.items.length / COLUMNS);
     const left = this.home(CHEST_ITEMS[0]).x;
-    return this.open > 0 && within({ x: left, y: 0, w: COLUMNS * STEP - GAP, h: CHEST_OPEN_H - LID_OVERLAP + rows * STEP }, at.x, at.y, REACH);
+    return this.open > 0 && rows > 0 && within({ x: left, y: 0, w: COLUMNS * STEP - GAP, h: CHEST_OPEN_H - LID_OVERLAP + rows * STEP }, at.x, at.y, REACH);
   }
 
   /** Where a thing's tile sits once the chest is open, above the raised lid. */
   private home(item: ChestItem): Box {
-    const index = CHEST_ITEMS.indexOf(item);
+    const index = Math.max(0, this.items.indexOf(item));
     const left = this.x + (CHEST_W - (COLUMNS * STEP - GAP)) / 2;
     return { x: left + (index % COLUMNS) * STEP, y: CHEST_OPEN_H - LID_OVERLAP + Math.floor(index / COLUMNS) * STEP, w: TILE, h: TILE };
   }

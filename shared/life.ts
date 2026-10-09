@@ -49,6 +49,7 @@ const FLOOR = 0.3;
 /** How much of yesterday's mood is still there in the morning, and what each slight takes from today's. */
 const CARRIED = 1 / 3;
 const SLIGHT_COST = 0.25;
+const IGNORED_COST = 0.5;
 
 const CARES: readonly Care[] = ['fed', 'played', 'petted', 'treated'];
 const SLIGHTS: readonly Slight[] = ['unfed', 'unheard'];
@@ -173,12 +174,17 @@ function lived(life: Life, today: string): { attachment: number; peak: number } 
 /** How attached to you it is on `today`, from 0 (it has just met you) to 1. */
 export const attachmentOn = (life: Life, today: string): number => lived(life, today).attachment;
 
+/** The most attached to you it has ever been, up to `today`: what it has reached is never taken back. */
+export const peakOn = (life: Life, today: string): number => lived(life, today).peak;
+
 /** Its mood on `day`, from -1 to 1: what the day has brought so far, and a little of the day before. */
 export function moodOn(life: Life, day: string, carriedFrom = 3): number {
   const record = life.days[day] ?? EMPTY_DAY;
   const slights = Object.values(record.slights).reduce((sum: number, count) => sum + (count ?? 0), 0);
   const carried = carriedFrom > 0 ? CARRIED * moodOn(life, keyOf(dayNumber(day) - 1), carriedFrom - 1) : 0;
-  return clamp(carried + dayWorth(record) - SLIGHT_COST * slights, -1, 1);
+  // There all that time, and not one look at it: that weighs on it, until the first care of the day.
+  const ignored = record.presentMin >= PRESENT_FULL_MIN && Object.keys(record.cares).length === 0 ? IGNORED_COST : 0;
+  return clamp(carried + dayWorth(record) - SLIGHT_COST * slights - ignored, -1, 1);
 }
 
 /** How many days it is since you were last there, counted on `today`; undefined if you never were. */

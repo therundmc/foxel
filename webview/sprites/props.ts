@@ -135,7 +135,7 @@ export const CHEST_OPEN_H = CHEST[2].length;
 export const CHEST_RIM = CHEST_BOX.length + 1;
 
 /** What its chest holds: the things you take in your hand, to play with it or to give it. */
-export type ChestItem = 'ball' | 'treat' | 'teddy' | 'duck';
+export type ChestItem = 'ball' | 'duck' | 'teddy';
 export type PlushKind = 'teddy' | 'duck';
 
 // Its soft toys, as they are in a tile; out in the view they get a dark border.
@@ -147,7 +147,6 @@ export const PLUSH: Record<PlushKind, Glyph> = { teddy: outlined(PLUSH_FILLS.ted
 
 const CHEST_ICONS: Record<ChestItem, Glyph> = {
   ball: BALL_FRAMES[0],
-  treat: ['TT...TT', 'TTTTTTT', 'ttttttt', 'tt...tt'],
   ...PLUSH_FILLS,
 };
 
@@ -170,14 +169,46 @@ export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([
 /** The tile of a thing that is not in the chest right now. */
 export const CHEST_TILE_EMPTY: Glyph = tile();
 
+// Its box of keepsakes: a wooden tray of little compartments, two rows of them. In the top row, a picture for each
+// stage of your life together (its ball, its duck, its teddy, a star, a heart, a sun); in the bottom one, one of each
+// kind of thing it has found for you.
+export const ALBUM_CELL = 7;
+export const ALBUM_COLUMNS = 6;
+const TRAY_ROW = `T${Array.from({ length: ALBUM_COLUMNS }, () => 'd'.repeat(ALBUM_CELL)).join('t')}T`;
+export const ALBUM: Glyph = [
+  'T'.repeat(TRAY_ROW.length),
+  ...Array.from({ length: ALBUM_CELL }, () => TRAY_ROW),
+  `T${'t'.repeat(TRAY_ROW.length - 2)}T`,
+  ...Array.from({ length: ALBUM_CELL }, () => TRAY_ROW),
+  'T'.repeat(TRAY_ROW.length),
+];
+export const ALBUM_W = ALBUM[0].length;
+export const ALBUM_H = ALBUM.length;
+const inCell = (picture: Glyph): Glyph => {
+  const left = Math.floor((ALBUM_CELL - picture[0].length) / 2);
+  const top = Math.floor((ALBUM_CELL - picture.length) / 2);
+  return Array.from({ length: ALBUM_CELL }, (_, y) => Array.from({ length: ALBUM_CELL }, (_, x) => picture[y - top]?.[x - left] ?? TRANSPARENT).join(''));
+};
+export const PICTURES: readonly Glyph[] = [
+  ['.BBB.', 'BBgBB', 'BBBBb', 'BBBbb', '.Bbb.'],
+  ['..SS.', '.SSOO', 'SSSS.', 'SxxS.', '.SS..'],
+  ['t...t', 'tTTTt', 'TETET', '.TcT.', 'tT.Tt'],
+  ['..X..', '.XXX.', 'XXXXX', '.XXX.', '.X.X.'],
+  ['.L.L.', 'LLLLL', 'LLLLL', '.LLL.', '..L..'],
+  ['X.X.X', '.XXX.', 'XXXXX', '.XXX.', 'X.X.X'],
+].map(inCell);
 // What it brings you from outside: small things, each set down in front of you.
 export type FindKind = 'flower' | 'pebble' | 'feather' | 'leaf';
-export const FINDS: Record<FindKind, Glyph> = {
-  flower: outlined(['.p.p.', 'ppSpp', '.p.p.', '..F..', '.FF..', '..F..']),
-  pebble: outlined(['.eee.', 'eeeDD', '.DDD.']),
-  feather: outlined(['..W', '.WZ', '.WZ', 'WZ.', 'WZ.', 'Q..']),
-  leaf: outlined(['..FF.', '.FFfF', 'FFfF.', 'kF...']),
+const FIND_FILLS: Record<FindKind, Glyph> = {
+  flower: ['.p.p.', 'ppSpp', '.p.p.', '..F..', '.FF..', '..F..'],
+  pebble: ['.eee.', 'eeeDD', '.DDD.'],
+  feather: ['..W', '.WZ', '.WZ', 'WZ.', 'WZ.', 'Q..'],
+  leaf: ['..FF.', '.FFfF', 'FFfF.', 'kF...'],
 };
+export const FIND_ORDER: readonly FindKind[] = ['flower', 'pebble', 'feather', 'leaf'];
+export const FINDS = Object.fromEntries(FIND_ORDER.map((kind) => [kind, outlined(FIND_FILLS[kind])])) as Record<FindKind, Glyph>;
+/** As they lie in the tray of keepsakes. */
+export const FINDS_KEPT = Object.fromEntries(FIND_ORDER.map((kind) => [kind, inCell(FIND_FILLS[kind])])) as Record<FindKind, Glyph>;
 // A heart scratched in the earth, stroke by stroke; and the little mound left where it dug, as it rises.
 export const DOODLE: readonly Glyph[] = [
   ['.TT....', 'T......', 'T......', '.T.....', '..T....', '...T...'],
@@ -187,19 +218,19 @@ export const DOODLE: readonly Glyph[] = [
 export const MOUND: readonly Glyph[] = [outlined(['kk']), outlined(['.kk.', 'kkkk']), outlined(['..kk..', '.kTkk.', 'kkkkkk'])];
 
 // The little shelf on the wall, top right: a plank with a lit edge on two brackets, and on it what is not a toy.
-export type ShelfItem = 'meal' | 'bubbles';
+export type ShelfItem = 'meal' | 'treat' | 'bubbles';
+const PLANK = 32;
 export const SHELF: Glyph = outlined([
-  '.hhhhhhhhhhhhhhhhhhhhhhh',
-  'TTTTTTTTTTTTTTTTTTTTTTTT',
-  '.ttttttttttttttttttttttt',
-  '......kkk........kkk....',
-  '.......kk.........kk....',
-  '........k..........k....',
+  `.${'h'.repeat(PLANK - 1)}`,
+  'T'.repeat(PLANK),
+  `.${'t'.repeat(PLANK - 1)}`,
+  ...['kkk', '.kk', '..k'].map((bracket) => `${'.'.repeat(7)}${bracket}${'.'.repeat(13)}${bracket}${'.'.repeat(6)}`),
 ]);
-/** A paper bag of kibble with its top rolled down, and a bottle of soap with its wand in it: each stands on the plank, this far from its left end. */
+/** A paper bag of kibble with its top rolled down, a bone biscuit, and a bottle of soap with its wand in it: each stands on the plank, this far from its left end. */
 export const SHELF_ITEMS: Record<ShelfItem, { glyph: Glyph; x: number }> = {
-  meal: { glyph: outlined(['.aaaaa.', 'AAAAAAA', 'ArAAAAA', 'AcccccA', 'AcckccA', 'AckkkcA', 'AcccccA', 'AAAAAAA', 'aaaaaaa']), x: 3 },
-  bubbles: { glyph: outlined(['.CCC.', '.CwC.', '.CCC.', '..Q..', '.WWW.', 'CCCCC', 'CwUUU', 'CwUUU', 'CUUUU', 'uuuuu']), x: 15 },
+  meal: { glyph: outlined(['.aaaaa.', 'AAAAAAA', 'ArAAAAA', 'AcccccA', 'AcckccA', 'AckkkcA', 'AcccccA', 'AAAAAAA', 'aaaaaaa']), x: 2 },
+  treat: { glyph: TREAT_GLYPH, x: 12 },
+  bubbles: { glyph: outlined(['.CCC.', '.CwC.', '.CCC.', '..Q..', '.WWW.', 'CCCCC', 'CwUUU', 'CwUUU', 'CUUUU', 'uuuuu']), x: 25 },
 };
 export const SHELF_W = SHELF[0].length;
 /** How high the board and its bracket are, and how high the tallest thing on it stands above the board. */

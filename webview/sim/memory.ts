@@ -1,7 +1,6 @@
 import type { BuddyMemory } from '../../shared/protocol';
 import type { Buddy } from './buddy';
 import { AFTER_OPEN_MS } from './features/contemplate';
-import { KEPT_MOST } from './props/keepsakes';
 
 /** The wait before the next contemplation runs down by itself: it is the same memory until it shifts by this much. */
 const VISTA_SLACK_MS = 60_000;
@@ -38,7 +37,8 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     lastVista: b.contemplate.last,
     mouseFriend: b.visitors.mouseFriend,
     toys: lying(b),
-    finds: [...b.world.finds.kept],
+    stage: b.world.stage,
+    collected: { ...b.world.album.finds },
     mound: b.world.mound.x === undefined ? undefined : Math.round(b.world.mound.x),
     treat: b.world.treat.landed ? { x: Math.round(b.world.treat.centerX), stage: b.world.treat.stage, facing: b.world.treat.facing } : undefined,
   };
@@ -56,7 +56,8 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     a.lastVista === b.lastVista &&
     a.mouseFriend === b.mouseFriend &&
     JSON.stringify(a.toys ?? {}) === JSON.stringify(b.toys ?? {}) &&
-    JSON.stringify(a.finds ?? []) === JSON.stringify(b.finds ?? []) &&
+    a.stage === b.stage &&
+    JSON.stringify(a.collected ?? {}) === JSON.stringify(b.collected ?? {}) &&
     a.mound === b.mound &&
     JSON.stringify(a.treat) === JSON.stringify(b.treat) &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
@@ -80,12 +81,17 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.contemplate.last = memory.lastVista;
   b.visitors.mouseFriend = memory.mouseFriend === true;
   // Its toys are where it left them, for the day: by the next morning they are back in the chest.
-  const { ball, plushes, finds, mound, width, height } = b.world;
+  // What has come into its life so far, and what its box of keepsakes holds: for good.
+  const { ball, plushes, album, mound, width, height } = b.world;
+  b.world.stage = memory.stage ?? -1;
+  album.pictures = b.world.stage + 1;
+  Object.assign(album.finds, memory.collected);
+  if (b.world.stage >= 0 && ball.state === 'mouth' && b.state === 'intro') {
+    // It was coming in with its ball as for a first meeting: it is not one.
+    ball.state = 'none';
+  }
   const sameDay = new Date(memory.savedAt).toDateString() === new Date(now).toDateString();
   const toys = sameDay ? (memory.toys ?? {}) : {};
-  if (sameDay && finds.kept.length === 0) {
-    finds.kept.push(...(memory.finds ?? []).slice(0, KEPT_MOST));
-  }
   if (sameDay && memory.treat && !b.world.treat.active) {
     b.world.treat.rest(memory.treat.x, memory.treat.stage, memory.treat.facing, width);
   }

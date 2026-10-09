@@ -46,7 +46,7 @@ describe('LifeStore', () => {
   it('starts a life the first time, and writes nothing until something happens', () => {
     const store = open();
     expect(store.life.born).toBe(TODAY);
-    expect(store.feelings).toEqual({ attachment: 0, mood: 0, daysAway: undefined });
+    expect(store.feelings).toEqual({ attachment: 0, peak: 0, mood: 0, daysAway: undefined });
     vi.advanceTimersByTime(30 * MINUTE);
     expect(kept.writes).toEqual([]);
     expect(kept.synced).toEqual([LIFE_KEY]);

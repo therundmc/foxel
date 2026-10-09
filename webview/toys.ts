@@ -23,8 +23,11 @@ export interface Draggable {
   release(p: WorldPoint, v: WorldPoint): void;
 }
 
-// Everything in the chest can be held. Checked in this order when two of them overlap; a new toy only needs an entry here.
-export function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
+/** What the hand can hold: the toys of the chest, and the treat off the shelf. */
+export type Holdable = ChestItem | 'treat';
+
+// Checked in this order when two of them overlap; a new toy only needs an entry here.
+export function draggables({ world, buddy }: Session): Record<Holdable, Draggable> {
   const { ball, treat } = world;
   const plush = (kind: PlushKind): Draggable => ({
     free: () => world.plushes[kind].state === 'free',

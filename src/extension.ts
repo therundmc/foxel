@@ -144,8 +144,8 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   /** What it feels, as its life stands right now. */
   const feelings = (): HostMessage => {
-    const { mood, attachment } = store.feelings;
-    return { type: 'feelings', mood, attachment, facts: readConfig().debug ? lifeFacts() : undefined };
+    const { mood, attachment, peak } = store.feelings;
+    return { type: 'feelings', mood, attachment, peak, facts: readConfig().debug ? lifeFacts() : undefined };
   };
   // A minute with its view open and you there is a minute spent together.
   const together = setInterval(() => {

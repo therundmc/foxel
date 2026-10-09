@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { grabBall, spawnBall, stowBall } from '../../webview/sim/features/fetch';
-import { giveTreat, stowTreat, takeTreat } from '../../webview/sim/features/treat';
+import { stowTreat, takeTreat } from '../../webview/sim/features/treat';
 import { holdPlush, stowPlush } from '../../webview/sim/features/plush';
 import { CHEST_ITEMS } from '../../webview/sim/props/chest';
 import { fixed, simulate, spawn } from './helpers';
@@ -57,6 +57,7 @@ describe('the toy chest', () => {
 
   it('fidgets now and then while it waits, to be noticed: soon after the view opens, then every so often', () => {
     const { b, chest } = scene(false);
+    b.enter('sleep', 3_600_000);
     const nudgedWithin = (ms: number): boolean => {
       let nudged = false;
       simulate(b, ms, () => {
@@ -210,13 +211,31 @@ describe('the toy chest', () => {
     holdPlush(b, 'teddy', 50, 20);
     point(onChest);
     const ball = middle(chest.slot('ball'));
-    expect(chest.holds).toEqual({ ball: false, treat: true, teddy: false, duck: true });
+    expect(chest.holds).toEqual({ ball: false, teddy: false, duck: true });
     expect(chest.itemAt(ball.x, ball.y)).toBeUndefined();
 
-    giveTreat(b, 60);
     stowPlush(b, 'teddy');
     simulate(b, 100);
-    expect(chest.holds).toEqual({ ball: false, treat: false, teddy: true, duck: true });
+    expect(chest.holds).toEqual({ ball: false, teddy: true, duck: true });
+  });
+
+  it('only has a place for what has come into its life so far', () => {
+    const { b, chest, onChest, point, middle } = scene();
+    b.world.stage = 0;
+    point(onChest);
+    expect(chest.items).toEqual(['ball']);
+    expect(chest.holds).toEqual({ ball: true, teddy: false, duck: false });
+    const ball = middle(chest.slot('ball'));
+    expect(chest.itemAt(ball.x, ball.y)).toBe('ball');
+    b.world.stage = 1;
+    point(onChest, 100);
+    expect(chest.items).toEqual(['ball', 'duck']);
+    const duck = middle(chest.slot('duck'));
+    expect(chest.itemAt(duck.x, duck.y)).toBe('duck');
+    b.world.stage = -1;
+    point(onChest, 100);
+    expect(chest.items).toEqual([]);
+    expect(chest.itemAt(ball.x, ball.y)).toBeUndefined();
   });
 
   it('gives a treat straight into your hand, and the fox comes to beg for it', () => {

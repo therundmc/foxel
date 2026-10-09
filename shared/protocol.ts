@@ -120,10 +120,12 @@ export interface BuddyMemory {
   lastVista?: Vista;
   /** Whether a mouse has made friends with it. */
   mouseFriend: boolean;
+  /** The stage of your life together that it has reached and marked: what has come into its life so far. */
+  stage?: number;
   /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
   toys?: Partial<Record<'ball' | 'teddy' | 'duck', number>>;
-  /** What it brought you today that you accepted, in the order it sits in its corner; and where the mound is, if it dug. */
-  finds?: readonly ('flower' | 'pebble' | 'feather' | 'leaf')[];
+  /** How many of each kind of thing it has found for you: what its box of keepsakes holds. And where the mound is today, if it dug. */
+  collected?: Partial<Record<'flower' | 'pebble' | 'feather' | 'leaf', number>>;
   mound?: number;
   /** A treat left lying: where its middle is, how much of it is eaten, and which way its bitten end points. */
   treat?: { x: number; stage: number; facing: 1 | -1 };
@@ -176,7 +178,7 @@ export type HostMessage =
   | { type: 'settings'; settings: BuddySettings }
   | { type: 'memory'; memory: BuddyMemory }
   /** What it feels today, and how attached to you it has grown: worked out by the extension from its life. `facts` come with the hidden `foxel.debug` setting only. */
-  | { type: 'feelings'; mood: number; attachment: number; facts?: LifeFacts }
+  | { type: 'feelings'; mood: number; attachment: number; peak: number; facts?: LifeFacts }
   /** You are back after this many days away: sent once, the first time its view opens that day. */
   | { type: 'welcome'; daysAway: number }
   /** Something happened in your work while its view was out of sight: the last such thing, to be played once it is back. */

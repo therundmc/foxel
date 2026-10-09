@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode';
 import { dateKey } from '../shared/day';
-import { attachmentOn, daysAway, mergeLives, moodOn, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
+import { attachmentOn, peakOn, daysAway, mergeLives, moodOn, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
 import type { BuddyMemory } from '../shared/protocol';
 
 /** Its life: follows you from one machine to another. */
@@ -58,9 +58,9 @@ export class LifeStore implements vscode.Disposable {
   }
 
   /** How attached to you it is (0 to 1), its mood today (-1 to 1), and how many days it is since you were last there. */
-  get feelings(): { attachment: number; mood: number; daysAway: number | undefined } {
+  get feelings(): { attachment: number; peak: number; mood: number; daysAway: number | undefined } {
     const life = this.life;
-    return { attachment: attachmentOn(life, this.today), mood: moodOn(life, this.today), daysAway: daysAway(life, this.today) };
+    return { attachment: attachmentOn(life, this.today), peak: peakOn(life, this.today), mood: moodOn(life, this.today), daysAway: daysAway(life, this.today) };
   }
 
   /** What it needed when a view last noted it. */

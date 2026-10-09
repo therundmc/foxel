@@ -38,6 +38,8 @@ const vscode = acquireVsCodeApi();
 const stage = new Stage(document.getElementById('stage') as HTMLCanvasElement);
 const world = new World();
 const buddy = new Buddy(world);
+// Nothing has come into its life yet, until its memory says otherwise.
+world.stage = -1;
 const sky = new Sky();
 const showcase = new Showcase();
 const bitmaps = new Bitmaps();
@@ -155,6 +157,7 @@ function onMessage(msg: HostMessage): void {
       break;
     case 'feelings':
       session.felt = { mood: msg.mood, attachment: msg.attachment };
+      world.peak = Math.max(msg.peak, session.forced.attachment ?? 0);
       world.mood = session.forced.mood ?? msg.mood;
       world.attachment = session.forced.attachment ?? msg.attachment;
       session.facts = msg.facts;

@@ -6,6 +6,8 @@ import type { Plush } from '../props/plush';
 import type { AnimRef, Feature } from '../state';
 import { carryInMouth, noseTo } from './mouth';
 import { tookBreak } from './rest';
+import { SHUNS_UNDER } from '../tuning';
+import { has } from '../unlocks';
 import { wantBack } from './rummage';
 import { bonk } from './bonk';
 import { settle } from './plushSettle';
@@ -19,6 +21,7 @@ const TOSS_UP = 62;
 const TOSS_UP_MORE = 34;
 const TOSS_ASIDE = 6;
 const TOSS_ASIDE_MORE = 42;
+const HALF_HEARTED = 0.75;
 /** How far under the middle of its head its mouth is. */
 const MOUTH_UNDER_HEAD = 5.5;
 /** A toy coming down within its reach, it jumps and catches: how long the jump lasts, how high, and what is within reach. */
@@ -98,7 +101,7 @@ export function holdPlush(b: Buddy, kind: PlushKind, x: number, y: number): void
     m.misses = 0;
     m.rally++;
     tookBreak(b);
-    if (m.rally % CHEER_EVERY === 0) {
+    if (m.rally % CHEER_EVERY === 0 && has(b.world, 'cheers')) {
       b.world.effects.push('confetti');
       phase(b, 'cheer');
       return;
@@ -207,7 +210,7 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
       const at = noseTo(b, toy.center, dt);
       const near = Math.abs(toy.center - (b.x + b.noseOffset())) <= LEAP_NEAR;
       if (!toy.landed) {
-        if (near && toy.falling && toy.y < LEAP_UNDER && toy.y > mouthHeight(b) && b.y === 0) {
+        if (has(b.world, 'catches') && near && toy.falling && toy.y < LEAP_UNDER && toy.y > mouthHeight(b) && b.y === 0) {
           phase(b, 'leap');
         }
       } else if (at === 'under') {
@@ -262,7 +265,9 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
         const { pointer, random, width } = b.world;
         const walled = toy.center < width * 0.2 ? 1 : toy.center > width * 0.8 ? -1 : 0;
         const side = walled || (pointer ? (pointer.x >= toy.center ? 1 : -1) : random() < 0.5 ? -1 : 1);
-        toy.toss(side * (TOSS_ASIDE + TOSS_ASIDE_MORE * random()), TOSS_UP + TOSS_UP_MORE * random());
+        // Out of sorts, it throws without much heart.
+        const heart = b.world.mood > SHUNS_UNDER ? 1 : HALF_HEARTED;
+        toy.toss(side * (TOSS_ASIDE + TOSS_ASIDE_MORE * random()) * heart, (TOSS_UP + TOSS_UP_MORE * random()) * heart);
         m.inPlay = true;
       }
       if (m.phaseMs >= TOSS_MS) {
@@ -290,7 +295,8 @@ function plushAnim(b: Buddy): AnimRef {
   const going: AnimRef = { anim: b.moving ? (b.running ? 'run' : 'walk') : 'watch', elapsed: b.elapsed };
   switch (m.phase) {
     case 'ready':
-      return { anim: 'ready', elapsed: b.elapsed };
+      // Its tail only wags for the throw when it is in the mood.
+      return { anim: b.world.mood > SHUNS_UNDER ? 'ready' : 'watch', elapsed: b.elapsed };
     case 'cheer':
       return { anim: 'celebrate', elapsed: m.phaseMs };
     case 'dazed':

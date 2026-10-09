@@ -3,6 +3,7 @@ import { ANIMATIONS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { urge, type AnimRef, type Feature } from '../state';
+import { has } from '../unlocks';
 
 /** How long it sulks over something it had to put up with, and how long it holds out when you come back after weeks. */
 const SULK_MS = 40_000;
@@ -19,6 +20,12 @@ const OVERJOYED_MS = 4200;
 const BOUNCING = 0.6;
 const BOUNCE_MS = 360;
 const BOUNCE_HEIGHT = 7;
+/** Out of sorts, it keeps away from your pointer: when it comes this near, it walks this far off, slowly, and sits with its back to it for a while. */
+const SHUN_NEAR = 30;
+const SHUN_STEP = 28;
+const SHUN_SPEED = 8;
+const SHUN_SIT_MS = 5000;
+const SHUN_REST_MS = 7000;
 /** What it may have left about while you were away: how likely each thing is. */
 const BALL_LEFT = 0.7;
 const TOY_LEFT = 0.6;
@@ -33,6 +40,9 @@ export class BondMemory {
   sulkedLow = false;
   /** This sulk ends by itself, with it coming round. */
   forgives = false;
+  /** Keeping away from your pointer: where it is walking off to, and how long since it last did. */
+  shunTo = 0;
+  sinceShunMs = SHUN_REST_MS;
   /** You are back after this many days: the welcome it has not given yet. */
   awayDays: number | undefined;
   /** What happened in your work while its view was out of sight, not played yet. */
@@ -49,7 +59,7 @@ export function slighted(b: Buddy): void {
 
 /** You looked after it. Sulking, it melts; if it had sulked, it comes and makes up once it is free. */
 export function cared(b: Buddy): void {
-  if (b.state === 'sulk') {
+  if (b.state === 'sulk' || b.state === 'shun') {
     makeUp(b);
   } else if (b.bond.sulky) {
     b.bond.soothed = true;
@@ -58,7 +68,7 @@ export function cared(b: Buddy): void {
 
 /** A stroke or a pat on a sulking fox: that is all it was waiting for. Returns whether it was sulking. */
 export function soothe(b: Buddy): boolean {
-  if (b.state !== 'sulk') {
+  if (b.state !== 'sulk' && b.state !== 'shun') {
     return false;
   }
   b.world.effects.push('petted');
@@ -130,11 +140,41 @@ export function welcome(b: Buddy): boolean {
   if (days >= TOO_LONG) {
     sulk(b, GRUDGE_MS, true);
     b.enter('sulk', GRUDGE_MS);
-  } else if (days >= MISSED_YOU) {
+  } else if (days >= MISSED_YOU && has(b.world, 'overjoyed')) {
     b.dir = facing(b, you(b));
     b.enter('overjoyed', OVERJOYED_MS);
   } else {
     return false;
+  }
+  return true;
+}
+
+// Your pointer has come too near for the mood it is in.
+function crowded(b: Buddy): boolean {
+  const p = b.world.shunned;
+  return p !== undefined && b.bond.sinceShunMs >= SHUN_REST_MS && Math.abs(p.x - (b.x + SPRITE_SIZE / 2)) <= SHUN_NEAR && p.y <= SPRITE_SIZE + 8;
+}
+
+function shun(b: Buddy): void {
+  const p = b.world.shunned;
+  const away = facing(b, p?.x ?? b.world.width / 2) === 1 ? -1 : 1;
+  // Away from it, or past it if the wall is in the way.
+  const room = away === 1 ? b.maxX - b.x : b.x;
+  b.dir = room >= SHUN_STEP ? away : (-away as 1 | -1);
+  b.bond.shunTo = Math.min(b.maxX, Math.max(0, b.x + b.dir * SHUN_STEP));
+  b.bond.sinceShunMs = 0;
+  b.tryEnter('shun', Infinity);
+}
+
+function updateShun(b: Buddy, dt: number): boolean {
+  b.fall(dt);
+  const left = (b.bond.shunTo - b.x) * b.dir;
+  b.moving = left > SHUN_SPEED * dt;
+  if (b.moving) {
+    b.x += b.dir * SHUN_SPEED * dt;
+    b.elapsed = 0;
+  } else if (b.elapsed >= SHUN_SIT_MS) {
+    b.enterNext('mope');
   }
   return true;
 }
@@ -158,6 +198,12 @@ export const bondFeature = {
       },
     },
     makeUp: { priority: 2, next: [['sit', 100]] },
+    // It walks off, slowly, and sits down with its back to you.
+    shun: {
+      priority: 1,
+      update: updateShun,
+      anim: (b) => (b.moving ? { anim: 'walk', elapsed: b.elapsed } : { anim: 'sulk', elapsed: b.elapsed }),
+    },
     mope: {
       duration: () => totalDuration(ANIMATIONS.sigh),
       next: [['lie', 60], ['sit', 40]],
@@ -175,7 +221,8 @@ export const bondFeature = {
       next: [['sit', 100]],
     },
   },
-  tick(b) {
+  tick(b, dtMs) {
+    b.bond.sinceShunMs += dtMs;
     if (b.world.mood > OVER_IT) {
       b.bond.sulkedLow = false;
     }
@@ -186,6 +233,7 @@ export const bondFeature = {
       (b) => void welcome(b),
     ),
     urge((b) => b.bond.soothed, makeUp),
+    urge(crowded, shun),
     urge(
       (b) => b.bond.slighted,
       (b) => sulk(b, SULK_MS, false),

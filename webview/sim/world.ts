@@ -6,12 +6,15 @@ import { Bird } from './props/bird';
 import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
 import { knockTogether } from './props/bump';
-import { Chest } from './props/chest';
+import { LAST_STAGE, owns } from './unlocks';
+import { CHEST_ITEMS, Chest } from './props/chest';
+import { SHUNS_UNDER } from './tuning';
 import { Grass } from './props/grass';
 import { Finds, newDoodle, newMound } from './props/keepsakes';
 import { Mouse } from './props/mouse';
 import { Plush } from './props/plush';
 import { Shelf } from './props/shelf';
+import { Album } from './props/album';
 import { Basket } from './props/basket';
 import { Bubbles } from './props/bubbles';
 import { Scenery } from './props/scenery';
@@ -46,7 +49,8 @@ export class World {
   readonly bubbles = new Bubbles();
   readonly chest = new Chest();
   readonly shelf = new Shelf();
-  /** What it brought you, the heart it scratched in the earth, the mound where it dug. */
+  readonly album = new Album();
+  /** What it is bringing you, the heart it scratched in the earth, the mound where it dug. */
   readonly finds = new Finds();
   readonly doodle = newDoodle();
   readonly mound = newMound();
@@ -62,6 +66,13 @@ export class World {
   /** Its mood today, from -1 to 1, and how attached to you it has grown, from 0 to 1: told by the extension. */
   mood = 0;
   attachment = 0;
+  /** The most attached it has ever been, and the stage of your life together it has reached and marked (all of them, until told otherwise). */
+  peak = 0;
+  stage = LAST_STAGE;
+  /** For when it grows up: how old it is. Nothing depends on it yet. */
+  age = 0;
+  /** Your pointer when it is in no mood for it: it does not look at it, and keeps away from it. */
+  shunned: WorldPoint | undefined;
   now = new Date();
   private dayLife = false;
 
@@ -78,7 +89,7 @@ export class World {
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
     const plushes = Object.values(this.plushes);
     const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
-    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.shelf.moving && !this.finds.moving && !this.doodle.moving && !this.mound.moving && plushes.every((p) => p.state === 'none' || p.landed) && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
+    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.shelf.moving && !this.album.moving && !this.finds.moving && !this.doodle.moving && !this.mound.moving && plushes.every((p) => p.state === 'none' || p.landed) && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
   /** You scrolled: it shows for a moment. */
@@ -99,6 +110,7 @@ export class World {
     this.ball.place(this.ball.x, this.ball.y, this.width, this.height);
     this.chest.place(this.width);
     this.shelf.place(this.width, this.height);
+    this.album.place(this.height);
   }
 
   update(dtMs: number): void {
@@ -123,20 +135,22 @@ export class World {
     teddy.update(dt, this.width, this.height);
     duck.update(dt, this.width, this.height);
     knockTogether([teddy, duck], this.ball);
-    // While a toy is in your hand the chest waits for it, and for a throw.
-    const inHand = this.ball.state === 'held' || teddy.state === 'held' || duck.state === 'held';
-    const flying = [teddy, duck].filter((toy) => toy.state === 'free' && !toy.landed).map((toy) => ({ x: toy.center, y: toy.y }));
-    if (this.ball.state === 'free' && !this.ball.resting) {
-      flying.push({ x: this.ball.center, y: this.ball.y });
-    }
-    this.chest.expect(inHand, flying);
-    this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
+    // Only what has come into its life is in its chest and on its shelf, and a picture hangs for each stage.
+    this.chest.items = CHEST_ITEMS.filter((item) => owns(this, item));
+    this.shelf.items = owns(this, 'bubbles') ? ['meal', 'treat', 'bubbles'] : ['meal', 'treat'];
+    this.chest.update(dtMs, { ball: this.ball.state === 'none', teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
-    this.finds.update(dtMs);
+    this.album.update(dtMs, !this.chest.asked && !this.shelf.asked);
+    this.finds.update(dtMs, this.width);
     this.doodle.update(dtMs);
     this.mound.update(dtMs);
     // A pointer busy with the chest or the shelf is not there for the fox: it does not come to it, or ask it for a stroke.
-    if (this.chest.asked || this.shelf.asked) {
+    if (this.chest.asked || this.shelf.asked || this.album.asked) {
+      this.pointer = undefined;
+    }
+    // In a bad mood it will not look at your pointer either, and keeps its distance from it.
+    this.shunned = this.mood <= SHUNS_UNDER ? this.pointer : undefined;
+    if (this.shunned) {
       this.pointer = undefined;
     }
     this.buddies.forEach((b) => b.update(dtMs));

@@ -32,7 +32,7 @@ import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
 import { drawBubbles } from './bubbles';
-import { drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
+import { drawAlbum, drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
@@ -105,6 +105,7 @@ export class Renderer {
     this.scenery.drawFront(stage, world.scenery);
     drawChestTiles(stage, this.bitmaps, world.chest);
     drawShelf(stage, this.bitmaps, world.shelf);
+    drawAlbum(stage, this.bitmaps, world);
     sky.drawConfetti(stage, dt);
   }
 

@@ -11,6 +11,7 @@ import {
 import { totalDuration } from '../../sprites/frames';
 import type { Emote } from '../../sprites/props';
 import type { Buddy } from '../buddy';
+import { has } from '../unlocks';
 import { cared, soothe } from './bond';
 import type { BuddyState, Feature } from '../state';
 import { CHASE_FLIP_MS } from '../tuning';
@@ -63,6 +64,7 @@ const TOUCH_REACTIONS: Record<TouchZone, readonly TouchReaction[]> = {
 };
 const FLOP: TouchReaction = { anim: 'flop', then: 'lie' };
 // Moments other features play through `perform`.
+const WARY: TouchReaction = { anim: 'startle', hop: { at: STARTLE_CROUCH_MS, air: STARTLE_AIR_MS, height: 8 }, then: 'sit' };
 export const MORNING: TouchReaction = { anim: 'morning', then: 'sit', emote: 'sun', emoteFromMs: MORNING_WAVE_MS };
 export const GOOD_NIGHT: TouchReaction = { anim: 'goodNight', then: 'sit', emote: 'moon' };
 export const YUM: TouchReaction = { anim: 'lick', then: 'sit' };
@@ -108,6 +110,15 @@ export function touch(b: Buddy, zone: TouchZone): void {
   // Clicking again mid-reaction builds excitement instead of restarting the animation.
   if (b.state === 'touched' || b.state === 'zoomies') {
     b.touch.combo++;
+    return;
+  }
+  if (!has(b.world, 'trusts')) {
+    // It does not know you yet: it jumps. It was a caress all the same.
+    perform(b, WARY);
+    if (stateOf(b) === 'touched') {
+      b.world.effects.push('petted');
+      cared(b);
+    }
     return;
   }
   const options = TOUCH_REACTIONS[zone];

@@ -1,9 +1,32 @@
 import type { Chest } from '../sim/props/chest';
-import { CHEST_ITEMS } from '../sim/props/chest';
 import type { Shelf } from '../sim/props/shelf';
 import type { World } from '../sim/world';
 import type { Glyph } from '../sprites/frames';
-import { CHEST, CHEST_BALL, CHEST_BALL_X, CHEST_RIM, CHEST_TILE_EMPTY, CHEST_TILES, CHEST_W, DOODLE, FINDS, MOUND, PLUSH, SHELF, SHELF_H, SHELF_ITEMS, type ShelfItem } from '../sprites/props';
+import {
+  ALBUM,
+  ALBUM_H,
+  ALBUM_W,
+  BIRD_FRAMES,
+  BIRD_H,
+  BIRD_W,
+  CHEST,
+  CHEST_BALL,
+  CHEST_BALL_X,
+  CHEST_RIM,
+  CHEST_TILE_EMPTY,
+  CHEST_TILES,
+  CHEST_W,
+  DOODLE,
+  FIND_ORDER,
+  FINDS,
+  FINDS_KEPT,
+  MOUND,
+  PICTURES,
+  PLUSH,
+  SHELF,
+  SHELF_H,
+  SHELF_ITEMS,
+} from '../sprites/props';
 import type { Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 
@@ -35,7 +58,7 @@ export function drawPlushes(stage: Stage, bitmaps: Bitmaps, world: World, shadow
   }
 }
 
-/** What is on the ground behind it: the mound where it dug, the heart it scratched, and what it brought you, kept in its corner. */
+/** What is on the ground behind it: the mound where it dug, the heart it scratched. */
 export function drawGround(stage: Stage, bitmaps: Bitmaps, world: World): void {
   const draw = (glyph: Glyph, box: { x: number; y: number; w: number; h: number } | undefined): void => {
     if (box) {
@@ -48,11 +71,40 @@ export function drawGround(stage: Stage, bitmaps: Bitmaps, world: World): void {
       draw(glyphs[mark.stage], mark.box);
     }
   }
-  world.finds.kept.forEach((kind, i) => draw(FINDS[kind], world.finds.keptBox(i)));
 }
 
-/** What it is bringing you, in its mouth or set down in front of you, or hopping off to its corner. */
+/**
+ * The box of keepsakes, top left: its end at the edge of the view, slid out while the pointer is close or when
+ * something new goes into it. A picture for each stage of your life together, and one of each kind of find.
+ */
+export function drawAlbum(stage: Stage, bitmaps: Bitmaps, world: World): void {
+  const { album } = world;
+  const draw = (glyph: Glyph, box: { x: number; y: number; w: number; h: number }): void => {
+    const r = stage.rect(box);
+    stage.ctx.drawImage(bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+  };
+  draw(ALBUM, { x: album.x, y: album.y, w: ALBUM_W, h: ALBUM_H });
+  for (let picture = 0; picture < album.pictures; picture++) {
+    draw(PICTURES[Math.min(picture, PICTURES.length - 1)], album.slot({ picture }));
+  }
+  for (const find of FIND_ORDER) {
+    if ((album.finds[find] ?? 0) > 0) {
+      draw(FINDS_KEPT[find], album.slot({ find }));
+    }
+  }
+  const { flying, flight } = album;
+  if (flying && flight) {
+    draw('picture' in flying.what ? PICTURES[Math.min(flying.what.picture, PICTURES.length - 1)] : FINDS_KEPT[flying.what.find], flight);
+  }
+}
+
+/** What it is bringing you, in its mouth or set down in front of you, and the little bird that may have brought it. */
 export function drawFind(stage: Stage, bitmaps: Bitmaps, world: World): void {
+  const { bird } = world.finds;
+  if (bird) {
+    const at = stage.rect({ x: bird.x, y: bird.y, w: BIRD_W, h: BIRD_H });
+    stage.ctx.drawImage(bitmaps.get(BIRD_FRAMES[bird.wingsUp ? 0 : 1]), at.x, at.y, at.w, at.h);
+  }
   const { offered, box } = world.finds;
   if (offered && box) {
     const r = stage.rect(box);
@@ -88,7 +140,7 @@ export function drawChestTiles(stage: Stage, bitmaps: Bitmaps, chest: Chest): vo
   ctx.rect(0, 0, stage.width, stage.screenY(CHEST_RIM));
   ctx.clip();
   // The top row first: the one under it rises in front of it.
-  [...CHEST_ITEMS].reverse().forEach((item) => tile(chest.holds[item] ? CHEST_TILES[item] : CHEST_TILE_EMPTY, chest.slot(item)));
+  [...chest.items].reverse().forEach((item) => tile(chest.holds[item] ? CHEST_TILES[item] : CHEST_TILE_EMPTY, chest.slot(item)));
   ctx.restore();
 }
 
@@ -97,7 +149,7 @@ export function drawShelf(stage: Stage, bitmaps: Bitmaps, shelf: Shelf): void {
   const { ctx, scale } = stage;
   const plank = stage.rect({ x: shelf.x, y: shelf.y - SHELF_H + 1, w: SHELF[0].length, h: SHELF_H });
   ctx.drawImage(bitmaps.get(SHELF), plank.x, plank.y, plank.w, plank.h);
-  for (const item of Object.keys(SHELF_ITEMS) as ShelfItem[]) {
+  for (const item of shelf.items) {
     const glyph = SHELF_ITEMS[item].glyph;
     const bitmap = bitmaps.get(glyph);
     const r = stage.rect(shelf.slot(item));

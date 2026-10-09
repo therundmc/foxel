@@ -1,62 +1,32 @@
 import { DOODLE, FINDS, MOUND, type FindKind } from '../../sprites/props';
 import type { Box } from '../math';
 
-/** Where the things you accepted are kept, in its corner on the left: the first one's place, and the room each takes. */
-const KEPT_X = 2;
-const KEPT_STEP = 7;
-/** How many it keeps there for the day. */
-export const KEPT_MOST = 4;
-/** Accepted, a find hops to its corner: how long it is in the air, and how high it goes. */
-const HOP_MS = 700;
-const HOP_HEIGHT = 16;
+/** A little bird that brings it something: how fast it flies, how high, and how fast what it lets go of falls. */
+const BIRD_SPEED = 46;
+const BIRD_HEIGHT = 30;
+const FLAP_MS = 130;
+const GRAVITY = 150;
 
-/** A kept find stirred by the fox: blown up to drift down again, or given a little hop. How long each lasts, and how high it goes. */
-const DRIFT_MS = 1700;
-const DRIFT_HEIGHT = 11;
-const DRIFT_SWAY = 3;
-const HOP_SHORT_MS = 380;
-const HOP_SHORT = 4;
-
-/** What it brings you: the one it is carrying or has set down, and the ones you accepted today. */
+/**
+ * What it is bringing you: in its mouth, set down in front of you, or still on its way to it: falling from the
+ * claws of a little bird. Once you have accepted it, it goes into the box of keepsakes.
+ */
 export class Finds {
-  /** In its mouth, set down in front of you, or on its way to the corner once accepted. */
-  offered: { kind: FindKind; x: number; y: number; state: 'carried' | 'down' | 'hopping' } | undefined;
-  readonly kept: FindKind[] = [];
-  private hop = { from: 0, ms: 0 };
-  /** The kept one that is in the air, how, and for how long it has been. */
-  private stirred: { index: number; how: 'drift' | 'hop'; ms: number } | undefined;
+  offered: { kind: FindKind; x: number; y: number; state: 'carried' | 'down' | 'falling' | 'flown' } | undefined;
+  /** The bird that brings one: where it is, which way it flies, its wings. */
+  bird: { x: number; y: number; dir: 1 | -1; wingsUp: boolean } | undefined;
+  private dropAt = 0;
+  private vy = 0;
+  private flownMs = 0;
 
   get moving(): boolean {
-    return (this.offered !== undefined && this.offered.state !== 'down') || this.stirred !== undefined;
-  }
-
-  get room(): boolean {
-    return this.kept.length < KEPT_MOST && !this.offered;
+    return this.bird !== undefined || (this.offered !== undefined && this.offered.state !== 'down');
   }
 
   /** Where the one being offered is. */
   get box(): Box | undefined {
     const o = this.offered;
     return o && { x: o.x, y: o.y, w: FINDS[o.kind][0].length, h: FINDS[o.kind].length };
-  }
-
-  /** Where a kept one sits, by its place in the row. */
-  keptBox(index: number): Box {
-    const glyph = FINDS[this.kept[index]];
-    const box = { x: KEPT_X + index * KEPT_STEP, y: 0, w: glyph[0].length, h: glyph.length };
-    const s = this.stirred;
-    if (s?.index !== index) {
-      return box;
-    }
-    // Blown, it goes up and sways down like a feather; nudged, it only hops.
-    const p = s.ms / (s.how === 'drift' ? DRIFT_MS : HOP_SHORT_MS);
-    const up = Math.sin(Math.PI * p) * (s.how === 'drift' ? DRIFT_HEIGHT : HOP_SHORT);
-    return { ...box, x: box.x + (s.how === 'drift' ? Math.sin(3 * Math.PI * p) * DRIFT_SWAY : 0), y: up };
-  }
-
-  /** The fox blows on a kept one, or gives it a nudge. */
-  stir(index: number, how: 'drift' | 'hop'): void {
-    this.stirred = { index, how, ms: 0 };
   }
 
   /** In its mouth, its middle at this point. */
@@ -73,37 +43,46 @@ export class Finds {
     }
   }
 
-  /** You accepted it: it hops over to its place in the corner. */
-  accept(): void {
-    if (this.offered?.state === 'down') {
-      this.offered.state = 'hopping';
-      this.hop = { from: this.offered.x, ms: 0 };
-    }
+  /** A bird flies in from the left with one in its claws, to let it go over `x`. */
+  flyIn(kind: FindKind, x: number): void {
+    this.bird = { x: -12, y: BIRD_HEIGHT, dir: 1, wingsUp: true };
+    this.dropAt = x;
+    this.vy = 0;
+    this.flownMs = 0;
+    this.offered = { kind, x: this.bird.x, y: BIRD_HEIGHT - FINDS[kind].length, state: 'flown' };
   }
 
-  /** It takes it away again, out of the view. */
+  /** It is gone: taken away again, or into the box of keepsakes. */
   gone(): void {
     this.offered = undefined;
   }
 
-  update(dtMs: number): void {
-    const s = this.stirred;
-    if (s) {
-      s.ms += dtMs;
-      this.stirred = s.ms >= (s.how === 'drift' ? DRIFT_MS : HOP_SHORT_MS) ? undefined : s;
-    }
+  update(dtMs: number, worldWidth: number): void {
+    const dt = dtMs / 1000;
     const o = this.offered;
-    if (o?.state !== 'hopping') {
-      return;
+    const bird = this.bird;
+    if (bird) {
+      this.flownMs += dtMs;
+      bird.x += bird.dir * BIRD_SPEED * dt;
+      bird.wingsUp = Math.floor(this.flownMs / FLAP_MS) % 2 === 0;
+      if (o?.state === 'flown') {
+        // In its claws, until it is over the spot.
+        o.x = bird.x + 1;
+        o.y = bird.y - FINDS[o.kind].length + 1;
+        if (bird.x >= this.dropAt) {
+          o.state = 'falling';
+        }
+      }
+      if (bird.x > worldWidth + 12) {
+        this.bird = undefined;
+      }
     }
-    this.hop.ms += dtMs;
-    const p = Math.min(1, this.hop.ms / HOP_MS);
-    const to = KEPT_X + this.kept.length * KEPT_STEP;
-    o.x = this.hop.from + (to - this.hop.from) * p;
-    o.y = 4 * HOP_HEIGHT * p * (1 - p);
-    if (p === 1) {
-      this.kept.push(o.kind);
-      this.offered = undefined;
+    if (o?.state === 'falling') {
+      this.vy -= GRAVITY * dt;
+      o.y = Math.max(0, o.y + this.vy * dt);
+      if (o.y === 0) {
+        o.state = 'down';
+      }
     }
   }
 }

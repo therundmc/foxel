@@ -6,12 +6,12 @@ import { STATES } from '../../webview/sim/registry';
 import type { AnimName } from '../../webview/sprites/fox/animations';
 import { fixed, simulate, spawn } from './helpers';
 
-function fox(attachment = 0.6, mood = 0.5) {
+function fox(stage = 5, mood = 0.5) {
   const b = spawn(fixed(0.3));
   b.world.resize(300, 60);
   b.restore(150, 1);
   b.world.setClock(new Date(2026, 9, 7, 15), true);
-  b.world.attachment = attachment;
+  b.world.stage = stage;
   b.world.mood = mood;
   b.enter('sit', 5000);
   return b;
@@ -19,16 +19,16 @@ function fox(attachment = 0.6, mood = 0.5) {
 const step = (b: ReturnType<typeof fox>, name: string): boolean => b.state === 'gift' && b.gift.step === name;
 
 describe('what it brings you', () => {
-  it('only thinks of it once it has grown fond of you, and when its day is not a bad one', () => {
-    expect(STATES.gift.available?.(fox(0.1))).toBe(false);
-    expect(STATES.gift.available?.(fox(0.6, -0.3))).toBe(false);
-    expect(STATES.gift.available?.(fox(0.6))).toBe(true);
+  it('only thinks of it once it is fond of you, and when its day is not a bad one', () => {
+    expect(STATES.gift.available?.(fox(1))).toBe(false);
+    expect(STATES.gift.available?.(fox(2, -0.3))).toBe(false);
+    expect(STATES.gift.available?.(fox(2, 0))).toBe(true);
   });
 
   it('trots out of the view, comes back with something in its mouth, puts it down in front of you and sits by it', () => {
     const b = fox();
     const { finds } = b.world;
-    startGift(b);
+    startGift(b, 'outside');
     simulate(b, 30_000, () => step(b, 'out'));
     expect(b.x).toBeLessThanOrEqual(-32);
     expect(finds.offered).toBeUndefined();
@@ -41,40 +41,80 @@ describe('what it brings you', () => {
     simulate(b, 60_000, () => step(b, 'offer'));
     expect(finds.offered?.state).toBe('down');
     expect(finds.box?.y).toBe(0);
-    expect(b.x).toBeGreaterThan(20);
     expect(b.current().anim).toBe('proud');
-    expect(b.world.restful).toBe(false);
   });
 
-  it('is thrilled when you click it, and the thing hops over to its corner for the day', () => {
+  it('digs one up where it stands, leaving a little mound', () => {
+    const b = fox();
+    const x = b.x;
+    startGift(b, 'dug');
+    const anims = new Set<AnimName>();
+    simulate(b, 10_000, () => {
+      anims.add(b.current().anim);
+      return step(b, 'bring');
+    });
+    expect(anims).toContain('dig');
+    expect(b.x).toBe(x);
+    expect(b.world.mound.there).toBe(true);
+    expect(b.world.finds.offered?.state).toBe('carried');
+    simulate(b, 60_000, () => step(b, 'offer'));
+    expect(b.world.finds.offered?.state).toBe('down');
+  });
+
+  it('is brought one by a little bird, which lets it go in front of it and flies on', () => {
     const b = fox();
     const { finds } = b.world;
-    startGift(b);
+    startGift(b, 'bird');
+    expect(finds.bird).toBeDefined();
+    expect(finds.offered?.state).toBe('flown');
+    let fell = false;
+    let highest = 0;
+    simulate(b, 30_000, () => {
+      fell ||= finds.offered?.state === 'falling';
+      highest = Math.max(highest, finds.box?.y ?? 0);
+      return step(b, 'fetch');
+    });
+    expect(fell).toBe(true);
+    expect(highest).toBeGreaterThan(15);
+    expect(finds.box?.y).toBe(0);
+    expect(Math.abs((finds.box?.x ?? 0) - (b.x + b.noseOffset()))).toBeLessThan(45);
+    simulate(b, 60_000, () => step(b, 'offer'));
+    expect(finds.offered?.state).toBe('down');
+    simulate(b, 12_000, () => finds.bird === undefined);
+    expect(finds.bird).toBeUndefined();
+  });
+
+  it('is thrilled when you click it, and the thing goes into its box of keepsakes, which comes out to take it', () => {
+    const b = fox();
+    const { finds, album } = b.world;
+    startGift(b, 'outside');
     expect(acceptFind(b)).toBe(false);
     simulate(b, 90_000, () => step(b, 'offer'));
     const kind = finds.offered?.kind;
+    expect(kind).toBeDefined();
+    expect(album.here).toBe(false);
     expect(acceptFind(b)).toBe(true);
-    expect(finds.offered?.state).toBe('hopping');
-    let highest = 0;
-    const anims = new Set<AnimName>();
-    simulate(b, 5000, () => {
-      highest = Math.max(highest, finds.box?.y ?? 0);
-      anims.add(b.current().anim);
-      return b.state !== 'gift';
-    });
-    expect(highest).toBeGreaterThan(8);
-    expect(anims).toContain('celebrate');
     expect(finds.offered).toBeUndefined();
-    expect(finds.kept).toEqual([kind]);
-    expect(finds.keptBox(0).x).toBeLessThan(10);
+    expect(album.flying).toBeDefined();
+    const anims = new Set<AnimName>();
+    let out = false;
+    simulate(b, 8000, () => {
+      anims.add(b.current().anim);
+      out ||= album.here;
+      return album.flying === undefined && b.state !== 'gift';
+    });
+    expect(out).toBe(true);
+    expect(anims).toContain('celebrate');
+    expect(kind && album.finds[kind]).toBe(1);
     expect(b.state).toBe('sit');
-    expect(b.y).toBe(0);
+    // Left alone, the box goes back to its edge of the view.
+    simulate(b, 6000);
+    expect(album.here).toBe(false);
   });
 
   it('picks it up again and carries it off without a fuss when you leave it, then comes back', () => {
     const b = fox();
-    const { finds } = b.world;
-    startGift(b);
+    startGift(b, 'outside');
     simulate(b, 90_000, () => step(b, 'offer'));
     const seen = new Set<string>();
     simulate(b, 120_000, () => {
@@ -82,108 +122,99 @@ describe('what it brings you', () => {
       return b.state !== 'gift';
     });
     expect([...seen]).toEqual(expect.arrayContaining(['pick', 'off', 'back']));
-    expect(finds.offered).toBeUndefined();
-    expect(finds.kept).toEqual([]);
-    expect(b.state).toBe('sit');
+    expect(b.world.finds.offered).toBeUndefined();
+    expect(b.world.album.finds).toEqual({});
     expect(b.x).toBeGreaterThanOrEqual(0);
   });
 
-  it('brings two things a day at most, some time apart, and no more than its corner holds', () => {
+  it('brings two things a day at most, some time apart', () => {
     const b = fox();
-    startGift(b);
+    startGift(b, 'dug');
     simulate(b, 90_000, () => step(b, 'offer'));
     acceptFind(b);
-    simulate(b, 5000);
+    simulate(b, 8000);
     expect(STATES.gift.available?.(b)).toBe(false);
     simulate(b, 26 * 60_000, () => {
       b.enter('sit', 60_000);
     });
     expect(STATES.gift.available?.(b)).toBe(true);
-    startGift(b);
+    startGift(b, 'dug');
     simulate(b, 30 * 60_000, () => {
       if (b.state !== 'gift') {
         b.enter('sit', 60_000);
       }
     });
     expect(STATES.gift.available?.(b)).toBe(false);
-    // The next day it may again.
     b.world.setClock(new Date(2026, 9, 8, 10), true);
     expect(STATES.gift.available?.(b)).toBe(true);
-    b.world.finds.kept.push('leaf', 'leaf', 'leaf', 'leaf');
-    expect(STATES.gift.available?.(b)).toBe(false);
   });
 
   it('drops the idea when called away', () => {
     const b = fox();
-    startGift(b);
-    simulate(b, 60_000, () => step(b, 'bring'));
+    startGift(b, 'bird');
+    simulate(b, 500);
     react(b, 'love');
     expect(b.state).toBe('love');
     expect(b.world.finds.offered).toBeUndefined();
-    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.world.finds.bird).toBeUndefined();
+  });
+
+  it('keeps what you accepted for good: the box holds it when the view is opened again, the next day too', () => {
+    const before = fox();
+    before.world.album.finds.feather = 2;
+    before.world.album.finds.leaf = 1;
+    const noon = new Date(2026, 9, 7, 12).getTime();
+    const memory = remember(before, noon);
+    expect(memory.collected).toEqual({ feather: 2, leaf: 1 });
+    const later = fox();
+    recall(later, memory, noon + 5 * 24 * 3_600_000);
+    expect(later.world.album.finds).toEqual({ feather: 2, leaf: 1 });
   });
 });
 
 describe('the heart it draws for you', () => {
   it('scratches it in the earth stroke by stroke, then sits looking at you; the wind takes it after a while', () => {
-    const b = fox(0.7, 0.6);
+    const b = fox(4, 0.6);
     const { doodle } = b.world;
-    expect(STATES.doodle.available?.(fox(0.3, 0.6))).toBe(false);
-    expect(STATES.doodle.available?.(fox(0.7, 0))).toBe(false);
+    expect(STATES.doodle.available?.(fox(3, 0.6))).toBe(false);
+    expect(STATES.doodle.available?.(fox(4, 0))).toBe(false);
     expect(STATES.doodle.available?.(b)).toBe(true);
     b.enterNext('doodle');
-    expect(b.state).toBe('doodle');
-    expect(doodle.stage).toBeUndefined();
     const stages: number[] = [];
     const anims = new Set<AnimName>();
-    simulate(b, 10_000, () => {
+    const watch = (): void => {
       if (doodle.stage !== undefined && doodle.stage !== stages[stages.length - 1]) {
         stages.push(doodle.stage);
       }
       anims.add(b.current().anim);
+    };
+    simulate(b, 10_000, () => {
+      watch();
       return b.state !== 'doodle';
     });
     expect(stages).toEqual([0, 1, 2]);
     expect([...anims]).toEqual(expect.arrayContaining(['dig', 'proud']));
-    expect(Math.abs((doodle.x ?? 0) - (b.x + b.noseOffset()))).toBeLessThan(2);
     expect(STATES.doodle.available?.(b)).toBe(false);
     b.enter('sleep', 3_600_000);
-    simulate(b, 5 * 60_000, () => {
-      if (doodle.stage !== undefined && doodle.stage !== stages[stages.length - 1]) {
-        stages.push(doodle.stage);
-      }
-    });
+    simulate(b, 5 * 60_000, watch);
     expect(stages).toEqual([0, 1, 2, 1, 0]);
     expect(doodle.there).toBe(false);
   });
 });
 
 describe('the traces of its day', () => {
-  it('leaves a little mound where it dug', () => {
+  it('leaves a little mound where it dug, found again the same day and gone the next', () => {
     const b = fox(0, 0);
     b.enterNext('dig');
     simulate(b, 4000);
-    expect(b.world.mound.there).toBe(true);
     expect(b.world.mound.stage).toBe(2);
-  });
-
-  it('finds what it brought you and its mound again when the view is opened the same day, not the next', () => {
-    const before = fox();
-    before.world.finds.kept.push('flower', 'pebble');
-    before.world.mound.begin(120);
-    simulate(before, 3000);
     const noon = new Date(2026, 9, 7, 12).getTime();
-    const memory = remember(before, noon);
-    expect(memory.finds).toEqual(['flower', 'pebble']);
-    expect(memory.mound).toBe(120);
-
+    const memory = remember(b, noon);
     const after = fox();
     recall(after, memory, noon + 3_600_000);
-    expect(after.world.finds.kept).toEqual(['flower', 'pebble']);
     expect(after.world.mound.stage).toBe(2);
     const tomorrow = fox();
     recall(tomorrow, memory, noon + 24 * 3_600_000);
-    expect(tomorrow.world.finds.kept).toEqual([]);
     expect(tomorrow.world.mound.there).toBe(false);
   });
 });

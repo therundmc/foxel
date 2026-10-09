@@ -4,6 +4,7 @@ import { pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { acceptFind } from './sim/features/gifts';
+import { giveTreat } from './sim/features/treat';
 import { spawnBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
@@ -15,7 +16,7 @@ import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
 import type { ChestItem, ShelfItem } from './sprites/props';
 import { inside, type Stage } from './stage';
-import { draggables, type Draggable } from './toys';
+import { draggables, type Draggable, type Holdable } from './toys';
 
 const POINTER_IDLE_MS = 4000;
 const STROKE_MIN_TRAVEL = 3;
@@ -26,7 +27,9 @@ const CLICK_SLOP = 2;
 export class Input {
   /** What the user is dragging around. */
   holding: Draggable | undefined;
-  private readonly toys: Record<ChestItem, Draggable>;
+  private readonly toys: Record<Holdable, Draggable>;
+  /** A treat just taken off the shelf, and where: let go of there without moving, it drops from the sky instead. */
+  private offShelf: { x: number; y: number } | undefined;
   private readonly draggables: readonly Draggable[];
   private pointer: { x: number; y: number; time: number } | undefined;
   private dragged = false;
@@ -109,6 +112,9 @@ export class Input {
       case 'bubbles':
         blowBubbles(buddy);
         break;
+      case 'treat':
+        // Handled where it is pressed: it comes into the hand.
+        break;
       default:
         // A thing added to the shelf must say here what using it does.
         item satisfies never;
@@ -148,7 +154,7 @@ export class Input {
     const { stage } = this;
     const out = stage.toWorld(cssX, cssY);
     const { chest } = this.session.world;
-    if (chest.accepts(out.x, out.y)) {
+    if (held !== this.toys.treat && chest.accepts(out.x, out.y)) {
       // Let go of over the chest, a toy goes back in it.
       held.stow();
       chest.stowed();
@@ -189,6 +195,12 @@ export class Input {
         // Out of the chest, straight into the hand.
         this.onInteraction();
         this.hold(this.toys[item], p, 'take');
+      } else if (onShelf === 'treat' && !this.session.world.treat.active) {
+        // A treat off the shelf: in the hand to hold out to it, or, on a plain click, dropped from above.
+        this.onInteraction();
+        this.session.world.shelf.press('treat');
+        this.hold(this.toys.treat, p, 'take');
+        this.offShelf = { x: e.clientX, y: e.clientY };
       } else if (onShelf) {
         this.useShelf(onShelf);
       }
@@ -228,8 +240,9 @@ export class Input {
     }
     const { chest } = this.session.world;
     const at = this.stage.toWorld(e.clientX, e.clientY);
-    chest.point(at, this.holding !== undefined);
+    chest.point(at, this.holding !== undefined && this.holding !== this.toys.treat);
     this.session.world.shelf.point(this.holding ? undefined : at);
+    this.session.world.album.point(this.holding ? undefined : at);
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
@@ -251,6 +264,14 @@ export class Input {
   private onMouseUp(e: MouseEvent): void {
     this.pressedOnBuddy = undefined;
     this.onDebug = false;
+    const off = this.offShelf;
+    this.offShelf = undefined;
+    if (this.holding && off && Math.hypot(e.clientX - off.x, e.clientY - off.y) <= CLICK_SLOP * this.stage.scale) {
+      // A click on the treat: it goes back, and one falls from the sky somewhere for it to run to.
+      this.holding.stow();
+      this.holding = undefined;
+      giveTreat(this.session.buddy, this.session.world.width * (0.2 + 0.6 * Math.random()));
+    }
     if (this.holding) {
       this.releaseHeld(e.clientX, e.clientY);
       // The hand is empty again.
@@ -277,6 +298,7 @@ export class Input {
     this.pointer = undefined;
     this.session.world.chest.point(undefined);
     this.session.world.shelf.point(undefined);
+    this.session.world.album.point(undefined);
   }
 
   private onClick(e: MouseEvent): void {
@@ -304,7 +326,7 @@ export class Input {
       // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
       this.onInteraction();
-    } else if (this.session.world.chest.asked || this.session.world.shelf.asked) {
+    } else if (this.session.world.chest.asked || this.session.world.shelf.asked || this.session.world.album.asked) {
       // A click at the chest or the shelf is for them: it does not call the fox over.
     } else if (!this.overBuddy(e.clientX, e.clientY) && (callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x) || asleep(buddy))) {
       // A click in its view calls it over, or wakes it.

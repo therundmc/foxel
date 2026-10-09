@@ -3,8 +3,9 @@ import { slighted, welcomeBack } from '../sim/features/bond';
 import { startGift } from '../sim/features/gifts';
 import { MOOD_NEXT } from '../sim/features/ambient';
 import { LOW } from '../sim/features/bond';
-import { DOODLE_BOND, DOODLE_EVERY_MS, DOODLE_MOOD, GIFTS_A_DAY, GIFT_BOND, GIFT_EVERY_MS } from '../sim/features/gifts';
-import { KEPT_MOST } from '../sim/props/keepsakes';
+import { DOODLE_EVERY_MS, GIFTS_A_DAY, GIFT_EVERY_MS, broughtToday } from '../sim/features/gifts';
+import { LAST_STAGE, STAGES, UNLOCKS, has, stageFor, type Needs, type Unlock } from '../sim/unlocks';
+import { FIND_ORDER } from '../sprites/props';
 import type { Stage } from '../stage';
 
 // The debug corner, top left: gauges for what it feels and why, and what it takes to try things out without waiting
@@ -48,6 +49,8 @@ function force(session: Session, forced: Session['forced']): void {
   session.forced = forced;
   session.world.mood = forced.mood ?? session.felt.mood;
   session.world.attachment = forced.attachment ?? session.felt.attachment;
+  // Forcing its attachment moves the most it ever was too, so that the stages can be tried out.
+  session.world.peak = Math.max(session.world.peak, session.world.attachment);
 }
 
 /** One line of the corner: what it measures, how full its gauge is (0 to 1), where its thresholds are, and what that means in words. */
@@ -64,27 +67,29 @@ interface Gauge {
 }
 
 function gauges({ world, buddy, facts, forced }: Session): Gauge[] {
-  const { mood, attachment, finds, doodle } = world;
+  const { mood, attachment, peak, stage, doodle } = world;
   const { gift, bond } = buddy;
-  const feeling = buddy.state === 'sulk' ? 'sulking' : mood <= LOW ? 'will sulk' : mood <= LISTLESS_TO ? 'listless' : mood >= PLAYFUL_FROM ? 'playful' : 'even';
-  const grown = attachment >= DOODLE_BOND ? 'brings finds, draws hearts' : attachment >= GIFT_BOND ? 'brings finds' : 'still getting to know you';
-  const broughtToday = gift.day === world.now.toDateString() ? gift.given : 0;
-  const findWait =
-    attachment < GIFT_BOND ? `needs attachment ${percent(GIFT_BOND)}`
-    : mood < 0 ? 'not on a bad day'
-    : broughtToday >= GIFTS_A_DAY ? `${GIFTS_A_DAY} brought today, enough`
-    : finds.kept.length >= KEPT_MOST ? 'its corner is full'
-    : gift.sinceGiftMs < GIFT_EVERY_MS ? `in ${minutes(GIFT_EVERY_MS - gift.sinceGiftMs)}`
-    : SOON;
-  const heartWait =
-    attachment < DOODLE_BOND ? `needs attachment ${percent(DOODLE_BOND)}`
-    : mood < DOODLE_MOOD ? 'needs a better mood'
-    : doodle.there ? 'one is drawn'
-    : gift.sinceDoodleMs < DOODLE_EVERY_MS ? `in ${minutes(DOODLE_EVERY_MS - gift.sinceDoodleMs)}`
-    : SOON;
+  const feeling = buddy.state === 'sulk' ? 'sulking' : mood <= LOW ? 'will sulk' : mood <= LISTLESS_TO ? 'out of sorts' : mood >= PLAYFUL_FROM ? 'playful' : 'even';
+  // The stage it has marked, and what the next one takes.
+  const due = stageFor(peak);
+  const next = stage < LAST_STAGE ? ` · next at ${percent(STAGES[stage + 1])}` : ' · the last one';
+  const growing = `${percent(attachment)} stage ${Math.max(0, stage)}/${LAST_STAGE}${due > stage ? ' (a new one to mark)' : next}`;
+  const held = (what: Unlock): string => {
+    const needs: Needs = UNLOCKS[what];
+    return stage < needs.stage ? `from stage ${needs.stage}` : 'needs a better mood';
+  };
+  const findWait = !has(world, 'finds')
+    ? held('finds')
+    : broughtToday(buddy) >= GIFTS_A_DAY
+      ? `${GIFTS_A_DAY} brought today, enough`
+      : gift.sinceGiftMs < GIFT_EVERY_MS
+        ? `in ${minutes(GIFT_EVERY_MS - gift.sinceGiftMs)}`
+        : SOON;
+  const heartWait = !has(world, 'hearts') ? held('hearts') : doodle.there ? 'one is drawn' : gift.sinceDoodleMs < DOODLE_EVERY_MS ? `in ${minutes(DOODLE_EVERY_MS - gift.sinceDoodleMs)}` : SOON;
+  const collected = Object.values(world.album.finds).filter((n) => (n ?? 0) > 0).length;
   const lines: Gauge[] = [
     { label: 'Mood', sets: 'mood', share: (mood + 1) / 2, from: 0.5, marks: [LOW, LISTLESS_TO, PLAYFUL_FROM].map((m) => (m + 1) / 2), colour: mood <= LISTLESS_TO ? POOR : mood >= PLAYFUL_FROM ? GOOD : FAIR, note: `${mood >= 0 ? '+' : ''}${mood.toFixed(2)} ${feeling}${bond.sulky && buddy.state !== 'sulk' ? ', not made up' : ''}${forced.mood === undefined ? '' : ' (forced)'}` },
-    { label: 'Attachment', sets: 'attachment', share: attachment, marks: [GIFT_BOND, DOODLE_BOND], colour: GOOD, note: `${percent(attachment)} ${grown}${forced.attachment === undefined ? '' : ' (forced)'}` },
+    { label: 'Attachment', sets: 'attachment', share: attachment, marks: STAGES.slice(1), colour: GOOD, note: `${growing}${forced.attachment === undefined ? '' : ' (forced)'}` },
   ];
   if (facts) {
     const cares = (['fed', 'played', 'petted', 'treated'] as const).map((care) => `[${facts.off.includes(care) ? '-' : (facts.cares[care] ?? 0) > 0 ? 'x' : ' '}]${care}`).join(' ');
@@ -101,7 +106,7 @@ function gauges({ world, buddy, facts, forced }: Session): Gauge[] {
     );
   }
   lines.push(
-    { label: 'Next find', share: gift.sinceGiftMs / GIFT_EVERY_MS, colour: findWait === SOON ? GOOD : findWait.startsWith('in ') ? WAIT : HELD, note: `${findWait} (${finds.kept.length}/${KEPT_MOST} kept)` },
+    { label: 'Next find', share: gift.sinceGiftMs / GIFT_EVERY_MS, colour: findWait === SOON ? GOOD : findWait.startsWith('in ') ? WAIT : HELD, note: `${findWait} (${collected}/${FIND_ORDER.length} kinds kept)` },
     { label: 'Next heart', share: gift.sinceDoodleMs / DOODLE_EVERY_MS, colour: heartWait === SOON ? GOOD : heartWait.startsWith('in ') ? WAIT : HELD, note: heartWait },
   );
   return lines;
