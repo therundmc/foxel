@@ -13,6 +13,9 @@ const BLINK_GAP_MAX_MS = 6500;
 const GAZE_DELAY_MS = 220;
 const GAZE_HOLD_MS = 350;
 const CENTER_GAZE: Gaze = { x: 0, y: 0 };
+/** How often its eyes smile on a good day, and for how long. */
+const SMILE_EVERY_MS = 7000;
+const SMILE_MS = 900;
 
 function blinkGap(): number {
   return BLINK_GAP_MIN_MS + Math.random() * (BLINK_GAP_MAX_MS - BLINK_GAP_MIN_MS);
@@ -63,12 +66,28 @@ export class Eyes {
       }
       const row = ey + Math.max(0, gaze?.y ?? 0);
       paint(ex - 1, row, 4, bitmaps.colorOf('O'));
+      if (level <= -3 && (gaze?.y ?? 0) < 1) {
+        // Furious, its eye is no more than a slit.
+        paint(ex - 1, row + 1, 4, bitmaps.colorOf('O'));
+      }
       if (level <= -2) {
         const brow = bitmaps.colorOf('K');
         paint(ex - 1, row - 1, 2, brow);
         paint(ex + 1, row, 2, brow);
       }
     };
+    // On a good day its eyes smile for a moment, now and then; the better the day, the more often.
+    if (level >= 1 && !blinking && now % (level >= 2 ? SMILE_EVERY_MS / 2 : SMILE_EVERY_MS) < SMILE_MS) {
+      const fur = bitmaps.colorOf('O');
+      for (let y = ey - 1; y <= ey + 2; y++) {
+        paint(ex - 1, y, 4, fur);
+      }
+      const line = bitmaps.colorOf('E');
+      paint(ex - 1, ey + 1, 1, line);
+      paint(ex, ey, 2, line);
+      paint(ex + 2, ey + 1, 1, line);
+      return;
+    }
     if (!blinking && (!gaze || (gaze.x === 0 && gaze.y === 0))) {
       glare();
       return;

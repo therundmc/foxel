@@ -65,8 +65,8 @@ const TOUCH_REACTIONS: Record<TouchZone, readonly TouchReaction[]> = {
 };
 const FLOP: TouchReaction = { anim: 'flop', then: 'lie' };
 // Moments other features play through `perform`.
-/** Delighted, how often a pat makes it twirl for joy rather than its usual reaction. */
-const OVERJOYED = 0.5;
+/** Delighted, how often a pat makes it twirl for joy rather than its usual reaction: now and then, no more. */
+const OVERJOYED = 0.35;
 const TWIRL: TouchReaction = { anim: 'twirl', hop: { at: TWIRL_CROUCH_MS, air: TWIRL_AIR_MS, height: 6 }, spinMs: TWIRL_AIR_MS / 4, then: 'sit' };
 const WARY: TouchReaction = { anim: 'startle', hop: { at: STARTLE_CROUCH_MS, air: STARTLE_AIR_MS, height: 8 }, then: 'sit' };
 export const MORNING: TouchReaction = { anim: 'morning', then: 'sit', emote: 'sun', emoteFromMs: MORNING_WAVE_MS };

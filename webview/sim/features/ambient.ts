@@ -1,8 +1,8 @@
 import type { DayPhase } from '../../../shared/day';
-import { ANIMATIONS, JUMP_AIR_MS, JUMP_CROUCH_MS, JUMP_LAND_MS, type AnimName } from '../../sprites/fox/animations';
+import { ANIMATIONS, JUMP_AIR_MS, JUMP_CROUCH_MS, JUMP_LAND_MS } from '../../sprites/fox/animations';
 import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
-import type { AnimRef, Feature, Weights } from '../state';
+import type { Feature, Weights } from '../state';
 import { CHASE_FLIP_MS, WALK_SPEED, moodLevel } from '../tuning';
 
 const JUMP_MS = JUMP_CROUCH_MS + JUMP_AIR_MS + JUMP_LAND_MS;
@@ -28,14 +28,6 @@ export const MOOD_NEXT: readonly { from: number; to: number; next: Weights }[] =
 export const NIGHT_DAMPING = 0.25;
 
 const between = (min: number, max: number) => (b: Buddy): number => b.between(min, max);
-/**
- * How it holds itself in a resting state, for the mood it is in: its mood is read on its face, on its ears and on
- * its tail. The grumpy way from the first step down, the happy one from the first step up.
- */
-const moody = (plain: AnimName, grumpy: AnimName, happy: AnimName) => (b: Buddy): AnimRef => {
-  const level = moodLevel(b.world.mood);
-  return { anim: level < 0 ? grumpy : level > 0 ? happy : plain, elapsed: b.elapsed };
-};
 const turnEvery = (ms: number) => (b: Buddy): void => {
   b.dir = Math.floor(b.elapsed / ms) % 2 === 0 ? b.startDir : b.flipped();
 };
@@ -47,14 +39,12 @@ export const ambientFeature = {
       calm: true,
       restful: true,
       facesTarget: true,
-      anim: moody('idle', 'idleGrumpy', 'idleHappy'),
       next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3]],
     },
     walk: {
       speed: WALK_SPEED,
       free: true,
       gazes: true,
-      anim: moody('walk', 'walkGrumpy', 'walkHappy'),
       duration: between(4000, 9000),
       next: [['idle', 30], ['sit', 20], ['sniff', 20], ['play', 10], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['jump', 3], ['run', 3], ['mousing', 5]],
     },
@@ -84,14 +74,13 @@ export const ambientFeature = {
       facesTarget: true,
       duration: between(6000, 14_000),
       next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8], ['glass', 5]],
-      // Out of sorts, it sits the way it sulks: ears flat, nose up, a glance over its shoulder now and then.
-      anim: moody('sit', 'sulk', 'sitHappy'),
+      // Really cross, it sits the way it sulks: nose up, a glance over its shoulder now and then.
+      anim: (b) => ({ anim: moodLevel(b.world.mood) <= -2 ? 'sulk' : 'sit', elapsed: b.elapsed }),
     },
     lie: {
       calm: true,
       restful: true,
       facesTarget: true,
-      anim: moody('lie', 'lieGrumpy', 'lieHappy'),
       duration: between(8000, 20_000),
       next: [['stretch', 30], ['sit', 25], ['idle', 20], ['groom', 10], ['walk', 10]],
     },

@@ -118,50 +118,6 @@ export const ANIMATIONS = {
   shoveCarry: anim(withBall(SHOVE)),
   rummage: anim(RUMMAGE),
   rummageCarry: anim(withBall(RUMMAGE)),
-  // How it holds itself when it is doing nothing in particular, on a bad day and on a good one. Out of sorts: ears
-  // flat, mouth shut tight, tail down, head low, slow. Happy: mouth open, tail going, a bounce in its step, and its
-  // eyes smiling now and then.
-  idleGrumpy: anim([
-    [{ tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1] }, 1000],
-    [{ tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1], bob: 1 }, 1000],
-    [{ tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1], eye: 'closed' }, 600],
-  ]),
-  walkGrumpy: anim([
-    [{ legs: STEP_A, tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1] }, 290],
-    [{ bob: 1, tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1] }, 290],
-    [{ legs: STEP_B, tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1] }, 290],
-    [{ bob: 1, tail: 'flat', ears: 'back', mouth: 'flat', head: [0, 1] }, 290],
-  ]),
-  lieGrumpy: anim([
-    [{ body: 'lie', ears: 'back', mouth: 'flat', tail: 'sitA' }, 1700],
-    [{ body: 'lie', bob: 1, ears: 'back', mouth: 'flat', eye: 'closed', tail: 'sitA' }, 1300],
-  ]),
-  idleHappy: anim([
-    [{ tail: 'wagL', mouth: 'open' }, 220],
-    [{ tail: 'wagR', mouth: 'open', bob: 1 }, 220],
-    [{ tail: 'wagL', mouth: 'open' }, 220],
-    [{ tail: 'wagR', mouth: 'open', bob: 1 }, 220],
-    [{ tail: 'wagL', mouth: 'open', eye: 'happy' }, 320],
-    [{ tail: 'wagR', mouth: 'open', eye: 'happy', bob: 1 }, 320],
-  ]),
-  walkHappy: anim([
-    [{ legs: STEP_A, tail: 'wagL', mouth: 'open', bob: -1 }, 170],
-    [{ bob: 1, tail: 'up', mouth: 'open' }, 170],
-    [{ legs: STEP_B, tail: 'wagR', mouth: 'open', bob: -1 }, 170],
-    [{ bob: 1, tail: 'up', mouth: 'open' }, 170],
-  ]),
-  sitHappy: anim([
-    [{ ...SIT, tail: 'sitA', mouth: 'tongue' }, 280],
-    [{ ...SIT, tail: 'sitB', mouth: 'tongue', bob: 1 }, 280],
-    [{ ...SIT, tail: 'sitA', mouth: 'tongue' }, 280],
-    [{ ...SIT, tail: 'sitB', mouth: 'tongue', eye: 'happy', bob: 1 }, 420],
-  ]),
-  lieHappy: anim([
-    [{ body: 'lie', tail: 'sitA', mouth: 'open' }, 500],
-    [{ body: 'lie', bob: 1, tail: 'sitB', mouth: 'open' }, 500],
-    [{ body: 'lie', tail: 'sitA', mouth: 'open', eye: 'happy' }, 700],
-    [{ body: 'lie', bob: 1, tail: 'sitB', mouth: 'open' }, 500],
-  ]),
   // Sulking: sat with its back to you, ears flat, nose up, with a glance over its shoulder to see if you are looking.
   sulk: anim([
     [{ ...SIT, ears: 'back', eye: 'closed', mouth: 'flat', head: [-1, 1], tail: 'sitA' }, 1700],

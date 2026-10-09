@@ -12,6 +12,7 @@ import type { BuddyState } from '../../webview/sim/state';
 import { moodLevel } from '../../webview/sim/tuning';
 import { LAST_STAGE, STAGES, UNLOCKS, has, owns, stageFor } from '../../webview/sim/unlocks';
 import { ANIMATIONS, type AnimName } from '../../webview/sprites/fox/animations';
+import { withFace } from '../../webview/sprites/fox/pose';
 import { frameAt } from '../../webview/sprites/frames';
 import { fixed, simulate, spawn } from './helpers';
 
@@ -396,7 +397,7 @@ describe('its mood, read on its face', () => {
     expect([-1, -0.7, -0.6, -0.45, -0.3, -0.2, -0.1, 0, 0.39, 0.4, 0.69, 0.7, 1].map(moodLevel)).toEqual([-3, -3, -2, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2]);
   });
 
-  it('holds itself differently when it stands, walks, sits or lies, on a bad day and on a good one', () => {
+  it('goes on doing what it does the way it always does: its mood is on its face, not in other animations', () => {
     const b = fox(LAST_STAGE);
     const anims = (mood: number): string[] => {
       b.world.mood = mood;
@@ -406,15 +407,41 @@ describe('its mood, read on its face', () => {
       });
     };
     expect(anims(0)).toEqual(['idle', 'walk', 'sit', 'lie']);
-    expect(anims(-0.3)).toEqual(['idleGrumpy', 'walkGrumpy', 'sulk', 'lieGrumpy']);
-    expect(anims(-0.9)).toEqual(['idleGrumpy', 'walkGrumpy', 'sulk', 'lieGrumpy']);
-    expect(anims(0.5)).toEqual(['idleHappy', 'walkHappy', 'sitHappy', 'lieHappy']);
+    expect(anims(0.9)).toEqual(['idle', 'walk', 'sit', 'lie']);
+    expect(anims(-0.3)).toEqual(['idle', 'walk', 'sit', 'lie']);
+    // Only when it is really cross does it sit the way it sulks.
+    expect(anims(-0.6)).toEqual(['idle', 'walk', 'sulk', 'lie']);
+  });
+
+  it('has a face for each mood on every frame: its mouth, its ears and its eyes change, nothing else moves', () => {
+    for (const name of ['idle', 'walk', 'run', 'sit', 'lie', 'eat', 'carry', 'ready'] as const) {
+      for (const base of ANIMATIONS[name].frames) {
+        const sullen = withFace(base, 'sullen');
+        const cross = withFace(base, 'cross');
+        const beaming = withFace(base, 'beaming');
+        // The same frame every time it is asked for, and the same head in the same place.
+        expect(withFace(base, 'cross')).toBe(cross);
+        for (const faced of [sullen, cross, beaming]) {
+          expect(faced.head).toEqual(base.head);
+          expect(faced.pixels).toHaveLength(base.pixels.length);
+          expect(faced.treat).toBe(base.treat);
+        }
+        expect(cross.pixels).not.toEqual(base.pixels);
+      }
+    }
+    // Its mouth alone, on a plain frame: a few pixels.
+    const plain = ANIMATIONS.idle.frames[0];
+    const changed = (faced: { pixels: readonly string[] }): number => faced.pixels.reduce((sum, row, y) => sum + [...row].filter((c, x) => c !== plain.pixels[y][x]).length, 0);
+    expect(changed(withFace(plain, 'sullen'))).toBeGreaterThan(0);
+    expect(changed(withFace(plain, 'sullen'))).toBeLessThan(6);
+    expect(changed(withFace(plain, 'beaming'))).toBeLessThan(6);
+    expect(changed(withFace(plain, 'cross'))).toBeGreaterThan(changed(withFace(plain, 'sullen')));
   });
 
   it('twirls for joy at a pat on its best days, as it never does on an ordinary one', () => {
     const twirls = (mood: number): number => {
       let count = 0;
-      for (const random of [0.1, 0.3, 0.45]) {
+      for (const random of [0.05, 0.15, 0.3]) {
         const b = fox(LAST_STAGE, random);
         b.world.mood = mood;
         touch(b, 'head');

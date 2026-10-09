@@ -34,13 +34,18 @@ import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
 import { MoodMarks } from './mood';
+import { asleep } from '../sim/features/rest';
+import { moodLevel, type MoodLevel } from '../sim/tuning';
 import { has, owns } from '../sim/unlocks';
+import { withFace, type Face } from '../sprites/fox/pose';
 import { HEARTS } from '../sprites/fox/overlays';
 import { drawBubbles } from './bubbles';
 import { drawAlbum, drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
+/** The face that goes with each degree of its mood: none on an even day, nor on a merely good one (its eyes say it). */
+const FACE: Record<MoodLevel, Face | undefined> = { [-3]: 'cross', [-2]: 'cross', [-1]: 'sullen', 0: undefined, 1: undefined, 2: 'beaming' };
 /** What is worn round the neck, over its neckerchief. */
 const NECKWEAR = new Set<Hat>(['scarf', 'scarfDust', 'scarfSnow', 'cloak', 'cloakWind']);
 /** A photograph is taken: the view flashes white, this strongly and for this long. */
@@ -59,7 +64,10 @@ const BIRD_FRAMES_FACING_LEFT = BIRD_FRAMES.map(mirrored);
 /** The frame of its animation the buddy is showing right now. */
 export function currentFrame(buddy: Buddy): Frame {
   const { anim, elapsed } = buddy.current();
-  return frameAt(ANIMATIONS[anim], elapsed);
+  const frame = frameAt(ANIMATIONS[anim], elapsed);
+  // Whatever it is doing, it has the face of its mood; asleep, it has the face of sleep.
+  const face = asleep(buddy) ? undefined : FACE[moodLevel(buddy.world.mood)];
+  return face ? withFace(frame, face) : frame;
 }
 
 /** Paints one frame of the scene, back to front. */

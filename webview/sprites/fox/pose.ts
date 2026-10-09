@@ -272,13 +272,45 @@ export function frame(p: Pose): Frame {
   }
 
   outline(g);
-  return {
+  const drawn: Frame = {
     pixels: g.map((r) => r.join('')),
     overlays: [...(p.extras ?? []).flatMap((e) => EXTRAS[e]), ...(p.props ?? [])],
     eye: eye && (p.eye ?? 'open') === 'open' ? eye : undefined,
     head: [hx, hy],
     treat: p.treat,
   };
+  POSES.set(drawn, p);
+  return drawn;
+}
+
+/** The pose each frame was drawn from, so that it can be drawn again with another face. */
+const POSES = new WeakMap<Frame, Pose>();
+
+/**
+ * The face it wears for the mood it is in, whatever it is doing: only its mouth, its ears and its eyes change,
+ * and only a little. Sullen, its mouth is a flat line and its eyes do not smile; cross, its ears go flat too.
+ * Beaming, the tip of its tongue shows. (What its lids and its brow do is the renderer's, eye by eye.)
+ */
+export type Face = 'sullen' | 'cross' | 'beaming';
+const FACES: Record<Face, (p: Pose) => Pose> = {
+  sullen: (p) => ({ ...p, mouth: p.mouth === undefined || p.mouth === 'smile' ? 'flat' : p.mouth, eye: p.eye === 'happy' ? undefined : p.eye }),
+  cross: (p) => ({ ...FACES.sullen(p), ears: 'back' }),
+  beaming: (p) => ({ ...p, mouth: p.mouth === undefined || p.mouth === 'smile' ? 'tongue' : p.mouth }),
+};
+const FACED: Record<Face, WeakMap<Frame, Frame>> = { sullen: new WeakMap(), cross: new WeakMap(), beaming: new WeakMap() };
+
+/** The same frame with that face: drawn the first time it is asked for, and kept. One whose head is turned away stays as it is. */
+export function withFace(base: Frame, face: Face): Frame {
+  const pose = POSES.get(base);
+  if (!pose || pose.away) {
+    return base;
+  }
+  let faced = FACED[face].get(base);
+  if (!faced) {
+    faced = frame(FACES[face](pose));
+    FACED[face].set(base, faced);
+  }
+  return faced;
 }
 
 function drawCarriedBall(g: Grid, cx: number, cy: number): void {
