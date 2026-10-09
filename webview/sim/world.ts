@@ -45,7 +45,7 @@ export class World {
   scroll: -1 | 0 | 1 = 0;
   private scrollMs = 0;
   readonly effects: Effect[] = [];
-  /** Where the user's pointer is, while it is around. */
+  /** Where the user's pointer is, while it is around and not busy with the chest. */
   pointer: WorldPoint | undefined;
   party: Party | undefined;
   now = new Date();
@@ -104,6 +104,10 @@ export class World {
     this.waterBowl.update(dtMs);
     // A toy that is out in the view is not in the chest.
     this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active });
+    // A pointer busy with the chest is not there for the fox: it does not come to it, or ask it for a stroke.
+    if (this.chest.asked) {
+      this.pointer = undefined;
+    }
     this.buddies.forEach((b) => b.update(dtMs));
   }
 }

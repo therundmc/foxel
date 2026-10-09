@@ -308,6 +308,8 @@ export class Input {
       // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
       this.onInteraction();
+    } else if (this.session.world.chest.asked) {
+      // A click at the chest is for the chest: it does not call the fox over.
     } else if (!this.overBuddy(e.clientX, e.clientY) && (callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x) || asleep(buddy))) {
       // A click in its view calls it over, or wakes it.
       this.onInteraction();
