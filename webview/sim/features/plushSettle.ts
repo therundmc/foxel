@@ -39,7 +39,7 @@ export function settle(b: Buddy, toy: Plush, dt: number): void {
       b.enterNext('sit');
       return;
     }
-    // A boop with its nose, and the duck hops off: it goes after it again.
+    // A boop with its nose, and off it hops: it goes after it again.
     toy.toss((toy.center < b.world.width / 2 ? 1 : -1) * HOP_SPEED, HOP_HEIGHT);
     m.with = false;
   }

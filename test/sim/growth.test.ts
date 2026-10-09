@@ -7,6 +7,7 @@ import { startGift } from '../../webview/sim/features/gifts';
 import { holdPlush, tossPlush } from '../../webview/sim/features/plush';
 import { pet, touch } from '../../webview/sim/features/touch';
 import { recall, remember } from '../../webview/sim/memory';
+import { Plush } from '../../webview/sim/props/plush';
 import type { BuddyState } from '../../webview/sim/state';
 import { LAST_STAGE, STAGES, UNLOCKS, has, owns, stageFor } from '../../webview/sim/unlocks';
 import type { AnimName } from '../../webview/sprites/fox/animations';
@@ -33,9 +34,11 @@ describe('the stages of a life together', () => {
     b.world.stage = 1;
     expect(mine()).toEqual(['ball', 'trusts', 'duck', 'bubbles']);
     b.world.stage = LAST_STAGE - 1;
-    expect(mine()).not.toContain('collar');
+    expect(mine()).not.toContain('neckerchief');
+    b.world.stage = 3;
+    expect(mine()).toContain('rugby');
     b.world.stage = LAST_STAGE;
-    expect(mine()).toContain('collar');
+    expect(mine()).toContain('neckerchief');
     expect(mine()).toHaveLength(Object.keys(UNLOCKS).length);
     b.world.stage = -1;
     expect(mine()).toEqual([]);
@@ -74,7 +77,7 @@ describe('the stages of a life together', () => {
     b.world.resize(300, 60);
     b.world.stage = -1;
     const { ball, album, chest } = b.world;
-    expect(chest.items).toEqual(['ball', 'duck', 'teddy']);
+    expect(chest.items).toEqual(['ball', 'duck', 'teddy', 'rugby']);
     startIntro(b);
     simulate(b, 100);
     expect(chest.items).toEqual([]);
@@ -129,7 +132,7 @@ describe('the stages of a life together', () => {
       return b.world.stage === 4 && b.state !== 'milestone';
     });
     expect(marks).toEqual([1, 2, 3, 4]);
-    expect(carried).toEqual(new Set(['duck', 'teddy']));
+    expect(carried).toEqual(new Set(['duck', 'teddy', 'rugby']));
     simulate(b, 3000, () => album.flying === undefined);
     expect(album.pictures).toBe(5);
     b.enter('sit', 5000);
@@ -311,25 +314,106 @@ describe('out of sorts', () => {
     expect(Math.abs(b.x - from)).toBeGreaterThan(20);
   });
 
-  it('comes round at a stroke, and is itself again once its mood is back', () => {
+  it('sits the way it sulks, will not be called, and gets up and walks off when you touch it: no hearts, and no caress', () => {
     const b = fox(LAST_STAGE);
-    b.world.mood = -0.3;
+    b.world.mood = -0.6;
     b.enter('sit', 600_000);
-    simulate(b, 8000, () => {
-      b.world.pointer = { x: b.x + 24, y: 12 };
-      return b.state === 'shun';
+    expect(b.current().anim).toBe('sulk');
+    expect(callOver(b, 250)).toBe(false);
+    const from = b.x;
+    touch(b, 'head');
+    expect(b.state).toBe('shun');
+    const anims = new Set<AnimName>();
+    simulate(b, 4000, () => {
+      anims.add(b.current().anim);
+    });
+    expect(Math.abs(b.x - from)).toBeGreaterThan(20);
+    expect([...anims].some((anim) => ['pat', 'love', 'cuddle', 'makeUp'].includes(anim))).toBe(false);
+    expect(b.world.effects).not.toContain('petted');
+    // A stroke does no better, and it walks off again.
+    const then = b.x;
+    simulate(b, 3000, () => {
+      pet(b);
     });
     expect(b.state).toBe('shun');
-    pet(b);
-    expect(b.state).toBe('makeUp');
-    b.world.mood = 0.3;
+    expect(b.x).not.toBe(then);
+    expect(b.world.effects).not.toContain('petted');
+  });
+
+  it('looks down and away from your pointer', () => {
+    const b = fox(LAST_STAGE);
+    b.world.mood = -0.3;
+    b.enter('idle', 600_000);
+    b.world.pointer = { x: b.x + 120, y: 20 };
+    simulate(b, 32);
+    b.world.shunned = { x: b.x + 120, y: 20 };
+    expect(b.gaze({ x: b.x + 22, y: 18 })).toEqual({ x: -1, y: 1 });
+    b.world.shunned = { x: b.x - 80, y: 20 };
+    expect(b.gaze({ x: b.x + 22, y: 18 })).toEqual({ x: 0, y: 1 });
+  });
+
+  it('still eats and plays, and comes round by itself, with hearts, once its mood is back', () => {
+    const b = fox(LAST_STAGE);
+    b.world.mood = -0.6;
     b.enter('sit', 600_000);
-    const at = { x: 250, y: 20 };
-    simulate(b, 30_000, () => {
-      b.world.pointer = at;
-      return b.state === 'come';
+    touch(b, 'head');
+    expect(b.state).toBe('shun');
+    // Looked after, it is not won over at once...
+    holdPlush(b, 'teddy', b.x + 60, 30);
+    tossPlush(b, 'teddy', 0, 0);
+    expect(b.state).toBe('plush');
+    simulate(b, 30_000, () => b.plush.phase === 'gaze');
+    expect(b.world.plushes.teddy.state).toBe('free');
+    // ...but when its mood has come back up, it makes up.
+    b.world.mood = 0.1;
+    const states = new Set<BuddyState>();
+    simulate(b, 60_000, () => {
+      states.add(b.state);
+      return states.has('makeUp') && b.state !== 'makeUp';
     });
-    expect(b.state).toBe('come');
+    expect(states).toContain('makeUp');
+    b.enter('sit', 600_000);
+    expect(b.current().anim).toBe('sit');
+    touch(b, 'head');
+    expect(b.state).toBe('touched');
+    expect(b.world.effects).toContain('petted');
+  });
+});
+
+describe('hearts', () => {
+  it('are earned: it shows none before it is fond of you, nor on a day that is not a good one', () => {
+    const wild = fox(1);
+    wild.world.mood = 0.8;
+    expect(has(wild.world, 'showsLove')).toBe(false);
+    const fond = fox(2);
+    fond.world.mood = 0.3;
+    expect(has(fond.world, 'showsLove')).toBe(true);
+    fond.world.mood = -0.1;
+    expect(has(fond.world, 'showsLove')).toBe(false);
+  });
+});
+
+describe('its rugby ball', () => {
+  it('never bounces straight: dropped spinning, it shoots off to one side', () => {
+    const ball = new Plush('rugby');
+    ball.hold(100, 40, 200, 60);
+    ball.toss(12, 0);
+    let widest = 0;
+    for (let t = 0; t < 6000; t += 16) {
+      ball.update(0.016, 200, 60);
+      widest = Math.max(widest, Math.abs(ball.velocity.x));
+    }
+    expect(widest).toBeGreaterThan(20);
+    expect(ball.landed).toBe(true);
+    const teddy = new Plush('teddy');
+    teddy.hold(100, 40, 200, 60);
+    teddy.toss(12, 0);
+    let widestTeddy = 0;
+    for (let t = 0; t < 6000; t += 16) {
+      teddy.update(0.016, 200, 60);
+      widestTeddy = Math.max(widestTeddy, Math.abs(teddy.velocity.x));
+    }
+    expect(widestTeddy).toBeLessThanOrEqual(12);
   });
 });
 

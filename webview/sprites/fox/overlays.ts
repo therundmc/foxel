@@ -156,3 +156,6 @@ export const EXTRAS: Record<Extra, readonly Overlay[]> = {
   mouseA: [{ x: 18, y: 1, glyph: MOUSE_FACE }],
   mouseB: [{ x: 18, y: 0, glyph: MOUSE_FACE }],
 };
+
+/** The hearts that float up from it: only shown once it is fond of you, and in a good mood. */
+export const HEARTS: ReadonlySet<readonly string[]> = new Set([GLYPHS.heart, GLYPHS.smallHeart]);

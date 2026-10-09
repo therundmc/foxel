@@ -160,6 +160,11 @@ export class Buddy {
     if (def.calm && this.world.scroll !== 0 && !this.world.pointer) {
       return { x: 0, y: this.world.scroll };
     }
+    // In no mood for you: its eyes go down, and away from your pointer.
+    const shunned = this.world.shunned;
+    if (shunned && (def.calm || def.gazes || def.facesTarget)) {
+      return { x: (shunned.x - eye.x) * this.dir >= 0 ? -1 : 0, y: 1 };
+    }
     const target = def.gazes || def.facesTarget ? this.focusTarget() : undefined;
     if (!target) {
       return undefined;

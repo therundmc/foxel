@@ -211,12 +211,12 @@ describe('the toy chest', () => {
     holdPlush(b, 'teddy', 50, 20);
     point(onChest);
     const ball = middle(chest.slot('ball'));
-    expect(chest.holds).toEqual({ ball: false, teddy: false, duck: true });
+    expect(chest.holds).toEqual({ ball: false, teddy: false, duck: true, rugby: true });
     expect(chest.itemAt(ball.x, ball.y)).toBeUndefined();
 
     stowPlush(b, 'teddy');
     simulate(b, 100);
-    expect(chest.holds).toEqual({ ball: false, teddy: true, duck: true });
+    expect(chest.holds).toEqual({ ball: false, teddy: true, duck: true, rugby: true });
   });
 
   it('only has a place for what has come into its life so far', () => {
@@ -224,7 +224,7 @@ describe('the toy chest', () => {
     b.world.stage = 0;
     point(onChest);
     expect(chest.items).toEqual(['ball']);
-    expect(chest.holds).toEqual({ ball: true, teddy: false, duck: false });
+    expect(chest.holds).toEqual({ ball: true, teddy: false, duck: false, rugby: false });
     const ball = middle(chest.slot('ball'));
     expect(chest.itemAt(ball.x, ball.y)).toBe('ball');
     b.world.stage = 1;

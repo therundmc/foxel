@@ -9,7 +9,7 @@ import { carryInMouth } from './mouth';
 import { asleep } from './rest';
 
 /** What it brings in its mouth to mark each stage: its ball, then its soft toys; later, only the picture. */
-const BRINGS: readonly (PlushKind | 'ball' | undefined)[] = ['ball', 'duck', 'teddy'];
+const BRINGS: readonly (PlushKind | 'ball' | undefined)[] = ['ball', 'duck', 'teddy', 'rugby'];
 const TROT = 16;
 const OUT_MS = 1800;
 const SHOW_MS = 1500;

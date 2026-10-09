@@ -41,12 +41,15 @@ export const UNLOCKS = {
   // Stage 2, it is fond of you: its teddy; it catches what you throw and shakes it; it brings you what it finds
   // (a leaf, a pebble).
   teddy: { stage: 2 },
+  // Hearts are earned: before this it is a little wild thing, and they never show on a day that is not a good one.
+  showsLove: { stage: 2, mood: 0 },
   catches: { stage: 2 },
   shake: { stage: 2, mood: IN_SPIRITS },
   finds: { stage: 2, mood: 0 },
   overjoyed: { stage: 2 },
   // Stage 3, you are its person: leaps and spins with its toys, and it will not let you put them away. It finds
-  // prettier things for you (a flower, a feather).
+  // prettier things for you (a flower, a feather). Its rugby ball.
+  rugby: { stage: 3 },
   fineFinds: { stage: 3 },
   frolic: { stage: 3, mood: IN_SPIRITS },
   spin: { stage: 3, mood: IN_SPIRITS },
@@ -55,9 +58,9 @@ export const UNLOCKS = {
   // Stage 4, devoted: it juggles, and draws hearts in the earth for you.
   juggle: { stage: 4, mood: IN_SPIRITS },
   hearts: { stage: 4, mood: 0.2 },
-  // Stage 5, inseparable: it wears the collar you gave it, lies down by your pointer when it comes to you, and
-  // once in a long while finds something rare (a four-leaf clover, a gem).
-  collar: { stage: 5 },
+  // Stage 5, inseparable: it wears a little neckerchief, lies down by your pointer when it comes to you, and once
+  // in a long while finds something rare (a four-leaf clover, a gem).
+  neckerchief: { stage: 5 },
   staysClose: { stage: 5 },
   rareFinds: { stage: 5 },
 } satisfies Record<string, Needs>;

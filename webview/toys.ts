@@ -59,5 +59,6 @@ export function draggables({ world, buddy }: Session): Record<Holdable, Draggabl
     },
     teddy: plush('teddy'),
     duck: plush('duck'),
+    rugby: plush('rugby'),
   };
 }

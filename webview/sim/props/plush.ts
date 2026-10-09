@@ -13,12 +13,14 @@ const GRIP = 0.02;
 /** It tumbles as it flies: quarter turns a second for each pixel a second of sideways speed, and how much of that a bounce leaves. */
 const TUMBLE = 0.11;
 const TUMBLE_KEPT = 0.45;
+/** A rugby ball keeps this much of its bounce as a kick to the side. */
+const ODD_BOUNCE = 0.45;
 /** A hard landing squashes it for a moment. */
 const SQUASH_VY = 35;
 const SQUASH_MS = 90;
 
 /**
- * A soft toy: it is in the chest, in your hand, in the fox's mouth, or out in the view. Thrown, it tumbles through
+ * A toy to throw about, soft or not: it is in the chest, in your hand, in the fox's mouth, or out in the view. Thrown, it tumbles through
  * the air, bounces off the ground, the walls and the top of the view, and comes to rest however it lands.
  */
 export class Plush {
@@ -140,6 +142,11 @@ export class Plush {
       this.vy = -this.vy > REST_VY ? -this.vy * BOUNCE : 0;
       this.vx *= SCRUB;
       this.spin *= TUMBLE_KEPT;
+      if (this.kind === 'rugby' && this.vy > 0) {
+        // Landing on one of its points, it shoots off to the side: which one depends on how it came down.
+        this.vx += (this.quarter % 2 === 1 ? 1 : -1) * this.vy * ODD_BOUNCE;
+        this.spin = this.vx * TUMBLE;
+      }
       if (this.vy === 0) {
         // Down for good: it lies whichever way up it ended.
         this.turned = this.quarter;

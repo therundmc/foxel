@@ -50,6 +50,8 @@ const FLOOR = 0.3;
 const CARRIED = 1 / 3;
 const SLIGHT_COST = 0.25;
 const IGNORED_COST = 0.5;
+/** How much of a slight each further care of a kind already given that day makes up for. */
+const AMENDS = 0.5;
 
 const CARES: readonly Care[] = ['fed', 'played', 'petted', 'treated'];
 const SLIGHTS: readonly Slight[] = ['unfed', 'unheard'];
@@ -184,7 +186,9 @@ export function moodOn(life: Life, day: string, carriedFrom = 3): number {
   const carried = carriedFrom > 0 ? CARRIED * moodOn(life, keyOf(dayNumber(day) - 1), carriedFrom - 1) : 0;
   // There all that time, and not one look at it: that weighs on it, until the first care of the day.
   const ignored = record.presentMin >= PRESENT_FULL_MIN && Object.keys(record.cares).length === 0 ? IGNORED_COST : 0;
-  return clamp(carried + dayWorth(record) - SLIGHT_COST * slights - ignored, -1, 1);
+  // Looking after it again, a second game, another treat, makes up for part of what it had to put up with.
+  const again = Object.values(record.cares).reduce((sum: number, count) => sum + Math.max(0, (count ?? 0) - 1), 0);
+  return clamp(carried + dayWorth(record) - SLIGHT_COST * Math.max(0, slights - AMENDS * again) - ignored, -1, 1);
 }
 
 /** How many days it is since you were last there, counted on `today`; undefined if you never were. */

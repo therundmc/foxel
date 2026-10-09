@@ -55,7 +55,7 @@ export class World {
   readonly doodle = newDoodle();
   readonly mound = newMound();
   /** Its soft toys. */
-  readonly plushes = { teddy: new Plush('teddy'), duck: new Plush('duck') };
+  readonly plushes = { teddy: new Plush('teddy'), duck: new Plush('duck'), rugby: new Plush('rugby') };
   /** Which way you are scrolling a file, for a moment after you do: up (-1), down (1), or not (0). */
   scroll: -1 | 0 | 1 = 0;
   private scrollMs = 0;
@@ -133,17 +133,17 @@ export class World {
     this.foodBowl.update(dtMs);
     this.waterBowl.update(dtMs);
     // A toy that is out in the view is not in the chest.
-    const { teddy, duck } = this.plushes;
-    teddy.update(dt, this.width, this.height);
-    duck.update(dt, this.width, this.height);
-    knockTogether([teddy, duck], this.ball);
+    const { teddy, duck, rugby } = this.plushes;
+    const plushes = [teddy, duck, rugby];
+    plushes.forEach((plush) => plush.update(dt, this.width, this.height));
+    knockTogether(plushes, this.ball);
     // Only what has come into its life is in its chest and on its shelf, and a picture hangs for each stage.
     if (this.stocked !== this.stage) {
       this.stocked = this.stage;
       this.chest.items = CHEST_ITEMS.filter((item) => owns(this, item));
       this.shelf.items = owns(this, 'bubbles') ? ['meal', 'treat', 'bubbles'] : ['meal', 'treat'];
     }
-    this.chest.update(dtMs, { ball: this.ball.state === 'none', teddy: teddy.state === 'none', duck: duck.state === 'none' });
+    this.chest.update(dtMs, { ball: this.ball.state === 'none', teddy: teddy.state === 'none', duck: duck.state === 'none', rugby: rugby.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     this.album.update(dtMs, !this.chest.asked && !this.shelf.asked);
     this.finds.update(dtMs, this.width);

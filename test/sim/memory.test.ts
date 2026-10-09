@@ -56,7 +56,7 @@ describe('memory', () => {
     expect(after.world.plushes.duck.state).toBe('none');
     simulate(after, 500);
     expect(after.world.ball.x).toBe(memory.toys?.ball);
-    expect(after.world.chest.holds).toEqual({ ball: false, teddy: false, duck: true });
+    expect(after.world.chest.holds).toEqual({ ball: false, teddy: false, duck: true, rugby: true });
 
     // By the next day everything is back in the chest.
     const tomorrow = fox();

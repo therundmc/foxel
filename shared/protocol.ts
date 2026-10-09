@@ -123,7 +123,7 @@ export interface BuddyMemory {
   /** The stage of your life together that it has reached and marked: what has come into its life so far. */
   stage?: number;
   /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
-  toys?: Partial<Record<'ball' | 'teddy' | 'duck', number>>;
+  toys?: Partial<Record<'ball' | 'teddy' | 'duck' | 'rugby', number>>;
   /** How many of each kind of thing it has found for you: what its box of keepsakes holds. And where the mound is today, if it dug. */
   collected?: Partial<Record<'flower' | 'pebble' | 'feather' | 'leaf', number>>;
   mound?: number;

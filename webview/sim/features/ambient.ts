@@ -3,7 +3,7 @@ import { ANIMATIONS, JUMP_AIR_MS, JUMP_CROUCH_MS, JUMP_LAND_MS } from '../../spr
 import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Feature, Weights } from '../state';
-import { CHASE_FLIP_MS, WALK_SPEED } from '../tuning';
+import { CHASE_FLIP_MS, WALK_SPEED, SHUNS_UNDER } from '../tuning';
 
 const JUMP_MS = JUMP_CROUCH_MS + JUMP_AIR_MS + JUMP_LAND_MS;
 const JUMP_HEIGHT = 10;
@@ -74,6 +74,8 @@ export const ambientFeature = {
       facesTarget: true,
       duration: between(6000, 14_000),
       next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8], ['glass', 5]],
+      // Out of sorts, it sits the way it sulks: ears flat, nose up, a glance over its shoulder now and then.
+      anim: (b) => ({ anim: b.world.mood <= SHUNS_UNDER ? 'sulk' : 'sit', elapsed: b.elapsed }),
     },
     lie: {
       calm: true,

@@ -15,7 +15,7 @@ import {
   BIRD_W,
   BUG_FRAMES,
   CAKE,
-  COLLAR,
+  NECKERCHIEF,
   EMOTE_BUD,
   type Hat,
   EMOTES,
@@ -33,13 +33,14 @@ import {
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
-import { owns } from '../sim/unlocks';
+import { has, owns } from '../sim/unlocks';
+import { HEARTS } from '../sprites/fox/overlays';
 import { drawBubbles } from './bubbles';
 import { drawAlbum, drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
-/** What is worn round the neck, over its collar. */
+/** What is worn round the neck, over its neckerchief. */
 const NECKWEAR = new Set<Hat>(['scarf', 'scarfDust', 'scarfSnow', 'cloak', 'cloakWind']);
 /** A photograph is taken: the view flashes white, this strongly and for this long. */
 const FLASH = 0.38;
@@ -229,8 +230,10 @@ export class Renderer {
   // Overlays follow the side the fox faces. What it holds turns round with it; a Zzz or a heart never does.
   private drawOverlays(frame: Frame, rect: Rect, flip: boolean, behind: boolean): void {
     const { ctx, scale: s } = this.stage;
+    // Hearts are earned: a fox that is not yet fond of you, or whose day is not a good one, shows none.
+    const loving = has(this.session.world, 'showsLove');
     for (const o of frame.overlays) {
-      if ((o.behind === true) !== behind) {
+      if ((o.behind === true) !== behind || (!loving && HEARTS.has(o.glyph))) {
         continue;
       }
       const glyph = this.bitmaps.get(o.glyph);
@@ -250,12 +253,12 @@ export class Renderer {
     }
   }
 
-  // What it wears: its hat of the moment, and, once you are inseparable, its collar (under a scarf or a cloak it does not show).
+  // What it wears: its hat of the moment, and, once you are inseparable, its neckerchief (under a scarf or a cloak it does not show).
   private drawHat(frame: Frame, rect: Rect, flip: boolean): void {
     const { buddy, world } = this.session;
     const hat = buddy.hat();
-    if (owns(world, 'collar') && !(hat && NECKWEAR.has(hat))) {
-      this.drawWorn(COLLAR, frame, rect, flip);
+    if (owns(world, 'neckerchief') && !(hat && NECKWEAR.has(hat))) {
+      this.drawWorn(NECKERCHIEF, frame, rect, flip);
     }
     if (hat) {
       this.drawWorn(HATS[hat], frame, rect, flip);

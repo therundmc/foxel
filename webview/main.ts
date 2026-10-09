@@ -29,6 +29,8 @@ declare function acquireVsCodeApi(): {
 
 const MAX_FRAME_DT_MS = 100;
 const RESTFUL_FRAME_MS = 80;
+/** In debug, how much a care lifts a forced mood. */
+const CARE_LIFTS = 0.15;
 /** Hidden for longer than this, the fox has been away: it comes back in from the edge. */
 const AWAY_LONG_MS = 10 * 60_000;
 const SPAWN_SPEED = 40;
@@ -92,6 +94,11 @@ function updateClock(): void {
 }
 
 function onEffect(effect: Effect): void {
+  // With its mood forced from the debug corner, the extension's answer would be ignored: a care lifts the forced mood here instead.
+  if (session.forced.mood !== undefined && (effect === 'fed' || effect === 'played' || effect === 'treated' || effect === 'petted')) {
+    session.forced.mood = Math.min(1, session.forced.mood + CARE_LIFTS);
+    world.mood = session.forced.mood;
+  }
   switch (effect) {
     case 'fed':
       vscode.postMessage({ type: 'fed' });

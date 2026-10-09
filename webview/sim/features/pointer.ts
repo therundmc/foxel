@@ -3,6 +3,7 @@ import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { clamp } from '../math';
 import type { Feature } from '../state';
+import { SHUNS_UNDER } from '../tuning';
 import { has } from '../unlocks';
 import { approachWarily } from './growth';
 import type { WorldPoint } from '../world';
@@ -83,7 +84,7 @@ export function callOver(b: Buddy, x: number): boolean {
     b.pointer.called = true;
     return true;
   }
-  if (!has(b.world, 'trusts') || !atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
+  if (!has(b.world, 'trusts') || b.world.mood <= SHUNS_UNDER || !atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
     return false;
   }
   startCome(b, x);

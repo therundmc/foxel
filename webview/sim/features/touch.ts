@@ -12,7 +12,7 @@ import { totalDuration } from '../../sprites/frames';
 import type { Emote } from '../../sprites/props';
 import type { Buddy } from '../buddy';
 import { has } from '../unlocks';
-import { cared, soothe } from './bond';
+import { cared, shrugOff, soothe } from './bond';
 import type { BuddyState, Feature } from '../state';
 import { CHASE_FLIP_MS } from '../tuning';
 
@@ -84,7 +84,7 @@ export class TouchMemory {
 }
 
 export function pet(b: Buddy): void {
-  if (soothe(b)) {
+  if (shrugOff(b) || soothe(b)) {
     return;
   }
   if (b.state === 'petted') {
@@ -104,7 +104,7 @@ export function pet(b: Buddy): void {
 const stateOf = (b: Buddy): BuddyState => b.state;
 
 export function touch(b: Buddy, zone: TouchZone): void {
-  if (soothe(b)) {
+  if (shrugOff(b) || soothe(b)) {
     return;
   }
   // Clicking again mid-reaction builds excitement instead of restarting the animation.

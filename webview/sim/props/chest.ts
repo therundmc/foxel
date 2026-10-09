@@ -2,7 +2,7 @@ import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestItem } from 
 import type { Box } from '../math';
 
 /** Everything it may come to hold, as its tiles are laid out above it: from the bottom row up, left to right. */
-export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'duck', 'teddy'];
+export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'duck', 'teddy', 'rugby'];
 const COLUMNS = 2;
 
 /** Air left between the chest and the edge of the view, and between two of its tiles. */
@@ -70,7 +70,7 @@ export class Chest {
   /** How far its lid is open and its things are out, from 0 to 1. */
   open = 0;
   /** What is in it right now. A toy that is out in the view is not in the chest. */
-  readonly holds: Record<ChestItem, boolean> = { ball: true, teddy: true, duck: true };
+  readonly holds: Record<ChestItem, boolean> = { ball: true, teddy: true, duck: true, rugby: true };
   /** The toys that have come into its life so far: the others have no place in it yet. */
   items: readonly ChestItem[] = CHEST_ITEMS;
   private pointer: { x: number; y: number } | undefined;

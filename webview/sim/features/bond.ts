@@ -3,6 +3,7 @@ import { ANIMATIONS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { urge, type AnimRef, type Feature } from '../state';
+import { SHUNS_UNDER } from '../tuning';
 import { has, owns } from '../unlocks';
 
 /** How long it sulks over something it had to put up with, and how long it holds out when you come back after weeks. */
@@ -43,6 +44,8 @@ export class BondMemory {
   /** Keeping away from your pointer: where it is walking off to, and how long since it last did. */
   shunTo = 0;
   sinceShunMs = SHUN_REST_MS;
+  /** It was out of sorts a moment ago. */
+  wasLow = false;
   /** You are back after this many days: the welcome it has not given yet. */
   awayDays: number | undefined;
   /** What happened in your work while its view was out of sight, not played yet. */
@@ -57,18 +60,42 @@ export function slighted(b: Buddy): void {
   b.bond.slighted = true;
 }
 
-/** You looked after it. Sulking, it melts; if it had sulked, it comes and makes up once it is free. */
+/** Out of sorts: its day has gone badly enough that it wants nothing to do with your pointer. */
+export const outOfSorts = (b: Buddy): boolean => b.world.mood <= SHUNS_UNDER;
+
+/**
+ * You looked after it. Sulking over one thing, it melts; if it had sulked, it comes and makes up once it is free.
+ * Out of sorts, one kindness is not enough: it comes round when its mood has (see `tick`).
+ */
 export function cared(b: Buddy): void {
-  if (b.state === 'sulk' || b.state === 'shun') {
+  if (outOfSorts(b)) {
+    return;
+  }
+  if (b.state === 'sulk') {
     makeUp(b);
   } else if (b.bond.sulky) {
     b.bond.soothed = true;
   }
 }
 
-/** A stroke or a pat on a sulking fox: that is all it was waiting for. Returns whether it was sulking. */
+/**
+ * Out of sorts, it will not be touched: a pat or a stroke and it gets up and walks off, to sit with its back to
+ * you. Returns whether it shrugged you off; it was no caress then.
+ */
+export function shrugOff(b: Buddy): boolean {
+  if (!outOfSorts(b)) {
+    return false;
+  }
+  if (b.state !== 'shun' || !b.moving) {
+    b.bond.sinceShunMs = SHUN_REST_MS;
+    shun(b);
+  }
+  return true;
+}
+
+/** A stroke or a pat on a fox sulking over one thing: that is all it was waiting for. Returns whether it was sulking. */
 export function soothe(b: Buddy): boolean {
-  if (b.state !== 'sulk' && b.state !== 'shun') {
+  if (b.state !== 'sulk') {
     return false;
   }
   b.world.effects.push('petted');
@@ -158,8 +185,7 @@ function crowded(b: Buddy): boolean {
 }
 
 function shun(b: Buddy): void {
-  const p = b.world.shunned;
-  const away = facing(b, p?.x ?? b.world.width / 2) === 1 ? -1 : 1;
+  const away = facing(b, b.world.shunned?.x ?? you(b)) === 1 ? -1 : 1;
   // Away from it, or past it if the wall is in the way.
   const room = away === 1 ? b.maxX - b.x : b.x;
   b.dir = room >= SHUN_STEP ? away : (-away as 1 | -1);
@@ -175,7 +201,7 @@ function updateShun(b: Buddy, dt: number): boolean {
   if (b.moving) {
     b.x += b.dir * SHUN_SPEED * dt;
     b.elapsed = 0;
-  } else if (b.elapsed >= SHUN_SIT_MS) {
+  } else if (b.elapsed >= SHUN_SIT_MS || !outOfSorts(b)) {
     b.enterNext('mope');
   }
   return true;
@@ -224,10 +250,18 @@ export const bondFeature = {
     },
   },
   tick(b, dtMs) {
-    b.bond.sinceShunMs += dtMs;
+    const m = b.bond;
+    m.sinceShunMs += dtMs;
     if (b.world.mood > OVER_IT) {
-      b.bond.sulkedLow = false;
+      m.sulkedLow = false;
     }
+    // Its mood is back: whatever it was sulking about, it comes round, as soon as it has a quiet moment.
+    const low = outOfSorts(b);
+    if (m.wasLow && !low) {
+      m.soothed = true;
+      m.slighted = false;
+    }
+    m.wasLow = low;
   },
   urges: [
     urge(

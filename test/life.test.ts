@@ -239,3 +239,19 @@ describe('what it has reached, and a day without a look', () => {
     expect(moodOn(withCare(there, day(0), 'petted'), day(0))).toBeGreaterThan(0.3);
   });
 });
+
+describe('making up for a bad day', () => {
+  it('is done by looking after it again: each further game or treat makes up for part of what it had to put up with', () => {
+    const let_down = withSlight(withSlight(perfect(newLife(day(0)), day(0)), day(0), 'unfed'), day(0), 'unheard');
+    const before = moodOn(let_down, day(0));
+    expect(before).toBeCloseTo(0.5);
+    const once = withCare(let_down, day(0), 'played');
+    const twice = withCare(withCare(once, day(0), 'treated'), day(0), 'played');
+    expect(moodOn(once, day(0))).toBeGreaterThan(before);
+    expect(moodOn(twice, day(0))).toBeGreaterThan(moodOn(once, day(0)));
+    // No more than what there was to make up for.
+    const lots = Array.from({ length: 20 }).reduce((l: Life) => withCare(l, day(0), 'played'), let_down);
+    expect(moodOn(lots, day(0))).toBeCloseTo(1);
+  });
+});
+
