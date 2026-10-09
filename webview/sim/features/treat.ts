@@ -40,6 +40,17 @@ export function takeTreat(b: Buddy, x: number, y: number): void {
   grabTreat(b, x, y);
 }
 
+/** You put the treat in your hand back in the chest: it stops begging. */
+export function stowTreat(b: Buddy): void {
+  if (b.world.treat.state !== 'held') {
+    return;
+  }
+  b.world.treat.state = 'none';
+  if (b.state === 'beg') {
+    b.enterNext('sit');
+  }
+}
+
 export function moveHeldTreat(b: Buddy, x: number, y: number): void {
   if (b.world.treat.state === 'held') {
     b.world.treat.place(x, y, b.world.width, b.world.height);

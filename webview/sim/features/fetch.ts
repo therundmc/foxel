@@ -54,6 +54,17 @@ export function grabBall(b: Buddy, x: number, y: number): void {
   b.tryEnter('watch', Infinity);
 }
 
+/** You put the ball in your hand back in the chest: nothing left to watch. */
+export function stowBall(b: Buddy): void {
+  if (b.world.ball.state !== 'held') {
+    return;
+  }
+  b.world.ball.state = 'none';
+  if (b.state === 'watch') {
+    b.enterNext('sit');
+  }
+}
+
 export function moveHeldBall(b: Buddy, x: number, y: number): void {
   if (b.world.ball.state === 'held') {
     b.world.ball.place(x - BALL_SIZE / 2, y - BALL_SIZE / 2, b.world.width, b.world.height);

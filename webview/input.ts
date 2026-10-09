@@ -2,12 +2,12 @@ import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
-import { grabBall, moveHeldBall, spawnBall, throwBall } from './sim/features/fetch';
+import { grabBall, moveHeldBall, spawnBall, stowBall, throwBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
 import { asleep } from './sim/features/rest';
 import { pet, touch } from './sim/features/touch';
-import { grabTreat, moveHeldTreat, releaseTreat, takeTreat } from './sim/features/treat';
+import { grabTreat, moveHeldTreat, releaseTreat, stowTreat, takeTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
@@ -28,6 +28,8 @@ interface Draggable {
   grab(p: WorldPoint): void;
   /** Taken new out of the chest, straight into the hand. */
   take(p: WorldPoint): void;
+  /** Put back in the chest. */
+  stow(): void;
   move(p: WorldPoint): void;
   /** Let go at `p`, the hand moving at velocity `v`. */
   release(p: WorldPoint, v: WorldPoint): void;
@@ -42,6 +44,7 @@ function draggables({ world, buddy }: Session): Draggable[] {
       box: () => ball.box,
       grab: (p) => grabBall(buddy, p.x, p.y),
       take: (p) => grabBall(buddy, p.x, p.y),
+      stow: () => stowBall(buddy),
       move: (p) => moveHeldBall(buddy, p.x, p.y),
       release: (p, v) => throwBall(buddy, v.x, v.y, p.x),
     },
@@ -50,6 +53,7 @@ function draggables({ world, buddy }: Session): Draggable[] {
       box: () => treat.box,
       grab: (p) => grabTreat(buddy, p.x, p.y),
       take: (p) => takeTreat(buddy, p.x, p.y),
+      stow: () => stowTreat(buddy),
       move: (p) => moveHeldTreat(buddy, p.x, p.y),
       release: () => releaseTreat(buddy),
     },
@@ -151,8 +155,8 @@ export class Input {
     this.throwing.reset();
     picked[how](p);
     this.throwing.sample(p, performance.now());
-    // A hand that holds something is not rummaging in the chest.
-    this.session.world.chest.point(undefined);
+    // A hand that holds something is not rummaging in the chest: it only gets its lid.
+    this.session.world.chest.point(p, true);
   }
 
   private overBubble(x: number, y: number): boolean {
@@ -226,8 +230,16 @@ export class Input {
     if (!asleep(buddy)) {
       this.onInteraction();
     }
-    this.session.world.chest.point(this.holding ? undefined : this.stage.toWorld(e.clientX, e.clientY));
-    if (this.holding) {
+    const { chest } = this.session.world;
+    const at = this.stage.toWorld(e.clientX, e.clientY);
+    chest.point(at, this.holding !== undefined);
+    if (this.holding && chest.accepts(at.x, at.y)) {
+      // A toy carried over the chest goes back in it.
+      this.dragged = true;
+      this.holding.stow();
+      this.holding = undefined;
+      chest.stowed();
+    } else if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
       this.holding.move(p);
@@ -249,6 +261,8 @@ export class Input {
     this.pressedOnBuddy = undefined;
     if (this.holding) {
       this.releaseHeld(e.clientX, e.clientY);
+      // The hand is empty again.
+      this.session.world.chest.point(this.stage.toWorld(e.clientX, e.clientY));
     }
     this.updateCursor(e.clientX, e.clientY);
   }

@@ -123,9 +123,12 @@ export class Renderer {
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
   }
 
-  // Its toy chest, in the corner: the lid lifts as the pointer comes.
+  // Its toy chest, slid into its corner while the pointer is around: the lid lifts as the pointer comes to it.
   private drawChest(): void {
     const { chest } = this.session.world;
+    if (!chest.visible) {
+      return;
+    }
     const glyph = CHEST[chest.open === 0 ? 0 : chest.open < LID_BACK ? 1 : 2];
     const r = this.stage.rect({ x: chest.x, y: 0, w: glyph[0].length, h: glyph.length });
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);

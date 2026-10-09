@@ -8,7 +8,7 @@ the host (`src/` → `dist/extension.js`, Node) decides **when** something happe
 Every feature is judged against these three, before any technical consideration:
 
 - **A pet.** Foxel is a little animal you care for and grow fond of, not a tool. A feature earns its place by making the fox feel more alive or the bond stronger.
-- **No UI.** No text, numbers, gauges, menus or notifications in its view. Whatever the fox feels, needs or wants, it shows through what it does: an animation, a reaction, a pose, a prop, a picture bubble (never words). If something would need a label to be understood, find the behaviour that makes it obvious instead. What you can give it is in the toy chest in its corner, an object of its world that shows pictures only; there are no buttons in its title bar.
+- **No UI.** No text, numbers, gauges, menus or notifications in its view. Whatever the fox feels, needs or wants, it shows through what it does: an animation, a reaction, a pose, a prop, a picture bubble (never words). If something would need a label to be understood, find the behaviour that makes it obvious instead. What you can give it is in its toy chest, an object of its world that shows pictures only and slides into the corner while your pointer is in the view; there are no buttons in its title bar.
 - **Kawaii.** It stays cute, soft and playful in every state, including when it is sad, hungry or ignored: it asks sweetly, it never nags or scolds.
 
 ## Commands

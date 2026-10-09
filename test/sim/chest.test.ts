@@ -1,39 +1,86 @@
 import { describe, expect, it } from 'vitest';
-import { spawnBall } from '../../webview/sim/features/fetch';
-import { giveTreat, takeTreat } from '../../webview/sim/features/treat';
+import { grabBall, spawnBall, stowBall } from '../../webview/sim/features/fetch';
+import { giveTreat, stowTreat, takeTreat } from '../../webview/sim/features/treat';
 import { DRAWERS } from '../../webview/sim/props/chest';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('the toy chest', () => {
-  function scene() {
+  /** The fox and its chest: `there` once the pointer has been in the view long enough for the chest to come. */
+  function scene(there = true) {
     const b = spawn(fixed(0.5));
     b.world.resize(120, 60);
     b.restore(10, 1);
     const { chest } = b.world;
-    const onChest = { x: chest.x + 6, y: 4 };
+    /** Its place in the corner. */
+    const onChest = { x: 111, y: 4 };
     /** Runs a moment with the pointer there. */
-    const point = (at: { x: number; y: number } | undefined, ms = 600): void => {
-      chest.point(at);
+    const point = (at: { x: number; y: number } | undefined, ms = 600, carrying = false): void => {
+      chest.point(at, carrying);
       simulate(b, ms);
     };
     /** The middle of a tile, once it has settled. */
     const middle = (box: { x: number; y: number; w: number; h: number }) => ({ x: box.x + box.w / 2, y: box.y + box.h / 2 });
+    if (there) {
+      point({ x: 40, y: 20 }, 1500);
+    }
     return { b, chest, onChest, point, middle };
   }
 
-  it('stands in the corner of the view, shut, and stays there when the view is resized', () => {
-    const { b, chest } = scene();
-    expect(chest.open).toBe(0);
-    expect(chest.box.x + chest.box.w).toBeLessThanOrEqual(120);
-    expect(chest.box.x).toBeGreaterThan(100);
-    b.world.resize(200, 60);
-    expect(chest.box.x).toBeGreaterThan(180);
+  it('waits out of view, and slides into its corner when the pointer comes into the view', () => {
+    const { b, chest, point } = scene(false);
+    expect(chest.visible).toBe(false);
     expect(chest.moving).toBe(false);
     expect(b.world.restful).toBe(true);
+    point({ x: 30, y: 20 }, 100);
+    expect(chest.visible).toBe(false);
+    point({ x: 30, y: 20 }, 300);
+    expect(chest.visible).toBe(true);
+    expect(chest.here).toBe(false);
+    expect(chest.moving).toBe(true);
+    point({ x: 30, y: 20 }, 1000);
+    expect(chest.here).toBe(true);
+    expect(chest.box.x + chest.box.w).toBeLessThanOrEqual(120);
+    expect(chest.box.x).toBeGreaterThan(100);
+    expect(chest.open).toBe(0);
+    expect(chest.moving).toBe(false);
+  });
+
+  it('slides back out when the pointer leaves the view, or lies still for a while', () => {
+    const { chest, point } = scene(false);
+    point({ x: 30, y: 20 }, 1500);
+    point(undefined, 1500);
+    expect(chest.visible).toBe(false);
+    point({ x: 30, y: 20 }, 1500);
+    expect(chest.here).toBe(true);
+    point({ x: 30, y: 20 }, 5000);
+    expect(chest.visible).toBe(false);
+    // A pointer lying on the chest keeps it there.
+    point({ x: 31, y: 20 }, 1500);
+    point({ x: 111, y: 4 }, 8000);
+    expect(chest.here).toBe(true);
+    expect(chest.open).toBe(1);
+  });
+
+  it('does not come for a pointer that only crosses the view', () => {
+    const { chest, point } = scene(false);
+    point({ x: 30, y: 20 }, 150);
+    point(undefined, 1000);
+    expect(chest.visible).toBe(false);
+  });
+
+  it('follows its corner when the view is resized', () => {
+    const { b, chest, point } = scene();
+    b.world.resize(200, 60);
+    expect(chest.box.x).toBeGreaterThan(180);
+    expect(chest.here).toBe(true);
+    point(undefined, 1500);
+    b.world.resize(90, 60);
+    expect(chest.visible).toBe(false);
   });
 
   it('opens when the pointer comes to it: the lid first, then its drawers rise out one above the other', () => {
     const { chest, onChest, point } = scene();
+    expect(chest.here).toBe(true);
     point(onChest, 30);
     expect(chest.open).toBeGreaterThan(0);
     expect(chest.moving).toBe(true);
@@ -110,11 +157,51 @@ describe('the toy chest', () => {
     expect(chest.open).toBe(1);
   });
 
-  it('does not open for a pointer that only passes over the view', () => {
-    const { chest, point } = scene();
-    point({ x: 40, y: 20 });
-    point({ x: chest.x + 6, y: 30 });
+  it('does not open for a pointer that is in the view but not on it', () => {
+    const { chest, onChest, point } = scene();
+    point({ x: onChest.x, y: 30 });
+    expect(chest.here).toBe(true);
     expect(chest.open).toBe(0);
+  });
+
+  it('only lifts its lid for a hand that holds a toy, and takes the toy back', () => {
+    const { b, chest, onChest, point } = scene();
+    grabBall(b, 40, 20);
+    expect(b.state).toBe('watch');
+    expect(chest.accepts(40, 20)).toBe(false);
+    point(onChest, 600, true);
+    expect(chest.open).toBeGreaterThan(0);
+    expect(chest.open).toBeLessThan(1);
+    expect(chest.tab('food').y + chest.tab('food').h).toBeLessThanOrEqual(chest.box.h);
+    expect(chest.accepts(onChest.x, onChest.y)).toBe(true);
+
+    stowBall(b);
+    chest.stowed();
+    expect(b.world.ball.state).toBe('none');
+    expect(b.state).not.toBe('watch');
+    // The lid shuts on it and stays shut until the pointer has gone and come back.
+    point(onChest, 600);
+    expect(chest.open).toBe(0);
+    expect(chest.holds.ball).toBe(true);
+    point({ x: 40, y: 20 }, 100);
+    point(onChest, 600);
+    expect(chest.open).toBe(1);
+  });
+
+  it('takes a treat back too, and the fox stops begging', () => {
+    const { b } = scene();
+    takeTreat(b, 60, 30);
+    expect(b.state).toBe('beg');
+    stowTreat(b);
+    expect(b.world.treat.active).toBe(false);
+    expect(b.state).not.toBe('beg');
+    simulate(b, 2000);
+    expect(b.state).not.toBe('snack');
+  });
+
+  it('is not there to take a toy back while it is still out of view', () => {
+    const { chest, onChest } = scene(false);
+    expect(chest.accepts(onChest.x, onChest.y)).toBe(false);
   });
 
   it('no longer holds a toy that is out in the view', () => {
