@@ -1,6 +1,7 @@
 import type { Session } from '../session';
 import { slighted, welcomeBack } from '../sim/features/bond';
 import { startGift } from '../sim/features/gifts';
+import { KNOWN, best } from '../sim/features/lessons';
 import { MOOD_NEXT } from '../sim/features/ambient';
 import { LOW } from '../sim/features/bond';
 import { DOODLE_BOND, DOODLE_EVERY_MS, DOODLE_MOOD, GIFTS_A_DAY, GIFT_BOND, GIFT_EVERY_MS } from '../sim/features/gifts';
@@ -149,7 +150,12 @@ export function drawDebug(stage: Stage, session: Session): void {
   const { ctx } = stage;
   const { buddy, facts, light } = session;
   const lines = gauges(session);
-  const footer = `${buddy.state} · ${buddy.current().anim}${facts ? ` · away ${facts.daysAway ?? '–'} d · born ${facts.born} (${facts.daysKept} d kept)` : ''}`;
+  // What you have taught it: for each sign, the trick it knows best and how far along it is.
+  const learnt = (['circle', 'wave', 'nod'] as const).flatMap((sign) => {
+    const known = best(buddy, sign);
+    return known ? [`${sign}→${known.stunt} ${Math.min(known.times, KNOWN)}/${KNOWN}`] : [];
+  });
+  const footer = `${buddy.state} · ${buddy.current().anim}${learnt.length > 0 ? ` · ${learnt.join(', ')}` : ''}${facts ? ` · away ${facts.daysAway ?? '–'} d · born ${facts.born} (${facts.daysKept} d kept)` : ''}`;
   const ink = light ? '#333333' : '#dddddd';
   ctx.save();
   ctx.font = FONT;

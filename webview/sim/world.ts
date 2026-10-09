@@ -123,6 +123,13 @@ export class World {
     teddy.update(dt, this.width, this.height);
     duck.update(dt, this.width, this.height);
     knockTogether([teddy, duck], this.ball);
+    // While a toy is in your hand the chest waits for it, and for a throw.
+    const inHand = this.ball.state === 'held' || teddy.state === 'held' || duck.state === 'held';
+    const flying = [teddy, duck].filter((toy) => toy.state === 'free' && !toy.landed).map((toy) => ({ x: toy.center, y: toy.y }));
+    if (this.ball.state === 'free' && !this.ball.resting) {
+      flying.push({ x: this.ball.center, y: this.ball.y });
+    }
+    this.chest.expect(inHand, flying);
     this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     this.finds.update(dtMs);

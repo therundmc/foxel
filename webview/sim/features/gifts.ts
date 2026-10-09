@@ -1,8 +1,9 @@
 import { SPRITE_SIZE } from '../../sprites/frames';
 import type { FindKind } from '../../sprites/props';
 import type { Buddy } from '../buddy';
+import type { AnimName } from '../../sprites/fox/animations';
 import type { AnimRef, Feature } from '../state';
-import { mouthPoint } from './mouth';
+import { mouthPoint, noseTo } from './mouth';
 
 const KINDS: readonly FindKind[] = ['flower', 'pebble', 'feather', 'leaf'];
 /** It brings you things once it is this attached and in a decent mood: this many a day at most, this long apart. */
@@ -27,6 +28,20 @@ const SCRATCH_LOOP_MS = 880;
 const SHOW_MS = 2600;
 
 /**
+ * What it does with each kind of thing it keeps in its corner: the animation, when in it the thing is stirred and
+ * how, and what it does next. A feather it blows up and it makes it sneeze; a leaf it pounces on; a pebble it bats
+ * with a paw; a flower it smells, and sighs.
+ */
+const FIDDLES: Record<FindKind, { anim: AnimName; ms: number; at: number; how: 'drift' | 'hop'; then: AnimName; thenMs: number }> = {
+  feather: { anim: 'toyBoop', ms: 500, at: 150, how: 'drift', then: 'sneeze', thenMs: 770 },
+  leaf: { anim: 'pounce', ms: 400, at: 200, how: 'drift', then: 'bubbleWatch', thenMs: 1300 },
+  pebble: { anim: 'toyPaw', ms: 520, at: 270, how: 'hop', then: 'tilt', thenMs: 900 },
+  flower: { anim: 'sniff', ms: 1200, at: 600, how: 'hop', then: 'love', thenMs: 1200 },
+};
+/** How many times in a row it goes at it. */
+const FIDDLE_GOES = 2;
+
+/**
  * Bringing you something, step by step: it trots out of the view (`leave`), is gone a moment (`out`), comes back
  * with it in its mouth (`bring`), puts it down (`set`) and sits by it (`offer`). Click it and it is thrilled
  * (`thanks`); leave it and it picks it up again (`pick`), carries it off (`off`) and comes back without it (`back`).
@@ -43,6 +58,10 @@ export class GiftMemory {
   given = 0;
   sinceGiftMs = GIFT_EVERY_MS;
   sinceDoodleMs = DOODLE_EVERY_MS;
+  /** Playing with one of the things in its corner: which, whether it has got to it, how many goes it has had. */
+  fiddling = 0;
+  atIt = false;
+  goes = 0;
 }
 
 function step(b: Buddy, to: Step): void {
@@ -176,6 +195,47 @@ function giftAnim(b: Buddy): AnimRef {
   }
 }
 
+// It goes to its corner and plays with one of the things you accepted.
+function updateFiddle(b: Buddy, dt: number, dtMs: number): boolean {
+  const m = b.gift;
+  const { finds } = b.world;
+  const kind = finds.kept[m.fiddling];
+  if (kind === undefined) {
+    b.enterNext('sit');
+    return true;
+  }
+  b.fall(dt);
+  if (!m.atIt) {
+    const box = finds.keptBox(m.fiddling);
+    m.atIt = noseTo(b, box.x + box.w / 2, dt) !== 'going';
+    m.stepMs = 0;
+    return true;
+  }
+  const { ms, at, how, thenMs } = FIDDLES[kind];
+  const before = m.stepMs;
+  m.stepMs += dtMs;
+  if (before < at && m.stepMs >= at) {
+    finds.stir(m.fiddling, how);
+  }
+  if (m.stepMs >= ms + thenMs) {
+    m.stepMs = 0;
+    if (++m.goes >= FIDDLE_GOES) {
+      b.enterNext('sit');
+    }
+  }
+  return true;
+}
+
+function fiddleAnim(b: Buddy): AnimRef {
+  const m = b.gift;
+  const kind = b.world.finds.kept[m.fiddling];
+  if (!m.atIt || kind === undefined) {
+    return { anim: b.moving ? (b.running ? 'run' : 'walk') : 'idle', elapsed: b.elapsed };
+  }
+  const { anim, ms, then } = FIDDLES[kind];
+  return m.stepMs < ms ? { anim, elapsed: m.stepMs } : { anim: then, elapsed: m.stepMs - ms };
+}
+
 function updateDoodle(b: Buddy): boolean {
   if (b.elapsed >= SCRATCH_MS + SHOW_MS) {
     b.enterNext('sit');
@@ -193,6 +253,19 @@ export const giftsFeature = {
       begin: startGift,
       update: updateGift,
       anim: giftAnim,
+    },
+    fiddle: {
+      nightDamped: true,
+      available: (b) => b.world.finds.kept.length > 0,
+      begin(b) {
+        const { kept } = b.world.finds;
+        b.gift.fiddling = Math.floor(b.world.random() * kept.length) % Math.max(1, kept.length);
+        b.gift.atIt = false;
+        b.gift.goes = 0;
+        b.enter('fiddle', Infinity);
+      },
+      update: updateFiddle,
+      anim: fiddleAnim,
     },
     doodle: {
       nightDamped: true,

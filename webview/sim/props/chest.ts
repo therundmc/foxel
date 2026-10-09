@@ -36,6 +36,11 @@ const IDLE_MS = 4000;
 /** How quickly it slides in and out: the share of the way left that it covers in a second. */
 const SLIDE = 10;
 const CLOSE_ENOUGH = 0.4;
+/** How long it stays out after a toy was last in your hand. */
+const EXPECT_MS = 2500;
+/** Its mouth, for a toy thrown in: this far in from each side, and this deep under the top of its body. */
+const MOUTH_IN = 3;
+const MOUTH_DEEP = 7;
 /** A thing can be taken once the chest is this far open. */
 const TAKEABLE = 0.9;
 
@@ -79,6 +84,9 @@ export class Chest {
   private lingerMs = 0;
   /** Something was just put back in it: it stays shut until the pointer has left it. */
   private full = false;
+  /** A toy is in your hand, or was a moment ago: it stays out, in case it comes back. And one is flying close by. */
+  private expectMs = 0;
+  private incoming = false;
 
   get box(): Box {
     return { x: this.x, y: 0, w: CHEST_W, h: this.open > 0 ? CHEST_OPEN_H : CHEST_H };
@@ -135,6 +143,20 @@ export class Chest {
     this.carrying = carrying;
   }
 
+  /**
+   * `inHand` while you hold a toy; `flying` are the toys in the air. It comes out and waits for as long as a toy is
+   * about, and lifts its lid for one that flies close: a good shot goes in.
+   */
+  expect(inHand: boolean, flying: readonly { x: number; y: number }[]): void {
+    this.expectMs = inHand || (this.expectMs > 0 && flying.length > 0) ? EXPECT_MS : this.expectMs;
+    this.incoming = flying.some((toy) => within(this.box, toy.x, toy.y, NEAR));
+  }
+
+  /** Whether a toy coming down at this point drops into it: it is in its corner, its lid up, and the point is over its mouth. */
+  catches(x: number, y: number): boolean {
+    return this.here && this.lid === 2 && x >= this.x + MOUTH_IN && x < this.x + CHEST_W - MOUTH_IN && y >= CHEST_RIM - 2 && y <= CHEST_RIM + MOUTH_DEEP;
+  }
+
   /** Whether a toy held at this point is over the chest, to be put back in it. */
   accepts(x: number, y: number): boolean {
     return this.here && within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, x, y, REACH);
@@ -171,7 +193,8 @@ export class Chest {
     this.stillMs += dtMs;
     // It comes for a pointer that is close to its corner and doing something, and never leaves while it is open.
     this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false);
-    this.share = this.asked || this.open > 0 ? 1 : (this.hauled ?? 0);
+    this.expectMs = Math.max(0, this.expectMs - dtMs);
+    this.share = this.asked || this.open > 0 || this.expectMs > 0 ? 1 : (this.hauled ?? 0);
     this.fidget(dtMs);
     const left = this.target - this.x;
     this.x = Math.abs(left) < CLOSE_ENOUGH ? this.x + left : this.x + left * Math.min(1, (SLIDE * dtMs) / 1000);
@@ -181,7 +204,7 @@ export class Chest {
     const wanted = this.lingerMs > 0;
     // A full hand only gets the lid.
     const forPointer = !wanted ? 0 : this.carrying ? LID_BACK : 1;
-    const upTo = Math.max(forPointer, this.lifted && this.here ? LID_BACK : 0);
+    const upTo = Math.max(forPointer, this.here && (this.lifted || this.incoming) ? LID_BACK : 0);
     this.open = toward(this.open, upTo, dtMs / OPEN_MS);
   }
 

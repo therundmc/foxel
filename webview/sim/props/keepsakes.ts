@@ -10,15 +10,24 @@ export const KEPT_MOST = 4;
 const HOP_MS = 700;
 const HOP_HEIGHT = 16;
 
+/** A kept find stirred by the fox: blown up to drift down again, or given a little hop. How long each lasts, and how high it goes. */
+const DRIFT_MS = 1700;
+const DRIFT_HEIGHT = 11;
+const DRIFT_SWAY = 3;
+const HOP_SHORT_MS = 380;
+const HOP_SHORT = 4;
+
 /** What it brings you: the one it is carrying or has set down, and the ones you accepted today. */
 export class Finds {
   /** In its mouth, set down in front of you, or on its way to the corner once accepted. */
   offered: { kind: FindKind; x: number; y: number; state: 'carried' | 'down' | 'hopping' } | undefined;
   readonly kept: FindKind[] = [];
   private hop = { from: 0, ms: 0 };
+  /** The kept one that is in the air, how, and for how long it has been. */
+  private stirred: { index: number; how: 'drift' | 'hop'; ms: number } | undefined;
 
   get moving(): boolean {
-    return this.offered !== undefined && this.offered.state !== 'down';
+    return (this.offered !== undefined && this.offered.state !== 'down') || this.stirred !== undefined;
   }
 
   get room(): boolean {
@@ -34,7 +43,20 @@ export class Finds {
   /** Where a kept one sits, by its place in the row. */
   keptBox(index: number): Box {
     const glyph = FINDS[this.kept[index]];
-    return { x: KEPT_X + index * KEPT_STEP, y: 0, w: glyph[0].length, h: glyph.length };
+    const box = { x: KEPT_X + index * KEPT_STEP, y: 0, w: glyph[0].length, h: glyph.length };
+    const s = this.stirred;
+    if (s?.index !== index) {
+      return box;
+    }
+    // Blown, it goes up and sways down like a feather; nudged, it only hops.
+    const p = s.ms / (s.how === 'drift' ? DRIFT_MS : HOP_SHORT_MS);
+    const up = Math.sin(Math.PI * p) * (s.how === 'drift' ? DRIFT_HEIGHT : HOP_SHORT);
+    return { ...box, x: box.x + (s.how === 'drift' ? Math.sin(3 * Math.PI * p) * DRIFT_SWAY : 0), y: up };
+  }
+
+  /** The fox blows on a kept one, or gives it a nudge. */
+  stir(index: number, how: 'drift' | 'hop'): void {
+    this.stirred = { index, how, ms: 0 };
   }
 
   /** In its mouth, its middle at this point. */
@@ -65,6 +87,11 @@ export class Finds {
   }
 
   update(dtMs: number): void {
+    const s = this.stirred;
+    if (s) {
+      s.ms += dtMs;
+      this.stirred = s.ms >= (s.how === 'drift' ? DRIFT_MS : HOP_SHORT_MS) ? undefined : s;
+    }
     const o = this.offered;
     if (o?.state !== 'hopping') {
       return;

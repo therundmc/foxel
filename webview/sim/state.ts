@@ -26,6 +26,7 @@ export type BuddyState =
   | 'sulk'
   | 'gift'
   | 'doodle'
+  | 'fiddle'
   | 'makeUp'
   | 'mope'
   | 'overjoyed'

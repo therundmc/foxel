@@ -1,78 +1,27 @@
-import { StrokeTracker, ThrowTracker } from './gestures';
+import { SignTracker, StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
 import { pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
 import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { acceptFind } from './sim/features/gifts';
-import { grabBall, moveHeldBall, spawnBall, stowBall, throwBall } from './sim/features/fetch';
+import { signed } from './sim/features/lessons';
+import { spawnBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
 import { asleep } from './sim/features/rest';
 import { pet, touch } from './sim/features/touch';
-import { holdPlush, stowPlush, tossPlush } from './sim/features/plush';
-import { grabTreat, moveHeldTreat, releaseTreat, stowTreat, takeTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
-import type { ChestItem, PlushKind, ShelfItem } from './sprites/props';
+import type { ChestItem, ShelfItem } from './sprites/props';
 import { inside, type Stage } from './stage';
+import { draggables, type Draggable } from './toys';
 
 const POINTER_IDLE_MS = 4000;
 const STROKE_MIN_TRAVEL = 3;
 const EXIT_THROW_SPEED = 90;
 const CLICK_SLOP = 2;
-
-/** Something lying in the view that the user can pick up and drag around. */
-interface Draggable {
-  /** Lying there, ready to be picked up. */
-  free(): boolean;
-  box(): Box;
-  grab(p: WorldPoint): void;
-  /** Taken new out of the chest, straight into the hand. */
-  take(p: WorldPoint): void;
-  /** Put back in the chest. */
-  stow(): void;
-  move(p: WorldPoint): void;
-  /** Let go at `p`, the hand moving at velocity `v`. */
-  release(p: WorldPoint, v: WorldPoint): void;
-}
-
-// Everything in the chest can be held. Checked in this order when two of them overlap; a new toy only needs an entry here.
-function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
-  const { ball, treat } = world;
-  const plush = (kind: PlushKind): Draggable => ({
-    free: () => world.plushes[kind].state === 'free',
-    box: () => world.plushes[kind].box,
-    grab: (p) => holdPlush(buddy, kind, p.x, p.y),
-    take: (p) => holdPlush(buddy, kind, p.x, p.y),
-    move: (p) => holdPlush(buddy, kind, p.x, p.y),
-    release: (_, v) => tossPlush(buddy, kind, v.x, v.y),
-    stow: () => stowPlush(buddy, kind),
-  });
-  return {
-    ball: {
-      free: () => ball.state === 'free',
-      box: () => ball.box,
-      grab: (p) => grabBall(buddy, p.x, p.y),
-      take: (p) => grabBall(buddy, p.x, p.y),
-      stow: () => stowBall(buddy),
-      move: (p) => moveHeldBall(buddy, p.x, p.y),
-      release: (p, v) => throwBall(buddy, v.x, v.y, p.x),
-    },
-    treat: {
-      free: () => treat.state === 'free',
-      box: () => treat.box,
-      grab: (p) => grabTreat(buddy, p.x, p.y),
-      take: (p) => takeTreat(buddy, p.x, p.y),
-      stow: () => stowTreat(buddy),
-      move: (p) => moveHeldTreat(buddy, p.x, p.y),
-      release: () => releaseTreat(buddy),
-    },
-    teddy: plush('teddy'),
-    duck: plush('duck'),
-  };
-}
 
 /** Turns what the mouse does on the canvas into what happens to the buddy and its toys. */
 export class Input {
@@ -87,6 +36,7 @@ export class Input {
   private pressedOnBuddy: { x: number; y: number } | undefined;
   private readonly throwing = new ThrowTracker();
   private readonly stroke = new StrokeTracker();
+  private readonly signs = new SignTracker();
 
   constructor(
     private readonly stage: Stage,
@@ -282,6 +232,15 @@ export class Input {
     const at = this.stage.toWorld(e.clientX, e.clientY);
     chest.point(at, this.holding !== undefined);
     this.session.world.shelf.point(this.holding ? undefined : at);
+    // A sign made with an empty hand, away from the chest and the shelf, is for the fox to answer.
+    if (this.holding || pressed || (e.buttons & 1) !== 0 || chest.asked || this.session.world.shelf.asked) {
+      this.signs.reset();
+    } else {
+      const sign = this.signs.move(at, performance.now());
+      if (sign && signed(buddy, sign)) {
+        this.onInteraction();
+      }
+    }
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);

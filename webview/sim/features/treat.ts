@@ -3,6 +3,7 @@ import { ANIMATIONS, EAT_RESUME_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, frameAt, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { cared } from './bond';
+import { treatEaten, treatOffered } from './lessons';
 import { urge, type Feature } from '../state';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
 
@@ -19,6 +20,7 @@ export function giveTreat(b: Buddy, x: number): void {
     return;
   }
   b.world.treat.drop(x, b.world.width, b.world.height);
+  treatOffered(b);
   if (!b.def.offscreen) {
     startSnack(b);
   }
@@ -38,6 +40,7 @@ export function takeTreat(b: Buddy, x: number, y: number): void {
     return;
   }
   b.world.treat.drop(x, b.world.width, b.world.height);
+  treatOffered(b);
   grabTreat(b, x, y);
 }
 
@@ -104,6 +107,7 @@ function updateSnack(b: Buddy, dt: number): void {
       treat.state = 'none';
       b.world.effects.push('treated');
       cared(b);
+      treatEaten(b);
       b.enter('lie', b.ambientDuration('lie'));
     }
     return;

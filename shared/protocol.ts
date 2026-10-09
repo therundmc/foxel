@@ -125,6 +125,8 @@ export interface BuddyMemory {
   /** What it brought you today that you accepted, in the order it sits in its corner; and where the mound is, if it dug. */
   finds?: readonly ('flower' | 'pebble' | 'feather' | 'leaf')[];
   mound?: number;
+  /** What you have taught it: for each sign you make with your pointer, how many times each trick was rewarded with a treat. */
+  learned?: Partial<Record<'circle' | 'wave' | 'nod', Partial<Record<string, number>>>>;
   /** A treat left lying: where its middle is, how much of it is eaten, and which way its bitten end points. */
   treat?: { x: number; stage: number; facing: 1 | -1 };
 }
