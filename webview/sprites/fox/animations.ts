@@ -20,6 +20,30 @@ import {
 } from './pose';
 import { eatAnimation, nudgeAnimation, nuzzleAnimation, patAnimation, shakeAnimation, sleepAnimation } from './sequences';
 
+type Steps = readonly (readonly [Pose, number])[];
+const withBall = (steps: Steps): Steps => steps.map(([pose, ms]) => [{ ...pose, ball: true }, ms]);
+const SHOVE: Steps = [
+  [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
+  [{ legs: STEP_A, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
+  [{ eye: 'open' }, 160],
+  [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
+  [{ legs: STEP_B, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
+  [{ eye: 'happy', tail: 'wagL' }, 280],
+  [{ eye: 'happy', tail: 'wagR' }, 280],
+];
+const HAUL: Steps = [
+  [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
+  [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highL' }, 240],
+  [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
+  [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highR' }, 240],
+  [{ eye: 'happy', tail: 'wagL' }, 240],
+];
+// Standing at the chest, its muzzle over the rim and down in it: the chest hides what is inside.
+const RUMMAGE: Steps = [
+  [{ head: [3, 3], eye: 'closed', ears: 'back', tail: 'wagL' }, 160],
+  [{ legs: STEP_A, head: [3, 4], eye: 'closed', ears: 'back', tail: 'wagR' }, 160],
+];
+
 // Timings the simulation needs to line its movement up with the frames below.
 export const TWIRL_CROUCH_MS = 120;
 export const TWIRL_AIR_MS = 600;
@@ -88,6 +112,12 @@ export const ANIMATIONS = {
     [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 700],
     [{ eye: 'happy' }, 300],
   ]),
+  // Its toy chest: hauled in like the basket, then its head goes in and its tail wags over it. Each with its ball too.
+  haul: anim(HAUL),
+  haulCarry: anim(withBall(HAUL)),
+  shoveCarry: anim(withBall(SHOVE)),
+  rummage: anim(RUMMAGE),
+  rummageCarry: anim(withBall(RUMMAGE)),
   // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
   tug: anim([
     [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
@@ -96,15 +126,7 @@ export const ANIMATIONS = {
     [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highR' }, 240],
     [{ eye: 'sleepy', tail: 'wagL' }, 240],
   ]),
-  shove: anim([
-    [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
-    [{ legs: STEP_A, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
-    [{ eye: 'open' }, 160],
-    [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
-    [{ legs: STEP_B, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
-    [{ eye: 'happy', tail: 'wagL' }, 280],
-    [{ eye: 'happy', tail: 'wagR' }, 280],
-  ]),
+  shove: anim(SHOVE),
   // Soap bubbles: looking up at them, jumping nose first at one, sneezing at the soap, and holding the last one on its nose.
   bubbleWatch: anim([
     [{ head: [0, -1], eye: 'up', mouth: 'open', tail: 'wagL' }, 200],

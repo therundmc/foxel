@@ -11,6 +11,7 @@ import { IntroMemory } from './features/intro';
 import { MealsMemory } from './features/meals';
 import { MousingMemory } from './features/mousing';
 import { PlayMemory } from './features/play';
+import { RummageMemory } from './features/rummage';
 import { PointerMemory } from './features/pointer';
 import { RestMemory } from './features/rest';
 import { TouchMemory } from './features/touch';
@@ -60,6 +61,7 @@ export class Buddy {
   readonly fetch = new FetchMemory();
   readonly tricks = new TricksMemory();
   readonly play = new PlayMemory();
+  readonly rummage = new RummageMemory();
   readonly touch = new TouchMemory();
   readonly pointer = new PointerMemory();
   readonly snack = new SnackMemory();

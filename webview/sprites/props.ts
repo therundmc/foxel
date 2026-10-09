@@ -114,13 +114,13 @@ export const BASKET_FRONT: Glyph = [
   '..tttttttttttttttttttttt..',
 ];
 
-// The toy chest, its lid shut, ajar, then thrown back: wood, two straps and a clasp.
-const CHEST_BODY = ['kkkkkSkkkkk', 'ttkttSttktt', 'ttktttttktt', 'ttktttttktt'];
-export const CHEST: readonly Glyph[] = [
-  outlined(['.TkTTTTTkT.', 'ThkTTTTTkTT', 'TTkTTTTTkTT', ...CHEST_BODY]),
-  outlined(['.TkTTTTTkT.', 'ThkTTTTTkTT', 'TTkTTTTTkTT', 'EEEEEEEEEEE', ...CHEST_BODY]),
-  outlined(['.TTTTTTTTT.', 'TdkdddddkdT', 'TdkdddddkdT', 'TdkdddddkdT', 'EEEEEEEEEEE', ...CHEST_BODY]),
-];
+// Its toy chest: a round red lid like its bowl, pale wood, a heart on the front and two little feet.
+// Lid shut, ajar, then thrown back so that its inside shows.
+const CHEST_LID = ['...AAAAAAAAAAA...', '.ArrrrAAAAAAAAAA.', 'AArAAAAAAAAAAAAAA', 'AAAAAAAAAAAAAAAAA', 'aaaaaaaaaaaaaaaaa'];
+const CHEST_LID_BACK = ['...AAAAAAAAAAA...', '.AaaaaaaaaaaaaaA.', 'AaaMMMMMMMMMMMaaA', 'AaMMMMMMMMMMMMMaA', 'AaMMMMMMMMMMMMMaA', 'AaaaaaaaaaaaaaaaA'];
+const CHEST_BODY = ['hhhhhhhhhhhhhhhhT', 'chhhhhhLhLhhhhhhT', 'chhhhhLLLLLhhhhhT', 'hhhhhhhLLLhhhhhhT', 'hhhhhhhhLhhhhhhhT', 'TTTTTTTTTTTTTTTTt', '.tt...........tt.'];
+const CHEST_GAP = 'ddddddddddddddddd';
+export const CHEST: readonly Glyph[] = [outlined([...CHEST_LID, ...CHEST_BODY]), outlined([...CHEST_LID, CHEST_GAP, ...CHEST_BODY]), outlined([...CHEST_LID_BACK, CHEST_GAP, ...CHEST_BODY])];
 export const CHEST_W = CHEST[0][0].length;
 export const CHEST_H = CHEST[0].length;
 export const CHEST_OPEN_H = CHEST[2].length;

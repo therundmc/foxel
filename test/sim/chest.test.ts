@@ -12,7 +12,7 @@ describe('the toy chest', () => {
     b.restore(10, 1);
     const { chest } = b.world;
     /** Its place in the corner. */
-    const onChest = { x: 111, y: 4 };
+    const onChest = { x: 108, y: 4 };
     /** Runs a moment with the pointer there. */
     const point = (at: { x: number; y: number } | undefined, ms = 600, carrying = false): void => {
       chest.point(at, carrying);
@@ -40,7 +40,7 @@ describe('the toy chest', () => {
     point({ x: 30, y: 20 }, 1000);
     expect(chest.here).toBe(true);
     expect(chest.box.x + chest.box.w).toBeLessThanOrEqual(120);
-    expect(chest.box.x).toBeGreaterThan(100);
+    expect(chest.box.x).toBeGreaterThan(95);
     expect(chest.open).toBe(0);
     expect(chest.moving).toBe(false);
   });
@@ -56,7 +56,7 @@ describe('the toy chest', () => {
     expect(chest.visible).toBe(false);
     // A pointer lying on the chest keeps it there.
     point({ x: 31, y: 20 }, 1500);
-    point({ x: 111, y: 4 }, 8000);
+    point({ x: 108, y: 4 }, 8000);
     expect(chest.here).toBe(true);
     expect(chest.open).toBe(1);
   });
@@ -71,7 +71,7 @@ describe('the toy chest', () => {
   it('follows its corner when the view is resized', () => {
     const { b, chest, point } = scene();
     b.world.resize(200, 60);
-    expect(chest.box.x).toBeGreaterThan(180);
+    expect(chest.box.x).toBeGreaterThan(175);
     expect(chest.here).toBe(true);
     point(undefined, 1500);
     b.world.resize(90, 60);
@@ -90,7 +90,8 @@ describe('the toy chest', () => {
     expect(chest.open).toBe(1);
     const food = chest.tab('food');
     const play = chest.tab('play');
-    expect(food.y).toBeGreaterThanOrEqual(chest.box.h);
+    // The first one sits just over the top of the raised lid.
+    expect(food.y).toBeGreaterThanOrEqual(chest.box.h - 2);
     expect(play.y).toBeGreaterThanOrEqual(food.y + food.h);
     expect(play.y + play.h).toBeLessThanOrEqual(40);
     // No drawer is out yet, so there is nothing to take.

@@ -10,6 +10,8 @@ export const DRAWERS: readonly { drawer: ChestDrawer; items: readonly ChestItem[
 /** Air left between the chest and the edge of the view, and between two of its tiles. */
 const MARGIN = 2;
 const GAP = 1;
+/** The first drawer sits a little over the top of the raised lid, so that both drawers fit in a low view. */
+const LID_OVERLAP = 2;
 /** How far from one of its parts the pointer still counts as on it. */
 const REACH = 2;
 /** How far from it a hand that holds a toy already has its lid lifting. */
@@ -46,9 +48,15 @@ export class Chest {
   /** Its left edge; it stands on the ground. */
   x = 0;
   /** Its place in the corner, and where it waits out of view. */
-  private corner = 0;
+  corner = 0;
   private away = 0;
-  private wanted = false;
+  /** How much of the way in it is meant to be, from 0 (out of view) to 1 (in its corner). */
+  private share = 0;
+  /** The pointer is asking for it. */
+  asked = false;
+  /** How far in the fox has pulled it, while the fox is the one moving it; and whether it holds the lid up. */
+  private hauled: number | undefined;
+  private lifted = false;
   /** How far its lid is open and its drawers are out, from 0 to 1. */
   open = 0;
   /** The drawer whose things are out. */
@@ -73,7 +81,7 @@ export class Chest {
   /** Its lid or its drawers are on their way. */
   get moving(): boolean {
     const settled = (v: number): boolean => v === 0 || v === 1;
-    return this.x !== (this.wanted ? this.corner : this.away) || !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
+    return this.x !== this.target || !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
   }
 
   /** In its corner, ready to be opened. */
@@ -89,7 +97,23 @@ export class Chest {
   place(worldWidth: number): void {
     this.corner = Math.max(0, worldWidth - CHEST_W - MARGIN);
     this.away = Math.max(worldWidth, this.corner + CHEST_W);
-    this.x = this.wanted ? this.corner : this.away;
+    this.x = this.target;
+  }
+
+  /** The fox pulls it this much of the way in (1 is its corner), or pushes it back out. */
+  haul(share: number): void {
+    this.hauled = share;
+  }
+
+  /** The fox lifts its lid with its nose, or lets it drop. */
+  lift(up: boolean): void {
+    this.lifted = up;
+  }
+
+  /** The fox is done with it: it is the pointer's again. */
+  letGo(): void {
+    this.hauled = undefined;
+    this.lifted = false;
   }
 
   /** Where the pointer is in the view, or undefined when it is not there; `carrying` when the hand holds a toy. */
@@ -142,8 +166,9 @@ export class Chest {
     this.aroundMs = this.pointer ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
     this.stillMs += dtMs;
     // It comes for a pointer that is in the view and doing something, and never leaves while it is open.
-    this.wanted = this.open > 0 || (this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false));
-    const left = (this.wanted ? this.corner : this.away) - this.x;
+    this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false);
+    this.share = this.asked || this.open > 0 ? 1 : (this.hauled ?? 0);
+    const left = this.target - this.x;
     this.x = Math.abs(left) < CLOSE_ENOUGH ? this.x + left : this.x + left * Math.min(1, (SLIDE * dtMs) / 1000);
 
     this.full &&= over !== false;
@@ -160,8 +185,13 @@ export class Chest {
     // Its things go back in their drawers before the drawers sink back in the chest.
     const folded = DRAWERS.every(({ drawer }) => this.unfolded[drawer] === 0);
     // A full hand only gets the lid.
-    const upTo = !folded ? 1 : !wanted ? 0 : this.carrying ? LID_BACK : 1;
+    const forPointer = !folded ? 1 : !wanted ? 0 : this.carrying ? LID_BACK : 1;
+    const upTo = Math.max(forPointer, this.lifted && this.here ? LID_BACK : 0);
     this.open = toward(this.open, upTo, dtMs / OPEN_MS);
+  }
+
+  private get target(): number {
+    return this.away + (this.corner - this.away) * this.share;
   }
 
   /** Whether the pointer is on it: the drawer it is on, or true for the chest itself or the things that are out. */
@@ -191,12 +221,12 @@ export class Chest {
       }
     }
     // The way up from the chest to its first drawer.
-    return within({ x: this.x, y: 0, w: CHEST_W, h: this.home(DRAWERS[0].drawer).y }, at.x, at.y, REACH);
+    return within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, REACH);
   }
 
   /** Where a drawer's tile sits once the chest is open, above the raised lid. */
   private home(drawer: ChestDrawer): Box {
     const index = DRAWERS.findIndex((d) => d.drawer === drawer);
-    return { x: this.x + (CHEST_W - TILE) / 2, y: CHEST_OPEN_H + GAP + index * STEP, w: TILE, h: TILE };
+    return { x: this.x + (CHEST_W - TILE) / 2, y: CHEST_OPEN_H - LID_OVERLAP + index * STEP, w: TILE, h: TILE };
   }
 }

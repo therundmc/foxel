@@ -4,7 +4,7 @@ import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, FETCH_MAX_MS, WALK_SPEED } from '../tuning';
 import { sleepOf } from './contemplate';
-import { startLeave } from './play';
+import { startRummage } from './rummage';
 import { SIGH, perform } from './touch';
 
 /** Where it stands to pull its basket in or push it out: this far from the basket's place, toward the middle. */
@@ -54,7 +54,7 @@ export function startBreak(b: Buddy): void {
     b.fetch.playerX = undefined;
     b.tryEnter('fetch', FETCH_MAX_MS);
   } else if (b.world.ball.state === 'none') {
-    startLeave(b, 'fetch');
+    startRummage(b, 'fetch');
   } else {
     b.rest.askingBreak = false;
     b.tryEnter('askBreak', ASK_BREAK_MS);
