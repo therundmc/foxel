@@ -14,3 +14,19 @@ export const CATCH_RADIUS = 4;
 export const NOSE_REACH = 3;
 /** Its mood at or under which it is out of sorts: listless, and in no mood for your pointer. */
 export const SHUNS_UNDER = -0.2;
+
+/**
+ * Its mood by degrees, from furious (-3) through annoyed (-1), even (0) and cheerful (1) to delighted (2): what
+ * shows by its head and in its eyes goes by these. The first step down is where it is out of sorts.
+ */
+export type MoodLevel = -3 | -2 | -1 | 0 | 1 | 2;
+const MOOD_STEPS: readonly (readonly [number, MoodLevel])[] = [
+  [-0.7, -3],
+  [-0.45, -2],
+  [SHUNS_UNDER, -1],
+];
+export function moodLevel(mood: number): MoodLevel {
+  const down = MOOD_STEPS.find(([under]) => mood <= under);
+  return down ? down[1] : mood >= 0.7 ? 2 : mood >= 0.4 ? 1 : 0;
+}
+

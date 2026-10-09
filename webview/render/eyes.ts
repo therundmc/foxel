@@ -1,5 +1,6 @@
 import type { Buddy } from '../sim/buddy';
 import type { Gaze } from '../sim/state';
+import { moodLevel } from '../sim/tuning';
 import { GROUND_ROW } from '../sprites/fox/anchors';
 import { SPRITE_SIZE, type Frame } from '../sprites/frames';
 import { PALETTE } from '../sprites/palette';
@@ -54,7 +55,22 @@ export class Eyes {
       y: buddy.y + GROUND_ROW + 1 - (ey + 1.5),
     };
     const gaze = blinking ? undefined : this.settle(buddy.gaze(eyeCenter), now);
+    // Out of sorts, its lid comes down over its eye; angry, a brow frowns over it, slanting down to its nose.
+    const level = moodLevel(buddy.world.mood);
+    const glare = (): void => {
+      if (level > -1 || blinking) {
+        return;
+      }
+      const row = ey + Math.max(0, gaze?.y ?? 0);
+      paint(ex - 1, row, 4, bitmaps.colorOf('O'));
+      if (level <= -2) {
+        const brow = bitmaps.colorOf('K');
+        paint(ex - 1, row - 1, 2, brow);
+        paint(ex + 1, row, 2, brow);
+      }
+    };
     if (!blinking && (!gaze || (gaze.x === 0 && gaze.y === 0))) {
+      glare();
       return;
     }
     for (let y = ey - 1; y <= ey + 2; y++) {
@@ -72,6 +88,7 @@ export class Eyes {
       paint(x, ey + 1, 2, pupil);
       paint(x, ey + 2, 2, pupil);
       paint(x + 1, ey + 1, 1, PALETTE.W);
+      glare();
       return;
     }
     const top = ey + gaze.y;
@@ -79,6 +96,7 @@ export class Eyes {
       paint(x, y, 2, pupil);
     }
     paint(x + 1, top, 1, PALETTE.W);
+    glare();
   }
 
   private settle(target: Gaze | undefined, now: number): Gaze {

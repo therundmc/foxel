@@ -33,6 +33,7 @@ import { NECKERCHIEF } from '../sprites/keepsakes';
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
+import { MoodMarks } from './mood';
 import { has, owns } from '../sim/unlocks';
 import { HEARTS } from '../sprites/fox/overlays';
 import { drawBubbles } from './bubbles';
@@ -64,6 +65,7 @@ export function currentFrame(buddy: Buddy): Frame {
 /** Paints one frame of the scene, back to front. */
 export class Renderer {
   private readonly eyes = new Eyes();
+  private readonly mood = new MoodMarks();
   private readonly scenery = new SceneryLayers();
   private emote: { shown: Emote; since: number } | undefined;
 
@@ -105,6 +107,7 @@ export class Renderer {
     this.drawGrass();
     if (fox) {
       this.drawEmote(stage.buddyRect(buddy), frame, now);
+      this.mood.draw(stage, this.bitmaps, session, frame, stage.buddyRect(buddy), now);
     }
     drawPlushes(stage, this.bitmaps, world, shadow, false);
     this.drawBall();

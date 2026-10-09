@@ -9,6 +9,7 @@ import { pet, touch } from '../../webview/sim/features/touch';
 import { recall, remember } from '../../webview/sim/memory';
 import { Plush } from '../../webview/sim/props/plush';
 import type { BuddyState } from '../../webview/sim/state';
+import { moodLevel } from '../../webview/sim/tuning';
 import { LAST_STAGE, STAGES, UNLOCKS, has, owns, stageFor } from '../../webview/sim/unlocks';
 import { ANIMATIONS, type AnimName } from '../../webview/sprites/fox/animations';
 import { frameAt } from '../../webview/sprites/frames';
@@ -387,6 +388,43 @@ describe('out of sorts', () => {
     touch(b, 'head');
     expect(b.state).toBe('touched');
     expect(b.world.effects).toContain('petted');
+  });
+});
+
+describe('its mood, read on its face', () => {
+  it('goes by degrees, from furious to delighted', () => {
+    expect([-1, -0.7, -0.6, -0.45, -0.3, -0.2, -0.1, 0, 0.39, 0.4, 0.69, 0.7, 1].map(moodLevel)).toEqual([-3, -3, -2, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2]);
+  });
+
+  it('holds itself differently when it stands, walks, sits or lies, on a bad day and on a good one', () => {
+    const b = fox(LAST_STAGE);
+    const anims = (mood: number): string[] => {
+      b.world.mood = mood;
+      return (['idle', 'walk', 'sit', 'lie'] as const).map((state) => {
+        b.enter(state, 600_000);
+        return b.current().anim;
+      });
+    };
+    expect(anims(0)).toEqual(['idle', 'walk', 'sit', 'lie']);
+    expect(anims(-0.3)).toEqual(['idleGrumpy', 'walkGrumpy', 'sulk', 'lieGrumpy']);
+    expect(anims(-0.9)).toEqual(['idleGrumpy', 'walkGrumpy', 'sulk', 'lieGrumpy']);
+    expect(anims(0.5)).toEqual(['idleHappy', 'walkHappy', 'sitHappy', 'lieHappy']);
+  });
+
+  it('twirls for joy at a pat on its best days, as it never does on an ordinary one', () => {
+    const twirls = (mood: number): number => {
+      let count = 0;
+      for (const random of [0.1, 0.3, 0.45]) {
+        const b = fox(LAST_STAGE, random);
+        b.world.mood = mood;
+        touch(b, 'head');
+        count += b.current().anim === 'twirl' ? 1 : 0;
+        expect(b.world.effects).toContain('petted');
+      }
+      return count;
+    };
+    expect(twirls(0.9)).toBe(3);
+    expect(twirls(0.2)).toBe(0);
   });
 });
 

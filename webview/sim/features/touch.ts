@@ -11,6 +11,7 @@ import {
 import { totalDuration } from '../../sprites/frames';
 import type { Emote } from '../../sprites/props';
 import type { Buddy } from '../buddy';
+import { moodLevel } from '../tuning';
 import { has } from '../unlocks';
 import { cared, shrugOff, soothe } from './bond';
 import type { BuddyState, Feature } from '../state';
@@ -64,6 +65,9 @@ const TOUCH_REACTIONS: Record<TouchZone, readonly TouchReaction[]> = {
 };
 const FLOP: TouchReaction = { anim: 'flop', then: 'lie' };
 // Moments other features play through `perform`.
+/** Delighted, how often a pat makes it twirl for joy rather than its usual reaction. */
+const OVERJOYED = 0.5;
+const TWIRL: TouchReaction = { anim: 'twirl', hop: { at: TWIRL_CROUCH_MS, air: TWIRL_AIR_MS, height: 6 }, spinMs: TWIRL_AIR_MS / 4, then: 'sit' };
 const WARY: TouchReaction = { anim: 'startle', hop: { at: STARTLE_CROUCH_MS, air: STARTLE_AIR_MS, height: 8 }, then: 'sit' };
 export const MORNING: TouchReaction = { anim: 'morning', then: 'sit', emote: 'sun', emoteFromMs: MORNING_WAVE_MS };
 export const GOOD_NIGHT: TouchReaction = { anim: 'goodNight', then: 'sit', emote: 'moon' };
@@ -115,6 +119,15 @@ export function touch(b: Buddy, zone: TouchZone): void {
   if (!has(b.world, 'trusts')) {
     // It does not know you yet: it jumps. It was a caress all the same.
     perform(b, WARY);
+    if (stateOf(b) === 'touched') {
+      b.world.effects.push('petted');
+      cared(b);
+    }
+    return;
+  }
+  if (moodLevel(b.world.mood) >= 2 && b.world.random() < OVERJOYED) {
+    // On its best days a pat is all it takes: it twirls for joy.
+    perform(b, TWIRL);
     if (stateOf(b) === 'touched') {
       b.world.effects.push('petted');
       cared(b);
