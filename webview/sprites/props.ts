@@ -114,6 +114,51 @@ export const BASKET_FRONT: Glyph = [
   '..tttttttttttttttttttttt..',
 ];
 
+// The toy chest, its lid shut, ajar, then thrown back: wood, two straps and a clasp.
+const CHEST_BODY = ['kkkkkSkkkkk', 'ttkttSttktt', 'ttktttttktt', 'ttktttttktt'];
+export const CHEST: readonly Glyph[] = [
+  outlined(['.TkTTTTTkT.', 'ThkTTTTTkTT', 'TTkTTTTTkTT', ...CHEST_BODY]),
+  outlined(['.TkTTTTTkT.', 'ThkTTTTTkTT', 'TTkTTTTTkTT', 'EEEEEEEEEEE', ...CHEST_BODY]),
+  outlined(['.TTTTTTTTT.', 'TdkdddddkdT', 'TdkdddddkdT', 'TdkdddddkdT', 'EEEEEEEEEEE', ...CHEST_BODY]),
+];
+export const CHEST_W = CHEST[0][0].length;
+export const CHEST_H = CHEST[0].length;
+export const CHEST_OPEN_H = CHEST[2].length;
+/** How high the top of its body is: what comes out of it rises from behind there. */
+export const CHEST_RIM = CHEST_BODY.length + 1;
+
+export type ChestDrawer = 'food' | 'play';
+export type ChestItem = 'meal' | 'treat' | 'ball' | 'bubbles';
+
+// What its tiles show. A drawer shows what it is for, a thing shows itself.
+const CHEST_ICONS: Record<ChestDrawer | ChestItem, Glyph> = {
+  food: ['...kF..', '.AAkAA.', 'AAAAAAA', 'ApAAAAa', 'AAAAAAa', '.AAAAa.', '..A.a..'],
+  play: ['...x...', '..xXx..', 'xxXXXxx', '.xXXXx.', '..xXx..', '.xx.xx.', '.x...x.'],
+  meal: ['.k.k.k.', '.kkkkk.', 'AAAAAAA', 'AAAAAAA', '.aaaaa.'],
+  treat: ['TT...TT', 'TTTTTTT', 'ttttttt', 'tt...tt'],
+  ball: BALL_FRAMES[0],
+  bubbles: ['.UUU...', 'Uw..U.U', 'U...U..', 'U...U..', '.UUU...', '.....UU', '.....Uw'],
+};
+
+export const TILE = 11;
+// A soft square like its picture bubbles, the picture in the middle.
+function tile(icon: Glyph = []): Glyph {
+  const rows: string[][] = Array.from({ length: TILE }, (_, y) =>
+    Array.from({ length: TILE }, (_, x) => {
+      const edgeX = x === 0 || x === TILE - 1;
+      const edgeY = y === 0 || y === TILE - 1;
+      return edgeX && edgeY ? TRANSPARENT : edgeX || edgeY ? 'Z' : 'W';
+    }),
+  );
+  const left = Math.floor((TILE - (icon[0]?.length ?? 0)) / 2);
+  const top = Math.floor((TILE - icon.length) / 2);
+  icon.forEach((line, y) => [...line].forEach((c, x) => c !== TRANSPARENT && (rows[top + y][left + x] = c)));
+  return rows.map((r) => r.join(''));
+}
+export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([name, icon]) => [name, tile(icon)])) as Record<ChestDrawer | ChestItem, Glyph>;
+/** The tile of a thing that is not in the chest right now. */
+export const CHEST_TILE_EMPTY: Glyph = tile();
+
 export const CAKE: readonly Glyph[] = [
   outlined(['...H...', '...S...', '.LLLLL.', 'WWWWWWW', 'LLLLLLL', 'ccccccc']),
   outlined(['...S...', '...S...', '.LLLLL.', 'WWWWWWW', 'LLLLLLL', 'ccccccc']),

@@ -2,6 +2,7 @@ import { partyKind } from '../../shared/day';
 import { foxShown, type Session } from '../session';
 import type { Buddy } from '../sim/buddy';
 import type { Bowl } from '../sim/props/bowl';
+import { DRAWERS, LID_BACK } from '../sim/props/chest';
 import { ANIMATIONS } from '../sprites/fox/animations';
 import { FRAME_PAD, FRAME_SIZE, SPRITE_SIZE, frameAt, type Frame, type Glyph } from '../sprites/frames';
 import {
@@ -15,6 +16,10 @@ import {
   BIRD_W,
   BUG_FRAMES,
   CAKE,
+  CHEST,
+  CHEST_RIM,
+  CHEST_TILE_EMPTY,
+  CHEST_TILES,
   EMOTE_BUD,
   EMOTES,
   type Emote,
@@ -85,6 +90,7 @@ export class Renderer {
       this.drawBuddy(stage.buddyRect(buddy), frame, now);
     }
     this.drawBasket(BASKET_FRONT, BASKET_FRONT.length);
+    this.drawChest();
     this.drawMouse();
     this.drawGrass();
     if (fox) {
@@ -95,6 +101,7 @@ export class Renderer {
     this.drawBird(false);
     drawBubbles(stage, world.bubbles, session.light);
     this.scenery.drawFront(stage, world.scenery);
+    this.drawChestTiles();
     sky.drawConfetti(stage, dt);
   }
 
@@ -114,6 +121,38 @@ export class Renderer {
       ctx.drawImage(this.bitmaps.get(cap), capX, y - (cap.length - 2) * scale, cap[0].length * scale, cap.length * scale);
     }
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
+  }
+
+  // Its toy chest, in the corner: the lid lifts as the pointer comes.
+  private drawChest(): void {
+    const { chest } = this.session.world;
+    const glyph = CHEST[chest.open === 0 ? 0 : chest.open < LID_BACK ? 1 : 2];
+    const r = this.stage.rect({ x: chest.x, y: 0, w: glyph[0].length, h: glyph.length });
+    this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+  }
+
+  // What comes out of the chest, over everything else: its drawers rise from behind its rim, their things slide out from behind them.
+  private drawChestTiles(): void {
+    const { ctx, width } = this.stage;
+    const { chest } = this.session.world;
+    if (chest.open < LID_BACK) {
+      return;
+    }
+    const tile = (glyph: Glyph, box: { x: number; y: number; w: number; h: number }): void => {
+      const r = this.stage.rect(box);
+      ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+    };
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, width, this.stage.screenY(CHEST_RIM));
+    ctx.clip();
+    for (const { drawer, items } of DRAWERS) {
+      if (chest.unfolded[drawer] > 0) {
+        [...items].reverse().forEach((item) => tile(chest.holds[item] ? CHEST_TILES[item] : CHEST_TILE_EMPTY, chest.slot(item)));
+      }
+      tile(CHEST_TILES[drawer], chest.tab(drawer));
+    }
+    ctx.restore();
   }
 
   private drawBowl(bowl: Bowl, stages: readonly Glyph[]): void {

@@ -95,26 +95,22 @@
       {
         "command": "foxel.wave",
         "title": "Say Hello",
-        "category": "Foxel",
-        "icon": "$(smiley)"
+        "category": "Foxel"
       },
       {
         "command": "foxel.throwBall",
         "title": "Throw a Ball",
-        "category": "Foxel",
-        "icon": "$(circle-filled)"
+        "category": "Foxel"
       },
       {
         "command": "foxel.blowBubbles",
         "title": "Blow Bubbles",
-        "category": "Foxel",
-        "icon": "$(circle-large-outline)"
+        "category": "Foxel"
       },
       {
         "command": "foxel.giveTreat",
         "title": "Give a Treat",
-        "category": "Foxel",
-        "icon": "$(heart)"
+        "category": "Foxel"
       },
       {
         "command": "foxel.fillBowl",
@@ -132,50 +128,6 @@
         {
           "command": "foxel.playScene",
           "when": "foxel.debug"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "foxel.throwBall",
-          "when": "activeWebviewPanelId == 'foxel.editor'",
-          "group": "navigation@1"
-        },
-        {
-          "command": "foxel.blowBubbles",
-          "when": "activeWebviewPanelId == 'foxel.editor'",
-          "group": "navigation@2"
-        },
-        {
-          "command": "foxel.giveTreat",
-          "when": "activeWebviewPanelId == 'foxel.editor'",
-          "group": "navigation@3"
-        },
-        {
-          "command": "foxel.wave",
-          "when": "activeWebviewPanelId == 'foxel.editor'",
-          "group": "navigation@4"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "foxel.throwBall",
-          "when": "view == foxel.panelView || view == foxel.explorerView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "foxel.blowBubbles",
-          "when": "view == foxel.panelView || view == foxel.explorerView",
-          "group": "navigation@2"
-        },
-        {
-          "command": "foxel.giveTreat",
-          "when": "view == foxel.panelView || view == foxel.explorerView",
-          "group": "navigation@3"
-        },
-        {
-          "command": "foxel.wave",
-          "when": "view == foxel.panelView || view == foxel.explorerView",
-          "group": "navigation@4"
         }
       ]
     },

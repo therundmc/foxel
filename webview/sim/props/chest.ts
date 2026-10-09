@@ -1,0 +1,140 @@
+import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestDrawer, type ChestItem } from '../../sprites/props';
+import type { Box } from '../math';
+
+/** Its drawers from the bottom one up, and what each holds, nearest the chest first. */
+export const DRAWERS: readonly { drawer: ChestDrawer; items: readonly ChestItem[] }[] = [
+  { drawer: 'food', items: ['meal', 'treat'] },
+  { drawer: 'play', items: ['ball', 'bubbles'] },
+];
+
+/** Air left between the chest and the edge of the view, and between two of its tiles. */
+const MARGIN = 2;
+const GAP = 1;
+/** How far from one of its parts the pointer still counts as on it. */
+const REACH = 2;
+const OPEN_MS = 220;
+const UNFOLD_MS = 130;
+/** How long it stays open once the pointer has left: time to come back, or to cross from a drawer to its things. */
+const LINGER_MS = 350;
+/** The lid is thrown back by the time it is this far open; only then do the drawers start to rise. */
+export const LID_BACK = 0.3;
+/** A thing can be taken once its drawer is this far out. */
+const TAKEABLE = 0.9;
+
+const STEP = TILE + GAP;
+const ease = (t: number): number => t * t * (3 - 2 * t);
+const toward = (from: number, to: number, step: number): number => (from < to ? Math.min(to, from + step) : Math.max(to, from - step));
+const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
+
+/**
+ * The toy chest in the corner of its view: everything you can give it is in there. Bring the pointer to it and its
+ * lid opens and its drawers rise out; bring it to a drawer and its things come out in a row. It only knows where the
+ * pointer is and how far open it is: what taking a thing does is the business of whoever takes it.
+ */
+export class Chest {
+  /** Its left edge; it stands on the ground. */
+  x = 0;
+  /** How far its lid is open and its drawers are out, from 0 to 1. */
+  open = 0;
+  /** The drawer whose things are out. */
+  drawer: ChestDrawer | undefined;
+  /** How far out the things of each drawer are, from 0 to 1. */
+  readonly unfolded: Record<ChestDrawer, number> = { food: 0, play: 0 };
+  /** What is in it right now. A toy that is out in the view is not in the chest. */
+  readonly holds: Record<ChestItem, boolean> = { meal: true, treat: true, ball: true, bubbles: true };
+  private pointer: { x: number; y: number } | undefined;
+  private lingerMs = 0;
+
+  get box(): Box {
+    return { x: this.x, y: 0, w: CHEST_W, h: this.open > 0 ? CHEST_OPEN_H : CHEST_H };
+  }
+
+  /** Its lid or its drawers are on their way. */
+  get moving(): boolean {
+    const settled = (v: number): boolean => v === 0 || v === 1;
+    return !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
+  }
+
+  place(worldWidth: number): void {
+    this.x = Math.max(0, worldWidth - CHEST_W - MARGIN);
+  }
+
+  /** Where the pointer is, or undefined when it is away or busy holding something. */
+  point(at: { x: number; y: number } | undefined): void {
+    this.pointer = at;
+  }
+
+  /** Where a drawer's tile is right now: it rises out of the chest as the lid opens. */
+  tab(drawer: ChestDrawer): Box {
+    const home = this.home(drawer);
+    const risen = ease(Math.max(0, (this.open - LID_BACK) / (1 - LID_BACK)));
+    return { ...home, y: CHEST_RIM - TILE + (home.y - CHEST_RIM + TILE) * risen };
+  }
+
+  /** Where a thing's tile is right now: it slides out from behind its drawer. */
+  slot(item: ChestItem): Box {
+    const { drawer, items } = DRAWERS.find((d) => d.items.includes(item)) ?? DRAWERS[0];
+    const tab = this.tab(drawer);
+    return { ...tab, x: tab.x - (items.indexOf(item) + 1) * STEP * ease(this.unfolded[drawer]) };
+  }
+
+  /** The thing that can be taken at this point: out of its drawer, and still in the chest. */
+  itemAt(x: number, y: number): ChestItem | undefined {
+    const open = DRAWERS.find((d) => d.drawer === this.drawer);
+    if (!open || this.unfolded[open.drawer] < TAKEABLE) {
+      return undefined;
+    }
+    return open.items.find((item) => this.holds[item] && within(this.slot(item), x, y, GAP / 2));
+  }
+
+  /** `holds` says, for the toys that can be out in the view, whether they are in the chest. */
+  update(dtMs: number, holds: Partial<Record<ChestItem, boolean>> = {}): void {
+    Object.assign(this.holds, holds);
+    const over = this.over();
+    this.lingerMs = over ? LINGER_MS : Math.max(0, this.lingerMs - dtMs);
+    const wanted = this.lingerMs > 0;
+    if (!wanted) {
+      this.drawer = undefined;
+    } else if (typeof over === 'string' && this.open === 1) {
+      this.drawer = over;
+    }
+    for (const { drawer } of DRAWERS) {
+      this.unfolded[drawer] = toward(this.unfolded[drawer], this.drawer === drawer ? 1 : 0, dtMs / UNFOLD_MS);
+    }
+    // Its things go back in their drawers before the drawers sink back in the chest.
+    const folded = DRAWERS.every(({ drawer }) => this.unfolded[drawer] === 0);
+    this.open = toward(this.open, wanted || !folded ? 1 : 0, dtMs / OPEN_MS);
+  }
+
+  /** Whether the pointer is on it: the drawer it is on, or true for the chest itself or the things that are out. */
+  private over(): ChestDrawer | boolean {
+    const at = this.pointer;
+    if (!at) {
+      return false;
+    }
+    if (within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_H }, at.x, at.y, REACH)) {
+      return true;
+    }
+    if (this.open === 0) {
+      return false;
+    }
+    for (const { drawer, items } of DRAWERS) {
+      const home = this.home(drawer);
+      // A drawer takes the whole height down to the one under it, so the pointer never falls between two.
+      if (within({ x: home.x - REACH, y: home.y - GAP, w: TILE + 2 * REACH, h: STEP }, at.x, at.y, 0)) {
+        return drawer;
+      }
+      if (this.drawer === drawer && within({ ...home, x: home.x - items.length * STEP, w: items.length * STEP }, at.x, at.y, REACH)) {
+        return true;
+      }
+    }
+    // The way up from the chest to its first drawer.
+    return within({ x: this.x, y: 0, w: CHEST_W, h: this.home(DRAWERS[0].drawer).y }, at.x, at.y, REACH);
+  }
+
+  /** Where a drawer's tile sits once the chest is open, above the raised lid. */
+  private home(drawer: ChestDrawer): Box {
+    const index = DRAWERS.findIndex((d) => d.drawer === drawer);
+    return { x: this.x + (CHEST_W - TILE) / 2, y: CHEST_OPEN_H + GAP + index * STEP, w: TILE, h: TILE };
+  }
+}

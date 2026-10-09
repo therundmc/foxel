@@ -31,6 +31,15 @@ export function grabTreat(b: Buddy, x: number, y: number): void {
   startBeg(b);
 }
 
+/** You take a new treat out of the chest: it is in your hand straight away. */
+export function takeTreat(b: Buddy, x: number, y: number): void {
+  if (b.world.treat.active) {
+    return;
+  }
+  b.world.treat.drop(x, b.world.width, b.world.height);
+  grabTreat(b, x, y);
+}
+
 export function moveHeldTreat(b: Buddy, x: number, y: number): void {
   if (b.world.treat.state === 'held') {
     b.world.treat.place(x, y, b.world.width, b.world.height);

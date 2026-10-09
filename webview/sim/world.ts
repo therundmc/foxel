@@ -5,6 +5,7 @@ import { Ball } from './props/ball';
 import { Bird } from './props/bird';
 import { Bowl } from './props/bowl';
 import { Bug } from './props/bug';
+import { Chest } from './props/chest';
 import { Grass } from './props/grass';
 import { Mouse } from './props/mouse';
 import { Basket } from './props/basket';
@@ -39,6 +40,7 @@ export class World {
   readonly waterBowl = new Bowl();
   readonly basket = new Basket();
   readonly bubbles = new Bubbles();
+  readonly chest = new Chest();
   /** Which way you are scrolling a file, for a moment after you do: up (-1), down (1), or not (0). */
   scroll: -1 | 0 | 1 = 0;
   private scrollMs = 0;
@@ -61,7 +63,7 @@ export class World {
     const ballMoving = this.ball.state === 'held' || (this.ball.state === 'free' && !this.ball.resting);
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
     const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
-    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
+    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
   /** You scrolled: it shows for a moment. */
@@ -80,6 +82,7 @@ export class World {
     this.height = Math.max(height, SPRITE_SIZE);
     this.buddies.forEach((b) => b.worldResized());
     this.ball.place(this.ball.x, this.ball.y, this.width, this.height);
+    this.chest.place(this.width);
   }
 
   update(dtMs: number): void {
@@ -99,6 +102,8 @@ export class World {
     this.treat.update(dt, this.width);
     this.foodBowl.update(dtMs);
     this.waterBowl.update(dtMs);
+    // A toy that is out in the view is not in the chest.
+    this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active });
     this.buddies.forEach((b) => b.update(dtMs));
   }
 }

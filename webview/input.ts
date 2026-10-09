@@ -1,17 +1,18 @@
 import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
 import { foxShown, type Session } from './session';
-import { popBubbleAt } from './sim/features/bubbles';
+import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
 import { grabBall, moveHeldBall, spawnBall, throwBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
 import { asleep } from './sim/features/rest';
 import { pet, touch } from './sim/features/touch';
-import { grabTreat, moveHeldTreat, releaseTreat } from './sim/features/treat';
+import { grabTreat, moveHeldTreat, releaseTreat, takeTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
+import type { ChestItem } from './sprites/props';
 import { inside, type Stage } from './stage';
 
 const POINTER_IDLE_MS = 4000;
@@ -25,6 +26,8 @@ interface Draggable {
   free(): boolean;
   box(): Box;
   grab(p: WorldPoint): void;
+  /** Taken new out of the chest, straight into the hand. */
+  take(p: WorldPoint): void;
   move(p: WorldPoint): void;
   /** Let go at `p`, the hand moving at velocity `v`. */
   release(p: WorldPoint, v: WorldPoint): void;
@@ -38,6 +41,7 @@ function draggables({ world, buddy }: Session): Draggable[] {
       free: () => ball.state === 'free',
       box: () => ball.box,
       grab: (p) => grabBall(buddy, p.x, p.y),
+      take: (p) => grabBall(buddy, p.x, p.y),
       move: (p) => moveHeldBall(buddy, p.x, p.y),
       release: (p, v) => throwBall(buddy, v.x, v.y, p.x),
     },
@@ -45,6 +49,7 @@ function draggables({ world, buddy }: Session): Draggable[] {
       free: () => treat.state === 'free',
       box: () => treat.box,
       grab: (p) => grabTreat(buddy, p.x, p.y),
+      take: (p) => takeTreat(buddy, p.x, p.y),
       move: (p) => moveHeldTreat(buddy, p.x, p.y),
       release: () => releaseTreat(buddy),
     },
@@ -110,6 +115,46 @@ export class Input {
     return this.draggables.find((d) => d.free() && this.over(d.box(), x, y));
   }
 
+  private chestItemAt(x: number, y: number): ChestItem | undefined {
+    const at = this.stage.toWorld(x, y);
+    return this.session.world.chest.itemAt(at.x, at.y);
+  }
+
+  // What taking each thing out of the chest does: a toy comes into your hand, the rest happens there and then.
+  private takeFromChest(item: ChestItem, p: WorldPoint): void {
+    const { buddy } = this.session;
+    const [ball, treat] = this.draggables;
+    this.onInteraction();
+    // The click that ends this press is not one on its view.
+    this.dragged = true;
+    switch (item) {
+      case 'meal':
+        fillBowl(buddy);
+        break;
+      case 'bubbles':
+        blowBubbles(buddy);
+        break;
+      case 'ball':
+        this.hold(ball, p, 'take');
+        break;
+      case 'treat':
+        this.hold(treat, p, 'take');
+        break;
+      default:
+        // A thing added to the chest must say here what taking it does.
+        item satisfies never;
+    }
+  }
+
+  private hold(picked: Draggable, p: WorldPoint, how: 'grab' | 'take'): void {
+    this.holding = picked;
+    this.throwing.reset();
+    picked[how](p);
+    this.throwing.sample(p, performance.now());
+    // A hand that holds something is not rummaging in the chest.
+    this.session.world.chest.point(undefined);
+  }
+
   private overBubble(x: number, y: number): boolean {
     const at = this.stage.toWorld(x, y);
     return this.session.world.bubbles.at(at.x, at.y, 3) !== undefined;
@@ -136,9 +181,9 @@ export class Input {
     let cursor = 'default';
     if (this.holding || (this.pressedOnBuddy && this.dragged)) {
       cursor = 'grabbing';
-    } else if (this.draggableAt(x, y)) {
+    } else if (this.draggableAt(x, y) || ['ball', 'treat'].includes(this.chestItemAt(x, y) ?? '')) {
       cursor = 'grab';
-    } else if (this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
+    } else if (this.chestItemAt(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
       cursor = 'pointer';
     }
     this.stage.canvas.style.cursor = cursor;
@@ -148,13 +193,16 @@ export class Input {
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
     this.dragged = false;
     const p = this.stage.toWorld(e.clientX, e.clientY);
+    const item = this.chestItemAt(e.clientX, e.clientY);
     const picked = this.draggableAt(e.clientX, e.clientY);
-    if (picked) {
-      this.holding = picked;
+    if (item) {
+      this.takeFromChest(item, p);
+      this.updateCursor(e.clientX, e.clientY);
+      e.preventDefault();
+      return;
+    } else if (picked) {
       this.onInteraction();
-      this.throwing.reset();
-      picked.grab(p);
-      this.throwing.sample(p, performance.now());
+      this.hold(picked, p, 'grab');
     } else if (this.zoneAt(e.clientX, e.clientY)) {
       this.pressedOnBuddy = { x: e.clientX, y: e.clientY };
       this.stroke.reset();
@@ -178,6 +226,7 @@ export class Input {
     if (!asleep(buddy)) {
       this.onInteraction();
     }
+    this.session.world.chest.point(this.holding ? undefined : this.stage.toWorld(e.clientX, e.clientY));
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
@@ -220,6 +269,7 @@ export class Input {
       this.releaseHeld(e.clientX, e.clientY, EXIT_THROW_SPEED);
     }
     this.pointer = undefined;
+    this.session.world.chest.point(undefined);
   }
 
   private onClick(e: MouseEvent): void {
