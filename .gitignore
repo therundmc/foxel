@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.vsix
+
+# Working notes, kept out of the repository
+ROADMAP.md

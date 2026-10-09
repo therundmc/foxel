@@ -29,6 +29,7 @@ describe('treat', () => {
     const { anims, eatMs } = eatTrace(b);
     expect([...anims]).toEqual(expect.arrayContaining(['run', 'eat']));
     expect(eatMs).toBeGreaterThan(6000);
+    expect(b.world.effects).toEqual(['treated']);
     expect(b.state).toBe('lie');
     expect(b.world.treat.active).toBe(false);
   });

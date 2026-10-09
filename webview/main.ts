@@ -94,6 +94,14 @@ function onEffect(effect: Effect): void {
     case 'confetti':
       sky.burst(stage, buddy.x + SPRITE_SIZE / 2);
       break;
+    case 'petted':
+    case 'treated':
+      vscode.postMessage({ type: 'cared', care: effect });
+      break;
+    case 'unfed':
+    case 'unheard':
+      vscode.postMessage({ type: 'slighted', slight: effect });
+      break;
     default:
       effect satisfies never;
   }

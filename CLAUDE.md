@@ -24,10 +24,12 @@ Every feature is judged against these three, before any technical consideration:
 | --- | --- |
 | `shared/protocol.ts` | Messages and settings exchanged by host and view |
 | `shared/day.ts` | Pure time-of-day logic (phases, meals, light, party days) |
+| `shared/life.ts` | Its life as it is saved: the facts of each day, and the attachment and mood worked out from them (pure) |
 | `src/extension.ts` | Composition root: commands, providers, config changes; keeps the fox's memory between views |
 | `src/events.ts` | Editor events → `Reaction`s, with cooldowns; idle and work tracking |
 | `src/work.ts` | Work beyond typing → `Reaction`s: Git, terminal commands and tasks, what takes long |
 | `src/routine.ts` | Timed needs: meals, break and drink reminders |
+| `src/lifeStore.ts` | Keeps its life for good: synced between machines, merged between windows |
 | `src/config.ts` | Reading settings; `SENT` lists those forwarded to the view |
 | `webview/main.ts` | Wiring: loop, clock, host messages |
 | `webview/input.ts`, `gestures.ts` | Mouse → commands; throw and stroke detection (pure) |
@@ -55,6 +57,7 @@ Every feature is judged against these three, before any technical consideration:
 - **New animation**: one entry in `ANIMATIONS` (`sprites/fox/animations.ts`); its key becomes an `AnimName`. `test/sprites.test.ts` checks every entry. An accessory is a `props` entry of a pose: a glyph placed from the corner of the sprite, which may turn round with the fox (`mirrors`) or go behind it (`behind`). It has to arrive and leave, never pop.
 - **New message**: add it to `HostMessage` or `WebviewMessage`; the compiler flags the `switch` that must handle it (`webview/main.ts`, `src/buddyViewProvider.ts`).
 - **Something to keep when the view closes**: a webview loses everything when hidden. Add the field to `BuddyMemory` (`shared/protocol.ts`), then to `remember`, `sameMemory` and `recall` in `sim/memory.ts`. The host needs no change.
+- **Something to keep for good**: its life is saved as facts, never as feelings. A new fact about a day goes in `DayRecord` (`shared/life.ts`), with its reading in `readLife`, its merge in `mergeLives` and its recording in `LifeStore`; what it feels is worked out from the facts. Changing the saved shape means raising `LIFE_VERSION` and bringing older saves up to date in `readLife`.
 - **New setting**: `package.json` + `BuddyConfig`/`readConfig`. If the view needs it, add it to `BuddySettings`; the compiler asks for it in `SENT`. Add it to the settings table of the README.
 - **New sky to contemplate**: add it to `Vista` (`shared/day.ts`), and to the hours it may come at in `vistasAt`; the compiler asks for its painter in `render/scenery/index.ts`. A painter keeps nothing between frames: it paints from its `VistaView` (size, time since it appeared, time since its great moment), in sprite pixels. What the fox does in front of it is `features/contemplate.ts`, the same for every sky; once out, a sky runs to its end by itself (`props/scenery.ts`), even if the fox is drawn away to play.
 - **New toy**: a class in `sim/props/` exposing its `box`, a field and its update in `World`, its glyph in `sprites/props.ts` and a draw method in `render/renderer.ts`. If it can be dragged, one entry in `draggables` (`webview/input.ts`). What the fox does with it is a feature like any other.

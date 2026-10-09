@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
+import type { Care } from '../shared/life';
 import {
   SCENES,
-  type BuddyMemory,
   type HostMessage,
   type Reaction,
   type Scene,
@@ -11,6 +11,7 @@ import {
 import type { BuddyHost } from './buddyHost';
 import { BuddyPanel, PANEL_TYPE } from './buddyPanel';
 import { BuddyViewProvider } from './buddyViewProvider';
+import { LifeStore } from './lifeStore';
 import { readConfig, SECTION, WEBVIEW_SETTINGS, webviewSettings, type Position } from './config';
 import { ActivityWatcher } from './events';
 import { Routine } from './routine';
@@ -74,9 +75,12 @@ export function activate(context: vscode.ExtensionContext): void {
     installedOn = dateKey(new Date());
     void context.globalState.update(INSTALLED_KEY, installedOn);
   }
+  // Its life is kept for good and follows you between machines: it was born the day the first of them met it.
+  const store = new LifeStore(context.globalState, installedOn, clock);
+  closing = () => store.save();
   const settingsMessage = (): HostMessage => ({
     type: 'settings',
-    settings: { ...webviewSettings(readConfig()), installedOn },
+    settings: { ...webviewSettings(readConfig()), installedOn: store.life.born },
   });
   const title = (): string | undefined => readConfig().name.trim() || undefined;
   const setDebugContext = (): Thenable<unknown> =>
@@ -110,15 +114,23 @@ export function activate(context: vscode.ExtensionContext): void {
   void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
-  // A view forgets everything when it is closed, so the fox's needs are kept here for the next one.
-  let memory: BuddyMemory | undefined;
+  /** Cares switched off in the settings: not doing them is never held against you. */
+  const caresOff = (): Care[] => (readConfig().meals ? [] : ['fed']);
+  // A minute with its view open and you there is a minute spent together.
+  const together = setInterval(() => {
+    if (viewLive() && !watcher.asleep) {
+      store.present(1, caresOff());
+    }
+  }, 60_000);
 
   // Opening its view is coming to see it: it is awake for that.
   const onReady = (provider: BuddyHost): void => {
     watcher.interacted();
     provider.post(settingsMessage());
-    if (memory) {
-      provider.post({ type: 'memory', memory });
+    // A view forgets everything when it is closed: it is told what the fox needed when the last one noted it.
+    const needs = store.needs;
+    if (needs) {
+      provider.post({ type: 'memory', memory: needs });
     }
     routine.viewReady();
     // A view that has just opened does not know what the fox is fretting about.
@@ -133,15 +145,23 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'fed':
         routine.fed();
+        store.care('fed');
+        break;
+      case 'cared':
+        store.care(msg.care);
+        break;
+      case 'slighted':
+        store.slight(msg.slight);
         break;
       case 'interaction':
         watcher.interacted();
         break;
       case 'played':
         watcher.tookBreak();
+        store.care('played');
         break;
       case 'memory':
-        memory = msg.memory;
+        store.noteNeeds(msg.memory);
         break;
       default:
         // Anything else is ignored; the compiler flags a message of ours left unhandled.
@@ -199,6 +219,8 @@ export function activate(context: vscode.ExtensionContext): void {
     watcher,
     work,
     routine,
+    store,
+    { dispose: () => clearInterval(together) },
     vscode.commands.registerCommand('foxel.enable', () => setEnabled(true)),
     vscode.commands.registerCommand('foxel.disable', () => setEnabled(false)),
     vscode.commands.registerCommand('foxel.toggle', () => setEnabled(!readConfig().enabled)),
@@ -234,4 +256,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 }
 
-export function deactivate(): void {}
+/** Set once its life is being kept: writes what has not been written yet. */
+let closing: (() => Thenable<void>) | undefined;
+
+// The editor waits for this before it shuts the extension down.
+export function deactivate(): Thenable<void> | undefined {
+  return closing?.();
+}

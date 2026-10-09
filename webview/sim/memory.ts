@@ -5,6 +5,9 @@ import { AFTER_OPEN_MS } from './features/contemplate';
 /** The wait before the next contemplation runs down by itself: it is the same memory until it shifts by this much. */
 const VISTA_SLACK_MS = 60_000;
 
+/** A need noted longer ago than this has passed: it does not sulk this morning over yesterday's lunch. */
+const PASSED_AFTER_MS = 4 * 3_600_000;
+
 /** What it carries over, as of `now` (ms since the epoch). */
 export function remember(b: Buddy, now: number): BuddyMemory {
   return {
@@ -38,17 +41,20 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
 
 /** Picks up where it left off, hungrier by the time that went by. */
 export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
-  if (memory.hungryForMs !== undefined) {
-    b.meals.hungry = true;
-    b.meals.hungerMs = memory.hungryForMs + Math.max(0, now - memory.savedAt);
+  const since = Math.max(0, now - memory.savedAt);
+  if (since < PASSED_AFTER_MS) {
+    if (memory.hungryForMs !== undefined) {
+      b.meals.hungry = true;
+      b.meals.hungerMs = memory.hungryForMs + since;
+    }
+    b.meals.thirsty = memory.thirsty;
+    b.rest.breakWanted = memory.breakWanted;
+    b.rest.breakAsks = memory.breakAsks;
   }
-  b.meals.thirsty = memory.thirsty;
-  b.rest.breakWanted = memory.breakWanted;
-  b.rest.breakAsks = memory.breakAsks;
   b.intro.greeted = { ...memory.greeted };
   b.contemplate.dream = memory.dream;
   b.contemplate.last = memory.lastVista;
   b.visitors.mouseFriend = memory.mouseFriend === true;
   // A memory noted by a view from before contemplations knows nothing of the wait.
-  b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, (memory.vistaInMs ?? 0) - Math.max(0, now - memory.savedAt));
+  b.contemplate.waitMs = Math.max(AFTER_OPEN_MS, (memory.vistaInMs ?? 0) - since);
 }

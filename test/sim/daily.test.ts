@@ -100,6 +100,7 @@ describe('living with you', () => {
     b.world.setClock(at(14, 1), true);
     b.world.update(16);
     expect(b.state).toBe('sad');
+    expect(b.world.effects).toEqual(['unfed']);
     expect(b.world.foodBowl.active).toBe(false);
   });
 
@@ -136,8 +137,10 @@ describe('living with you', () => {
     expect(b.emote()).toBe('cup');
     expect(b.world.ball.state).toBe('free');
     simulate(b, 7000);
+    expect(b.world.effects).not.toContain('unheard');
     react(b, 'breakTime');
     expect(b.current().anim).toBe('sigh');
+    expect(b.world.effects).toContain('unheard');
   });
 
   it('pulls its basket in at night, and sleeps in it with the nightcap that was waiting there', () => {

@@ -228,6 +228,7 @@ export const mealsFeature = {
     const bowl = b.world.foodBowl;
     if (!mealAt(b.world.now) && !(bowl.amount > 0)) {
       m.hungry = false;
+      b.world.effects.push('unfed');
       bowl.hide();
       if (b.state === 'hungry') {
         b.tryEnter('sad', REACTION_MS.sad);

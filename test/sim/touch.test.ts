@@ -99,6 +99,14 @@ describe('touch', () => {
 });
 
 describe('petting', () => {
+  it('takes a pat as a caress, but not the clicks that pile up on it', () => {
+    const b = spawn(fixed(0.5));
+    b.world.resize(300, 60);
+    touch(b, 'head');
+    touch(b, 'head');
+    expect(b.world.effects).toEqual(['petted']);
+  });
+
   it('melts into a cuddle when petted long enough, then lies down', () => {
     const b = spawn(fixed(0.5));
     b.world.resize(300, 60);
@@ -106,6 +114,8 @@ describe('petting', () => {
       pet(b);
     });
     expect(b.state).toBe('petted');
+    // One stroke is one caress, however long it lasts.
+    expect(b.world.effects.filter((e) => e === 'petted')).toHaveLength(1);
     expect(b.current().anim).toBe('cuddle');
     simulate(b, 1600);
     expect(b.state).toBe('lie');

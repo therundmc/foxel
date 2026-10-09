@@ -16,6 +16,22 @@ describe('memory', () => {
     return b;
   }
 
+  it('lets a need pass that was noted hours ago: it does not sulk this morning over yesterday', () => {
+    const before = fox();
+    react(before, 'hungry');
+    react(before, 'breakTime');
+    simulate(before, 5000);
+    const memory = { ...remember(before, 1000), thirsty: true, breakAsks: 2, mouseFriend: true };
+
+    const after = fox();
+    recall(after, memory, 1000 + 5 * 60 * MINUTE);
+    expect(after.meals.hungry).toBe(false);
+    expect(after.meals.thirsty).toBe(false);
+    expect(after.rest.breakAsks).toBe(0);
+    // What lasts is still there.
+    expect(after.visitors.mouseFriend).toBe(true);
+  });
+
   it('is still hungry in a new view, and hungrier for the time spent away', () => {
     const before = fox();
     react(before, 'hungry');

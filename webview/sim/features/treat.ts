@@ -81,6 +81,7 @@ function updateSnack(b: Buddy, dt: number): void {
     b.snack.eatMs += dt * 1000;
     if (b.snack.eatMs >= totalDuration(ANIMATIONS.eat)) {
       treat.state = 'none';
+      b.world.effects.push('treated');
       b.enter('lie', b.ambientDuration('lie'));
     }
     return;

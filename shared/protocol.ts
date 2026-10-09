@@ -163,4 +163,8 @@ export type WebviewMessage =
   | { type: 'interaction' }
   /** The user played with the fox, which is a break from work. */
   | { type: 'played' }
+  /** The user looked after the fox in a way the extension would not know of otherwise. */
+  | { type: 'cared'; care: 'petted' | 'treated' }
+  /** The fox had to put up with something: a meal time gone by unfed, a break it asked for in vain. */
+  | { type: 'slighted'; slight: 'unfed' | 'unheard' }
   | { type: 'memory'; memory: BuddyMemory };

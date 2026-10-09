@@ -45,6 +45,7 @@ export function startBreak(b: Buddy): void {
   b.rest.breakWanted = false;
   b.rest.breakAsks++;
   if (b.rest.breakAsks > 1) {
+    b.world.effects.push('unheard');
     perform(b, SIGH);
     return;
   }

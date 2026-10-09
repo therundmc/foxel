@@ -88,7 +88,13 @@ export function pet(b: Buddy): void {
   b.touch.petMs = 0;
   b.touch.petIdleMs = 0;
   b.tryEnter('petted', Infinity);
+  // Asked afresh: the compiler still believes what the test above found.
+  if (stateOf(b) === 'petted') {
+    b.world.effects.push('petted');
+  }
 }
+
+const stateOf = (b: Buddy): BuddyState => b.state;
 
 export function touch(b: Buddy, zone: TouchZone): void {
   // Clicking again mid-reaction builds excitement instead of restarting the animation.
@@ -103,6 +109,9 @@ export function touch(b: Buddy, zone: TouchZone): void {
   }
   b.touch.lastVariant[zone] = pick;
   perform(b, options[pick]);
+  if (stateOf(b) === 'touched') {
+    b.world.effects.push('petted');
+  }
 }
 
 export function perform(b: Buddy, reaction: TouchReaction): void {
