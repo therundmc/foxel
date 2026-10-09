@@ -32,6 +32,7 @@ const TIDY_MAYBE_MS = 60_000;
 const TIDY_MS = 5 * 60_000;
 /** In a playful mood, a toy you put away it goes and gets out again: how often, and how long after you shut the chest. */
 const PLAYFUL = 0.45;
+const PLAYFUL_MOOD = 0.4;
 const BACK_AFTER_MS = 1600;
 /** A view narrower than this has no room for it beside its chest. */
 const ROOM = 80;
@@ -82,7 +83,8 @@ export function wantBack(b: Buddy, toy: PlushKind | 'ball'): void {
   const m = b.rummage;
   const again = m.gotOut === toy;
   m.gotOut = undefined;
-  if (!again && roomy(b) && b.world.random() < PLAYFUL) {
+  // The better its day, the more often.
+  if (!again && roomy(b) && b.world.random() < clamp(PLAYFUL + PLAYFUL_MOOD * b.world.mood, 0.05, 0.9)) {
     m.wants = toy;
     m.wantsInMs = BACK_AFTER_MS;
   }

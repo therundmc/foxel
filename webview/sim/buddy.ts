@@ -2,7 +2,7 @@ import { MOUTH_X, NOSE_X } from '../sprites/fox/anchors';
 import type { AnimName } from '../sprites/fox/animations';
 import { SPRITE_SIZE } from '../sprites/frames';
 import { BALL_SIZE, type Emote, type Hat } from '../sprites/props';
-import { DEFAULT_NEXT, NIGHT_DAMPING, PHASE_NEXT } from './features/ambient';
+import { DEFAULT_NEXT, MOOD_NEXT, NIGHT_DAMPING, PHASE_NEXT } from './features/ambient';
 import { BubblesMemory } from './features/bubbles';
 import { ContemplateMemory } from './features/contemplate';
 import { FetchMemory } from './features/fetch';
@@ -10,6 +10,7 @@ import { HuntMemory } from './features/hunt';
 import { IntroMemory } from './features/intro';
 import { MealsMemory } from './features/meals';
 import { MousingMemory } from './features/mousing';
+import { BondMemory } from './features/bond';
 import { PlayMemory } from './features/play';
 import { PlushMemory } from './features/plush';
 import { RummageMemory } from './features/rummage';
@@ -62,6 +63,7 @@ export class Buddy {
   readonly fetch = new FetchMemory();
   readonly tricks = new TricksMemory();
   readonly play = new PlayMemory();
+  readonly bond = new BondMemory();
   readonly plush = new PlushMemory();
   readonly rummage = new RummageMemory();
   readonly touch = new TouchMemory();
@@ -274,7 +276,8 @@ export class Buddy {
   pickNext(): BuddyState {
     const phase = this.world.phase;
     const extra = this.free && phase ? (PHASE_NEXT[phase] ?? []) : [];
-    const weights = [...(this.def.next ?? DEFAULT_NEXT), ...extra]
+    const felt = this.free ? MOOD_NEXT.find(({ from, to }) => this.world.mood >= from && this.world.mood <= to)?.next ?? [] : [];
+    const weights = [...(this.def.next ?? DEFAULT_NEXT), ...extra, ...felt]
       .filter(([s]) => STATES[s].available?.(this) ?? true)
       .map(([s, w]) => [s, phase === 'night' && STATES[s].nightDamped ? w * NIGHT_DAMPING : w] as const);
     const total = weights.reduce((sum, [, w]) => sum + w, 0);

@@ -2,6 +2,7 @@ import { BEG_MOUTH_HEIGHT, BEG_MOUTH_X, TREAT_PAWS_X } from '../../sprites/fox/a
 import { ANIMATIONS, EAT_RESUME_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, frameAt, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
+import { cared } from './bond';
 import { urge, type Feature } from '../state';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
 
@@ -102,6 +103,7 @@ function updateSnack(b: Buddy, dt: number): void {
     if (b.snack.eatMs >= totalDuration(ANIMATIONS.eat)) {
       treat.state = 'none';
       b.world.effects.push('treated');
+      cared(b);
       b.enter('lie', b.ambientDuration('lie'));
     }
     return;

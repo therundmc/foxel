@@ -1,6 +1,7 @@
 import type { Greeting } from '../../../shared/protocol';
 import { PEEK_DUCK_MS, PEEK_HAPPY_MS, PEEK_LOOK_MS, PEEK_RETURN_MS } from '../../sprites/fox/animations';
 import type { Buddy } from '../buddy';
+import { welcome as welcomeAfterAbsence } from './bond';
 import type { Feature, Gaze } from '../state';
 import { REACTION_MS } from './reactions';
 import { GOOD_NIGHT, MORNING, perform } from './touch';
@@ -65,6 +66,10 @@ function updateIntro(b: Buddy, dt: number): void {
 
 // Says hello the way the moment calls for: party, good morning, good night, or a plain wave.
 function greet(b: Buddy): void {
+  // After days away, what it feels about that comes first.
+  if (welcomeAfterAbsence(b)) {
+    return;
+  }
   const welcome = welcomeDue(b);
   switch (welcome) {
     case 'party':

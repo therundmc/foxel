@@ -6,6 +6,7 @@ import { Renderer } from './render/renderer';
 import { Sky } from './render/sky';
 import type { Session } from './session';
 import { Buddy } from './sim/buddy';
+import { missedWhileAway, welcomeBack } from './sim/features/bond';
 import { blowBubbles } from './sim/features/bubbles';
 import { spawnBall } from './sim/features/fetch';
 import { startIntro } from './sim/features/intro';
@@ -145,6 +146,16 @@ function onMessage(msg: HostMessage): void {
       break;
     case 'memory':
       recall(buddy, msg.memory, Date.now());
+      break;
+    case 'feelings':
+      world.mood = msg.mood;
+      world.attachment = msg.attachment;
+      break;
+    case 'welcome':
+      welcomeBack(buddy, msg.daysAway);
+      break;
+    case 'missed':
+      missedWhileAway(buddy, msg.reaction);
       break;
     case 'reaction':
       if (!showcase.active) {

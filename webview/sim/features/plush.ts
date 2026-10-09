@@ -6,12 +6,10 @@ import { clamp } from '../math';
 import type { Plush } from '../props/plush';
 import type { AnimRef, Feature } from '../state';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
+import { mouthPoint } from './mouth';
 import { asleep, tookBreak } from './rest';
 import { wantBack } from './rummage';
 
-/** Where its mouth is from the middle of its head, in a frame; what it carries hangs a little under it. */
-const MOUTH = 5.5;
-const HANGS = 1;
 /** It shakes the toy for this long, more often than not, before it throws it. */
 const SHAKE_MS = 720;
 const SHAKES = 0.6;
@@ -21,6 +19,8 @@ const TOSS_AT = 180;
 const TOSS_UP = 74;
 const TOSS_UP_MORE = 14;
 const TOSS_ASIDE = 30;
+/** How far under the middle of its head its mouth is. */
+const MOUTH_UNDER_HEAD = 5.5;
 /** A toy coming down within its reach, it jumps and catches: how long the jump lasts, how high, and what is within reach. */
 const LEAP_MS = 420;
 const LEAP_HEIGHT = 9;
@@ -87,11 +87,10 @@ function begin(b: Buddy, kind: PlushKind, at: Phase): void {
 
 const playingWith = (b: Buddy, kind: PlushKind): boolean => b.state === 'plush' && b.plush.toy === kind;
 
-/** What it carries hangs from its mouth, wherever its head is in the frame it shows. */
+/** The toy hangs from its mouth. */
 export function carryInMouth(b: Buddy, toy: Plush): void {
-  const { anim, elapsed } = b.current();
-  const [hx, hy] = frameAt(ANIMATIONS[anim], elapsed).head;
-  toy.carry(b.x + b.offsetFor(hx + MOUTH), b.y + SPRITE_SIZE - (hy + MOUTH) - HANGS);
+  const at = mouthPoint(b);
+  toy.carry(at.x, at.y);
 }
 
 /** A soft toy is in your hand, at this point: out of the chest, picked up from where it lay, or caught as it flew. */
@@ -202,7 +201,7 @@ function reach(b: Buddy, toy: Plush, dt: number): boolean {
   return !b.moving;
 }
 
-const mouthHeight = (b: Buddy): number => b.y + SPRITE_SIZE - (frameAt(ANIMATIONS.leap, 0).head[1] + MOUTH);
+const mouthHeight = (b: Buddy): number => b.y + SPRITE_SIZE - (frameAt(ANIMATIONS.leap, 0).head[1] + MOUTH_UNDER_HEAD);
 
 function updatePlush(b: Buddy, dt: number, dtMs: number): void {
   const m = b.plush;

@@ -54,6 +54,9 @@ export class World {
   /** Where the user's pointer is, while it is around and not busy with the chest. */
   pointer: WorldPoint | undefined;
   party: Party | undefined;
+  /** Its mood today, from -1 to 1, and how attached to you it has grown, from 0 to 1: told by the extension. */
+  mood = 0;
+  attachment = 0;
   now = new Date();
   private dayLife = false;
 

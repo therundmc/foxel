@@ -19,6 +19,11 @@ export const PHASE_NEXT: Partial<Record<DayPhase, Weights>> = {
   evening: [['zoomies', 6], ['mousing', 6]],
   night: [['drowsy', 25], ['yawn', 12], ['lantern', 10]],
 };
+/** What a good or a bad day adds to what it feels like doing, when calm: playful when its mood is high, listless when it is low. */
+export const MOOD_NEXT: readonly { from: number; to: number; next: Weights }[] = [
+  { from: 0.4, to: 1, next: [['play', 14], ['plush', 12], ['rummage', 8], ['jump', 8], ['run', 5], ['chaseTail', 3]] },
+  { from: -1, to: -0.2, next: [['mope', 18], ['lie', 30], ['sit', 15]] },
+];
 /** How much less likely the `nightDamped` states get at night. */
 export const NIGHT_DAMPING = 0.25;
 

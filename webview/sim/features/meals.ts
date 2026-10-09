@@ -4,6 +4,7 @@ import { ANIMATIONS, KIBBLE_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import { BOWL_CAPACITY } from '../../sprites/props';
 import type { Buddy } from '../buddy';
+import { cared, slighted } from './bond';
 import { urge, type Feature } from '../state';
 import { FETCH_RUN_SPEED, FETCH_WALK_SPEED, WALK_SPEED } from '../tuning';
 import { REACTION_MS } from './reactions';
@@ -109,6 +110,7 @@ function updateFeast(b: Buddy, dt: number): void {
     b.meals.hungerMs = 0;
     b.meals.done = 'foodBowl';
     b.world.effects.push('fed');
+    cared(b);
     perform(b, FULL);
   }
 }
@@ -229,6 +231,7 @@ export const mealsFeature = {
     if (!mealAt(b.world.now) && !(bowl.amount > 0)) {
       m.hungry = false;
       b.world.effects.push('unfed');
+      slighted(b);
       bowl.hide();
       if (b.state === 'hungry') {
         b.tryEnter('sad', REACTION_MS.sad);

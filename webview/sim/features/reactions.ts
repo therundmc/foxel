@@ -1,6 +1,7 @@
 import type { Reaction } from '../../../shared/protocol';
 import type { Buddy } from '../buddy';
-import type { Feature } from '../state';
+import { urge, type Feature } from '../state';
+import { takeMissed } from './bond';
 import { startDrink, startHungry } from './meals';
 import { goToSleep, startBreak, wakeUp } from './rest';
 import { WORK } from './work';
@@ -103,4 +104,16 @@ export const reactionsFeature = {
     sad: { priority: 3 },
     panic: { priority: 4, speed: 45, finish: (b) => b.enterNext('dizzy') },
   },
+  // What it missed while its view was out of sight: only the last thing, and only once it has a quiet moment.
+  urges: [
+    urge(
+      (b) => b.bond.missed !== undefined,
+      (b) => {
+        const reaction = takeMissed(b);
+        if (reaction) {
+          react(b, reaction);
+        }
+      },
+    ),
+  ],
 } satisfies Feature;

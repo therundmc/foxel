@@ -4,6 +4,7 @@ import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, FETCH_MAX_MS, WALK_SPEED } from '../tuning';
 import { sleepOf } from './contemplate';
+import { cared, slighted } from './bond';
 import { startRummage } from './rummage';
 import { SIGH, perform } from './touch';
 
@@ -46,6 +47,7 @@ export function startBreak(b: Buddy): void {
   b.rest.breakAsks++;
   if (b.rest.breakAsks > 1) {
     b.world.effects.push('unheard');
+    slighted(b);
     perform(b, SIGH);
     return;
   }
@@ -66,6 +68,7 @@ export function tookBreak(b: Buddy): void {
   b.rest.breakWanted = false;
   b.rest.breakAsks = 0;
   b.world.effects.push('played');
+  cared(b);
 }
 
 /** Naps where it is by day; at night it goes to its basket first. */

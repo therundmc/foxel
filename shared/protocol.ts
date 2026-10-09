@@ -151,6 +151,12 @@ export type HostMessage =
   | { type: 'reaction'; reaction: Reaction }
   | { type: 'settings'; settings: BuddySettings }
   | { type: 'memory'; memory: BuddyMemory }
+  /** What it feels today, and how attached to you it has grown: worked out by the extension from its life. */
+  | { type: 'feelings'; mood: number; attachment: number }
+  /** You are back after this many days away: sent once, the first time its view opens that day. */
+  | { type: 'welcome'; daysAway: number }
+  /** Something happened in your work while its view was out of sight: the last such thing, to be played once it is back. */
+  | { type: 'missed'; reaction: Reaction }
   | { type: 'spawnBall' }
   | { type: 'giveTreat' }
   | { type: 'blowBubbles' }

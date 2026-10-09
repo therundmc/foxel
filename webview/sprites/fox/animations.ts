@@ -118,6 +118,21 @@ export const ANIMATIONS = {
   shoveCarry: anim(withBall(SHOVE)),
   rummage: anim(RUMMAGE),
   rummageCarry: anim(withBall(RUMMAGE)),
+  // Sulking: sat with its back to you, ears flat, nose up, with a glance over its shoulder to see if you are looking.
+  sulk: anim([
+    [{ ...SIT, ears: 'back', eye: 'closed', mouth: 'flat', head: [-1, 1], tail: 'sitA' }, 1700],
+    [{ ...SIT, ears: 'back', eye: 'open', mouth: 'flat', head: [-2, 0], tail: 'sitA' }, 380],
+    [{ ...SIT, ears: 'back', eye: 'closed', mouth: 'flat', head: [-1, 1], tail: 'sitB' }, 1400],
+  ]),
+  // Making up: a look, wide eyes, and it melts.
+  makeUp: anim([
+    [{ ...SIT, ears: 'back', eye: 'open', mouth: 'flat', head: [-1, 0], tail: 'sitA' }, 340],
+    [{ ...SIT, eye: 'wide', tail: 'sitB' }, 280],
+    ...Array.from({ length: 4 }, (): [Pose, number][] => [
+      [{ eye: 'happy', mouth: 'open', tail: 'wagL', bob: 1, extras: ['heartsA'] }, 190],
+      [{ eye: 'happy', mouth: 'open', tail: 'wagR', extras: ['heartsB'] }, 190],
+    ]).flat(),
+  ]),
   // A soft toy in its mouth: shaking it from side to side, then crouching and flinging it up, and watching it go.
   toyShake: anim([
     [{ head: [-2, 0], eye: 'closed', ears: 'back', tail: 'wagL' }, 80],

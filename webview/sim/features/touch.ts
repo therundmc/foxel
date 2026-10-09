@@ -11,6 +11,7 @@ import {
 import { totalDuration } from '../../sprites/frames';
 import type { Emote } from '../../sprites/props';
 import type { Buddy } from '../buddy';
+import { cared, soothe } from './bond';
 import type { BuddyState, Feature } from '../state';
 import { CHASE_FLIP_MS } from '../tuning';
 
@@ -81,6 +82,9 @@ export class TouchMemory {
 }
 
 export function pet(b: Buddy): void {
+  if (soothe(b)) {
+    return;
+  }
   if (b.state === 'petted') {
     b.touch.petIdleMs = 0;
     return;
@@ -91,12 +95,16 @@ export function pet(b: Buddy): void {
   // Asked afresh: the compiler still believes what the test above found.
   if (stateOf(b) === 'petted') {
     b.world.effects.push('petted');
+    cared(b);
   }
 }
 
 const stateOf = (b: Buddy): BuddyState => b.state;
 
 export function touch(b: Buddy, zone: TouchZone): void {
+  if (soothe(b)) {
+    return;
+  }
   // Clicking again mid-reaction builds excitement instead of restarting the animation.
   if (b.state === 'touched' || b.state === 'zoomies') {
     b.touch.combo++;
@@ -111,6 +119,7 @@ export function touch(b: Buddy, zone: TouchZone): void {
   perform(b, options[pick]);
   if (stateOf(b) === 'touched') {
     b.world.effects.push('petted');
+    cared(b);
   }
 }
 

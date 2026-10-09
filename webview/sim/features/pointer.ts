@@ -57,6 +57,9 @@ function standingUnder(b: Buddy, x: number): { at: number; dir: 1 | -1 } {
   return { at: clamp(x - b.offsetFor(HEAD_X, dir), 0, b.maxX), dir };
 }
 
+/** How long it takes its time before coming, for its mood: half as long on its best days, half as long again on its worst. */
+const keen = (b: Buddy): number => 1 - 0.5 * clamp(b.world.mood, -1, 1);
+
 /** Nothing better to do: it may go to the pointer or ask for a stroke. */
 function atLeisure(b: Buddy): boolean {
   const { ball, treat } = b.world;
@@ -188,7 +191,7 @@ export const pointerFeature = {
       if (m.sinceNudgeMs >= NUDGE_REST_MS) {
         startNudge(b);
       }
-    } else if (m.hereMs >= NOTICE_MS && m.sinceComeMs >= COME_REST_MS && !over(b, pointer) && b.state !== 'lie') {
+    } else if (m.hereMs >= NOTICE_MS * keen(b) && m.sinceComeMs >= COME_REST_MS * keen(b) && !over(b, pointer) && b.state !== 'lie') {
       // Lying down, it is comfortable: it watches the pointer, and only gets up if you call it.
       if (Math.abs(standingUnder(b, pointer.x).at - b.x) > COME_MIN) {
         startCome(b, pointer.x);

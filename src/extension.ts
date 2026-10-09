@@ -24,6 +24,9 @@ const VIEW_IDS: Record<Exclude<Position, 'editor'>, string> = {
 };
 const INSTALLED_KEY = 'foxel.installedOn';
 const COMMIT_DAY_KEY = 'foxel.lastCommitDay';
+const WELCOMED_KEY = 'foxel.welcomedOn';
+/** Something that happened in your work is still worth showing this long after, to a view that was out of sight. */
+const MISSED_FOR_MS = 30 * 60_000;
 const SCENE_LABELS: Record<Scene, string> = {
   morning: 'Good morning',
   breakfast: 'Breakfast',
@@ -110,16 +113,28 @@ export function activate(context: vscode.ExtensionContext): void {
       react(reaction);
     }
   };
-  const work = new WorkWatcher(news, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0), () => watcher.typedAt);
+  // What its view did not see because it was out of sight: only the last thing is kept, to be played when it is back.
+  let missed: { reaction: Reaction; at: number } | undefined;
+  const happened = (reaction: Reaction): void => {
+    missed = providers.some((p) => p.live) ? undefined : { reaction, at: Date.now() };
+    news(reaction);
+  };
+  const work = new WorkWatcher(happened, readConfig, () => watcher.worked(), (conflicts) => trouble('conflicts')(conflicts ? 1 : 0), () => watcher.typedAt);
   void gitApi().then((git) => git && work.watchGit(git));
   const viewLive = (): boolean => providers.some((p) => p.live);
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
   /** Cares switched off in the settings: not doing them is never held against you. */
   const caresOff = (): Care[] => (readConfig().meals ? [] : ['fed']);
+  /** What it feels, as its life stands right now. */
+  const feelings = (): HostMessage => {
+    const { mood, attachment } = store.feelings;
+    return { type: 'feelings', mood, attachment };
+  };
   // A minute with its view open and you there is a minute spent together.
   const together = setInterval(() => {
     if (viewLive() && !watcher.asleep) {
       store.present(1, caresOff());
+      broadcast(feelings());
     }
   }, 60_000);
 
@@ -132,6 +147,20 @@ export function activate(context: vscode.ExtensionContext): void {
     if (needs) {
       provider.post({ type: 'memory', memory: needs });
     }
+    // The first time you come to see it in a day, it is told for how long you had been away.
+    const today = dateKey(clock());
+    const away = store.feelings.daysAway;
+    if (context.globalState.get<string>(WELCOMED_KEY) !== today) {
+      void context.globalState.update(WELCOMED_KEY, today);
+      if (away !== undefined && away >= 1) {
+        provider.post({ type: 'welcome', daysAway: away });
+      }
+    }
+    provider.post(feelings());
+    if (missed && Date.now() - missed.at < MISSED_FOR_MS) {
+      provider.post({ type: 'missed', reaction: missed.reaction });
+    }
+    missed = undefined;
     routine.viewReady();
     // A view that has just opened does not know what the fox is fretting about.
     if (mood() !== 'atEase') {
@@ -146,12 +175,15 @@ export function activate(context: vscode.ExtensionContext): void {
       case 'fed':
         routine.fed();
         store.care('fed');
+        broadcast(feelings());
         break;
       case 'cared':
         store.care(msg.care);
+        broadcast(feelings());
         break;
       case 'slighted':
         store.slight(msg.slight);
+        broadcast(feelings());
         break;
       case 'interaction':
         watcher.interacted();
@@ -159,6 +191,7 @@ export function activate(context: vscode.ExtensionContext): void {
       case 'played':
         watcher.tookBreak();
         store.care('played');
+        broadcast(feelings());
         break;
       case 'memory':
         store.noteNeeds(msg.memory);
