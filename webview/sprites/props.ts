@@ -134,17 +134,21 @@ export const CHEST_OPEN_H = CHEST[2].length;
 /** How high the top of its body is: what comes out of it rises from behind there. */
 export const CHEST_RIM = CHEST_BOX.length + 1;
 
-export type ChestDrawer = 'food' | 'play';
-export type ChestItem = 'meal' | 'treat' | 'ball' | 'bubbles';
+/** What its chest holds: the things you take in your hand, to play with it or to give it. */
+export type ChestItem = 'ball' | 'treat' | 'teddy' | 'duck';
+export type PlushKind = 'teddy' | 'duck';
 
-// What its tiles show. A drawer shows what it is for, a thing shows itself.
-const CHEST_ICONS: Record<ChestDrawer | ChestItem, Glyph> = {
-  food: ['...kF..', '.AAkAA.', 'AAAAAAA', 'ApAAAAa', 'AAAAAAa', '.AAAAa.', '..A.a..'],
-  play: ['...x...', '..xXx..', 'xxXXXxx', '.xXXXx.', '..xXx..', '.xx.xx.', '.x...x.'],
-  meal: ['.k.k.k.', '.kkkkk.', 'AAAAAAA', 'AAAAAAA', '.aaaaa.'],
-  treat: ['TT...TT', 'TTTTTTT', 'ttttttt', 'tt...tt'],
+// Its soft toys, as they are in a tile; out in the view they get a dark border.
+const PLUSH_FILLS: Record<PlushKind, Glyph> = {
+  teddy: ['tt...tt', 'tTTTTTt', 'TETTTET', 'TTcEcTT', '.TcccT.', 'tTTTTTt', '.tt.tt.'],
+  duck: ['..SSS..', '.SSESOO', '.SSSS..', 'SSSSSS.', 'SxxxSS.', '.SSSS..'],
+};
+export const PLUSH: Record<PlushKind, Glyph> = { teddy: outlined(PLUSH_FILLS.teddy), duck: outlined(PLUSH_FILLS.duck) };
+
+const CHEST_ICONS: Record<ChestItem, Glyph> = {
   ball: BALL_FRAMES[0],
-  bubbles: ['.UUU...', 'Uw..U.U', 'U...U..', 'U...U..', '.UUU...', '.....UU', '.....Uw'],
+  treat: ['TT...TT', 'TTTTTTT', 'ttttttt', 'tt...tt'],
+  ...PLUSH_FILLS,
 };
 
 export const TILE = 11;
@@ -162,9 +166,22 @@ function tile(icon: Glyph = []): Glyph {
   icon.forEach((line, y) => [...line].forEach((c, x) => c !== TRANSPARENT && (rows[top + y][left + x] = c)));
   return rows.map((r) => r.join(''));
 }
-export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([name, icon]) => [name, tile(icon)])) as Record<ChestDrawer | ChestItem, Glyph>;
+export const CHEST_TILES = Object.fromEntries(Object.entries(CHEST_ICONS).map(([name, icon]) => [name, tile(icon)])) as Record<ChestItem, Glyph>;
 /** The tile of a thing that is not in the chest right now. */
 export const CHEST_TILE_EMPTY: Glyph = tile();
+
+// The little shelf on the wall, top right: a board on a bracket, and on it what is not a toy.
+export type ShelfItem = 'meal' | 'bubbles';
+export const SHELF: Glyph = outlined(['TTTTTTTTTTTTTTTTTTTTTT', 'tttttttttttttttttttttt', '...............tt.....', '................tt....']);
+/** A bag of kibble, and a bottle of soap with its wand: each stands on the board, this far from its left end. */
+export const SHELF_ITEMS: Record<ShelfItem, { glyph: Glyph; x: number }> = {
+  meal: { glyph: outlined(['.AAAA.', 'aaaaaa', 'AAAAAA', 'AccccA', 'AckkcA', 'AccccA', 'AAAAAA', 'aaaaaa']), x: 3 },
+  bubbles: { glyph: outlined(['.CCC.', '.CwC.', '.CCC.', '.WWW.', 'UUUUU', 'UwUUU', 'UwUUU', 'uuuuu']), x: 13 },
+};
+export const SHELF_W = SHELF[0].length;
+/** How high the board and its bracket are, and how high the tallest thing on it stands above the board. */
+export const SHELF_H = SHELF.length;
+export const SHELF_ABOVE = Math.max(...Object.values(SHELF_ITEMS).map((item) => item.glyph.length));
 
 export const CAKE: readonly Glyph[] = [
   outlined(['...H...', '...S...', '.LLLLL.', 'WWWWWWW', 'LLLLLLL', 'ccccccc']),

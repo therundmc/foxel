@@ -7,12 +7,13 @@ import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
 import { asleep } from './sim/features/rest';
 import { pet, touch } from './sim/features/touch';
+import { holdPlush, stowPlush, tossPlush } from './sim/features/plush';
 import { grabTreat, moveHeldTreat, releaseTreat, stowTreat, takeTreat } from './sim/features/treat';
 import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
-import type { ChestItem } from './sprites/props';
+import type { ChestItem, PlushKind, ShelfItem } from './sprites/props';
 import { inside, type Stage } from './stage';
 
 const POINTER_IDLE_MS = 4000;
@@ -35,11 +36,23 @@ interface Draggable {
   release(p: WorldPoint, v: WorldPoint): void;
 }
 
-// Checked in this order when two of them overlap. A new draggable toy only needs an entry here.
-function draggables({ world, buddy }: Session): Draggable[] {
+/** A soft toy lets go of gently: it drops with a little of the hand's speed. */
+const PLUSH_TOSS = 0.5;
+
+// Everything in the chest can be held. Checked in this order when two of them overlap; a new toy only needs an entry here.
+function draggables({ world, buddy }: Session): Record<ChestItem, Draggable> {
   const { ball, treat } = world;
-  return [
-    {
+  const plush = (kind: PlushKind): Draggable => ({
+    free: () => world.plushes[kind].state === 'free',
+    box: () => world.plushes[kind].box,
+    grab: (p) => holdPlush(buddy, kind, p.x, p.y),
+    take: (p) => holdPlush(buddy, kind, p.x, p.y),
+    move: (p) => holdPlush(buddy, kind, p.x, p.y),
+    release: (_, v) => tossPlush(buddy, kind, v.x * PLUSH_TOSS, v.y * PLUSH_TOSS),
+    stow: () => stowPlush(buddy, kind),
+  });
+  return {
+    ball: {
       free: () => ball.state === 'free',
       box: () => ball.box,
       grab: (p) => grabBall(buddy, p.x, p.y),
@@ -48,7 +61,7 @@ function draggables({ world, buddy }: Session): Draggable[] {
       move: (p) => moveHeldBall(buddy, p.x, p.y),
       release: (p, v) => throwBall(buddy, v.x, v.y, p.x),
     },
-    {
+    treat: {
       free: () => treat.state === 'free',
       box: () => treat.box,
       grab: (p) => grabTreat(buddy, p.x, p.y),
@@ -57,13 +70,16 @@ function draggables({ world, buddy }: Session): Draggable[] {
       move: (p) => moveHeldTreat(buddy, p.x, p.y),
       release: () => releaseTreat(buddy),
     },
-  ];
+    teddy: plush('teddy'),
+    duck: plush('duck'),
+  };
 }
 
 /** Turns what the mouse does on the canvas into what happens to the buddy and its toys. */
 export class Input {
   /** What the user is dragging around. */
   holding: Draggable | undefined;
+  private readonly toys: Record<ChestItem, Draggable>;
   private readonly draggables: readonly Draggable[];
   private pointer: { x: number; y: number; time: number } | undefined;
   private dragged = false;
@@ -77,7 +93,8 @@ export class Input {
     /** Called whenever the user does something with the fox or its things. */
     private readonly onInteraction: () => void,
   ) {
-    this.draggables = draggables(session);
+    this.toys = draggables(session);
+    this.draggables = Object.values(this.toys);
     const canvas = stage.canvas;
     canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
     window.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -119,18 +136,23 @@ export class Input {
     return this.draggables.find((d) => d.free() && this.over(d.box(), x, y));
   }
 
+  private shelfItemAt(x: number, y: number): ShelfItem | undefined {
+    const at = this.stage.toWorld(x, y);
+    return this.session.world.shelf.itemAt(at.x, at.y);
+  }
+
   private chestItemAt(x: number, y: number): ChestItem | undefined {
     const at = this.stage.toWorld(x, y);
     return this.session.world.chest.itemAt(at.x, at.y);
   }
 
-  // What taking each thing out of the chest does: a toy comes into your hand, the rest happens there and then.
-  private takeFromChest(item: ChestItem, p: WorldPoint): void {
-    const { buddy } = this.session;
-    const [ball, treat] = this.draggables;
+  // What using each thing on the shelf does.
+  private useShelf(item: ShelfItem): void {
+    const { buddy, world } = this.session;
     this.onInteraction();
     // The click that ends this press is not one on its view.
     this.dragged = true;
+    world.shelf.press(item);
     switch (item) {
       case 'meal':
         fillBowl(buddy);
@@ -138,14 +160,8 @@ export class Input {
       case 'bubbles':
         blowBubbles(buddy);
         break;
-      case 'ball':
-        this.hold(ball, p, 'take');
-        break;
-      case 'treat':
-        this.hold(treat, p, 'take');
-        break;
       default:
-        // A thing added to the chest must say here what taking it does.
+        // A thing added to the shelf must say here what using it does.
         item satisfies never;
     }
   }
@@ -192,9 +208,9 @@ export class Input {
     let cursor = 'default';
     if (this.holding || (this.pressedOnBuddy && this.dragged)) {
       cursor = 'grabbing';
-    } else if (this.draggableAt(x, y) || ['ball', 'treat'].includes(this.chestItemAt(x, y) ?? '')) {
+    } else if (this.draggableAt(x, y) || this.chestItemAt(x, y)) {
       cursor = 'grab';
-    } else if (this.chestItemAt(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
+    } else if (this.shelfItemAt(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
       cursor = 'pointer';
     }
     this.stage.canvas.style.cursor = cursor;
@@ -206,8 +222,16 @@ export class Input {
     const p = this.stage.toWorld(e.clientX, e.clientY);
     const item = this.chestItemAt(e.clientX, e.clientY);
     const picked = this.draggableAt(e.clientX, e.clientY);
-    if (item) {
-      this.takeFromChest(item, p);
+    const onShelf = this.shelfItemAt(e.clientX, e.clientY);
+    if (item || onShelf) {
+      if (item) {
+        // Out of the chest, straight into the hand.
+        this.onInteraction();
+        this.hold(this.toys[item], p, 'take');
+      } else if (onShelf) {
+        this.useShelf(onShelf);
+      }
+      this.dragged = true;
       this.updateCursor(e.clientX, e.clientY);
       e.preventDefault();
       return;
@@ -240,6 +264,7 @@ export class Input {
     const { chest } = this.session.world;
     const at = this.stage.toWorld(e.clientX, e.clientY);
     chest.point(at, this.holding !== undefined);
+    this.session.world.shelf.point(this.holding ? undefined : at);
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
@@ -285,6 +310,7 @@ export class Input {
     }
     this.pointer = undefined;
     this.session.world.chest.point(undefined);
+    this.session.world.shelf.point(undefined);
   }
 
   private onClick(e: MouseEvent): void {
@@ -308,8 +334,8 @@ export class Input {
       // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
       touch(buddy, zone);
       this.onInteraction();
-    } else if (this.session.world.chest.asked) {
-      // A click at the chest is for the chest: it does not call the fox over.
+    } else if (this.session.world.chest.asked || this.session.world.shelf.asked) {
+      // A click at the chest or the shelf is for them: it does not call the fox over.
     } else if (!this.overBuddy(e.clientX, e.clientY) && (callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x) || asleep(buddy))) {
       // A click in its view calls it over, or wakes it.
       this.onInteraction();

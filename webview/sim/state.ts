@@ -22,6 +22,7 @@ export type BuddyState =
   | 'dizzy'
   | 'hunt'
   | 'rummage'
+  | 'plush'
   | 'play'
   | 'sleep'
   | 'typing'

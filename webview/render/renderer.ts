@@ -2,7 +2,7 @@ import { partyKind } from '../../shared/day';
 import { foxShown, type Session } from '../session';
 import type { Buddy } from '../sim/buddy';
 import type { Bowl } from '../sim/props/bowl';
-import { DRAWERS, LID_BACK } from '../sim/props/chest';
+import { CHEST_ITEMS, LID_BACK } from '../sim/props/chest';
 import { ANIMATIONS } from '../sprites/fox/animations';
 import { FRAME_PAD, FRAME_SIZE, SPRITE_SIZE, frameAt, type Frame, type Glyph } from '../sprites/frames';
 import {
@@ -20,6 +20,11 @@ import {
   CHEST_BALL,
   CHEST_BALL_X,
   CHEST_W,
+  PLUSH,
+  SHELF,
+  SHELF_H,
+  SHELF_ITEMS,
+  type ShelfItem,
   CHEST_RIM,
   CHEST_TILE_EMPTY,
   CHEST_TILES,
@@ -99,12 +104,14 @@ export class Renderer {
     if (fox) {
       this.drawEmote(stage.buddyRect(buddy), frame, now);
     }
+    this.drawPlushes();
     this.drawBall();
     this.drawBug();
     this.drawBird(false);
     drawBubbles(stage, world.bubbles, session.light);
     this.scenery.drawFront(stage, world.scenery);
     this.drawChestTiles();
+    this.drawShelf();
     sky.drawConfetti(stage, dt);
   }
 
@@ -126,6 +133,27 @@ export class Renderer {
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
   }
 
+  private drawPlushes(): void {
+    for (const toy of Object.values(this.session.world.plushes)) {
+      if (toy.state !== 'none') {
+        const r = this.stage.rect(toy.box);
+        this.drawShadow(r.x + r.w / 2, toy.w - 2 - Math.min(toy.y / 6, 4));
+        this.stage.ctx.drawImage(this.bitmaps.get(PLUSH[toy.kind]), r.x, r.y, r.w, r.h);
+      }
+    }
+  }
+
+  // The shelf on the wall, top right: its end at the edge of the view, slid out while the pointer is close.
+  private drawShelf(): void {
+    const { shelf } = this.session.world;
+    const board = this.stage.rect({ x: shelf.x, y: shelf.y - SHELF_H + 1, w: SHELF[0].length, h: SHELF_H });
+    this.stage.ctx.drawImage(this.bitmaps.get(SHELF), board.x, board.y, board.w, board.h);
+    for (const item of Object.keys(SHELF_ITEMS) as ShelfItem[]) {
+      const r = this.stage.rect(shelf.slot(item));
+      this.stage.ctx.drawImage(this.bitmaps.get(SHELF_ITEMS[item].glyph), r.x, r.y, r.w, r.h);
+    }
+  }
+
   // Its toy chest: a bit of it at the edge of the view, slid out into its corner while the pointer is close.
   private drawChest(): void {
     const { chest } = this.session.world;
@@ -141,7 +169,7 @@ export class Renderer {
     }
   }
 
-  // What comes out of the chest, over everything else: its drawers rise from behind its rim, their things slide out from behind them.
+  // What comes out of the chest, over everything else: its things rise from behind its rim, each on its tile.
   private drawChestTiles(): void {
     const { ctx, width } = this.stage;
     const { chest } = this.session.world;
@@ -156,12 +184,8 @@ export class Renderer {
     ctx.beginPath();
     ctx.rect(0, 0, width, this.stage.screenY(CHEST_RIM));
     ctx.clip();
-    for (const { drawer, items } of DRAWERS) {
-      if (chest.unfolded[drawer] > 0) {
-        [...items].reverse().forEach((item) => tile(chest.holds[item] ? CHEST_TILES[item] : CHEST_TILE_EMPTY, chest.slot(item)));
-      }
-      tile(CHEST_TILES[drawer], chest.tab(drawer));
-    }
+    // The top row first: the one under it rises in front of it.
+    [...CHEST_ITEMS].reverse().forEach((item) => tile(chest.holds[item] ? CHEST_TILES[item] : CHEST_TILE_EMPTY, chest.slot(item)));
     ctx.restore();
   }
 

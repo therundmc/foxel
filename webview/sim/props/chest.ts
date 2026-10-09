@@ -1,26 +1,23 @@
-import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestDrawer, type ChestItem } from '../../sprites/props';
+import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestItem } from '../../sprites/props';
 import type { Box } from '../math';
 
-/** Its drawers from the bottom one up, and what each holds, nearest the chest first. */
-export const DRAWERS: readonly { drawer: ChestDrawer; items: readonly ChestItem[] }[] = [
-  { drawer: 'food', items: ['meal', 'treat'] },
-  { drawer: 'play', items: ['ball', 'bubbles'] },
-];
+/** What is in it, as its tiles are laid out above it: from the bottom row up, left to right. */
+export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'treat', 'teddy', 'duck'];
+const COLUMNS = 2;
 
 /** Air left between the chest and the edge of the view, and between two of its tiles. */
 const MARGIN = 2;
 const GAP = 1;
-/** The first drawer sits a little over the top of the raised lid, so that both drawers fit in a low view. */
+/** The first row of tiles sits a little over the top of the raised lid, so that two rows fit in a low view. */
 const LID_OVERLAP = 2;
 /** How far from one of its parts the pointer still counts as on it. */
 const REACH = 2;
 /** How far from it a hand that holds a toy already has its lid lifting. */
 const NEAR = 14;
 const OPEN_MS = 220;
-const UNFOLD_MS = 130;
-/** How long it stays open once the pointer has left: time to come back, or to cross from a drawer to its things. */
+/** How long it stays open once the pointer has left: time to come back. */
 const LINGER_MS = 350;
-/** The lid is thrown back by the time it is this far open; only then do the drawers start to rise. */
+/** The lid is thrown back by the time it is this far open; only then do its things start to rise. */
 export const LID_BACK = 0.3;
 /** How much of it shows at the edge of the view while it waits. */
 const PEEK = 6;
@@ -39,7 +36,7 @@ const IDLE_MS = 4000;
 /** How quickly it slides in and out: the share of the way left that it covers in a second. */
 const SLIDE = 10;
 const CLOSE_ENOUGH = 0.4;
-/** A thing can be taken once its drawer is this far out. */
+/** A thing can be taken once the chest is this far open. */
 const TAKEABLE = 0.9;
 
 const STEP = TILE + GAP;
@@ -50,9 +47,8 @@ const within = (box: Box, x: number, y: number, pad: number): boolean => x >= bo
 /**
  * The toy chest: everything you can give it is in there. It waits at the edge of the view, only a bit of it showing,
  * and fidgets now and then to be noticed. It slides out into its corner when the pointer comes close, and back when
- * it goes. Bring the pointer to it and its lid opens and its
- * drawers rise out; bring it to a drawer and its things come out in a row. A hand that holds a toy only gets the
- * lid: that is where the toy goes back. It only knows where the pointer is and how far open it is: what taking a
+ * it goes. Bring the pointer to it and its lid opens and what is in it rises out, each thing on its tile. A hand
+ * that holds a toy only gets the lid: that is where the toy goes back. It only knows where the pointer is and how far open it is: what taking a
  * thing does, or putting one back, is the business of whoever does it.
  */
 export class Chest {
@@ -71,14 +67,10 @@ export class Chest {
   /** How far in the fox has pulled it, while the fox is the one moving it; and whether it holds the lid up. */
   private hauled: number | undefined;
   private lifted = false;
-  /** How far its lid is open and its drawers are out, from 0 to 1. */
+  /** How far its lid is open and its things are out, from 0 to 1. */
   open = 0;
-  /** The drawer whose things are out. */
-  drawer: ChestDrawer | undefined;
-  /** How far out the things of each drawer are, from 0 to 1. */
-  readonly unfolded: Record<ChestDrawer, number> = { food: 0, play: 0 };
   /** What is in it right now. A toy that is out in the view is not in the chest. */
-  readonly holds: Record<ChestItem, boolean> = { meal: true, treat: true, ball: true, bubbles: true };
+  readonly holds: Record<ChestItem, boolean> = { ball: true, treat: true, teddy: true, duck: true };
   private pointer: { x: number; y: number } | undefined;
   /** The hand holds a toy. */
   private carrying = false;
@@ -92,10 +84,9 @@ export class Chest {
     return { x: this.x, y: 0, w: CHEST_W, h: this.open > 0 ? CHEST_OPEN_H : CHEST_H };
   }
 
-  /** Its lid or its drawers are on their way. */
+  /** It, its lid or its things are on their way. */
   get moving(): boolean {
-    const settled = (v: number): boolean => v === 0 || v === 1;
-    return this.x !== this.target || this.waitedMs >= FIDGET_EVERY_MS || !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
+    return this.x !== this.target || this.waitedMs >= FIDGET_EVERY_MS || (this.open !== 0 && this.open !== 1) || (this.open > 0 && this.lingerMs < LINGER_MS);
   }
 
   /** In its corner, ready to be opened. */
@@ -155,27 +146,19 @@ export class Chest {
     this.carrying = false;
   }
 
-  /** Where a drawer's tile is right now: it rises out of the chest as the lid opens. */
-  tab(drawer: ChestDrawer): Box {
-    const home = this.home(drawer);
+  /** Where a thing's tile is right now: it rises out of the chest once the lid is back. */
+  slot(item: ChestItem): Box {
+    const home = this.home(item);
     const risen = ease(Math.max(0, (this.open - LID_BACK) / (1 - LID_BACK)));
     return { ...home, y: CHEST_RIM - TILE + (home.y - CHEST_RIM + TILE) * risen };
   }
 
-  /** Where a thing's tile is right now: it slides out from behind its drawer. */
-  slot(item: ChestItem): Box {
-    const { drawer, items } = DRAWERS.find((d) => d.items.includes(item)) ?? DRAWERS[0];
-    const tab = this.tab(drawer);
-    return { ...tab, x: tab.x - (items.indexOf(item) + 1) * STEP * ease(this.unfolded[drawer]) };
-  }
-
-  /** The thing that can be taken at this point: out of its drawer, and still in the chest. */
+  /** The thing that can be taken at this point: risen out, and still in the chest. */
   itemAt(x: number, y: number): ChestItem | undefined {
-    const open = DRAWERS.find((d) => d.drawer === this.drawer);
-    if (!open || this.unfolded[open.drawer] < TAKEABLE) {
+    if (this.open < TAKEABLE || this.carrying) {
       return undefined;
     }
-    return open.items.find((item) => this.holds[item] && within(this.slot(item), x, y, GAP / 2));
+    return CHEST_ITEMS.find((item) => this.holds[item] && within(this.home(item), x, y, GAP / 2));
   }
 
   /** `holds` says, for the toys that can be out in the view, whether they are in the chest. */
@@ -196,21 +179,10 @@ export class Chest {
     this.full &&= over !== false;
     this.lingerMs = over && !this.full ? LINGER_MS : Math.max(0, this.full ? 0 : this.lingerMs - dtMs);
     const wanted = this.lingerMs > 0;
-    if (!wanted || this.carrying) {
-      this.drawer = undefined;
-    } else if (typeof over === 'string' && this.open === 1) {
-      this.drawer = over;
-    }
-    for (const { drawer } of DRAWERS) {
-      this.unfolded[drawer] = toward(this.unfolded[drawer], this.drawer === drawer ? 1 : 0, dtMs / UNFOLD_MS);
-    }
-    // Its things go back in their drawers before the drawers sink back in the chest.
-    const folded = DRAWERS.every(({ drawer }) => this.unfolded[drawer] === 0);
     // A full hand only gets the lid.
-    const forPointer = !folded ? 1 : !wanted ? 0 : this.carrying ? LID_BACK : 1;
+    const forPointer = !wanted ? 0 : this.carrying ? LID_BACK : 1;
     const upTo = Math.max(forPointer, this.lifted && this.here ? LID_BACK : 0);
     this.open = toward(this.open, upTo, dtMs / OPEN_MS);
-
   }
 
   // Left waiting, it gives a few little nudges now and then: something is in there.
@@ -228,8 +200,8 @@ export class Chest {
     return this.away + (this.corner - this.away) * this.share;
   }
 
-  /** Whether the pointer is on it: the drawer it is on, or true for the chest itself or the things that are out. */
-  private over(): ChestDrawer | boolean {
+  /** Whether the pointer is on it, or on what has risen out of it. */
+  private over(): boolean {
     const at = this.pointer;
     if (!at) {
       return false;
@@ -241,26 +213,16 @@ export class Chest {
     if (within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_H }, at.x, at.y, REACH)) {
       return true;
     }
-    if (this.open === 0) {
-      return false;
-    }
-    for (const { drawer, items } of DRAWERS) {
-      const home = this.home(drawer);
-      // A drawer takes the whole height down to the one under it, so the pointer never falls between two.
-      if (within({ x: home.x - REACH, y: home.y - GAP, w: TILE + 2 * REACH, h: STEP }, at.x, at.y, 0)) {
-        return drawer;
-      }
-      if (this.drawer === drawer && within({ ...home, x: home.x - items.length * STEP, w: items.length * STEP }, at.x, at.y, REACH)) {
-        return true;
-      }
-    }
-    // The way up from the chest to its first drawer.
-    return within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, REACH);
+    // Open, it is the chest and its tiles above it, all in one piece.
+    const rows = Math.ceil(CHEST_ITEMS.length / COLUMNS);
+    const left = this.home(CHEST_ITEMS[0]).x;
+    return this.open > 0 && within({ x: left, y: 0, w: COLUMNS * STEP - GAP, h: CHEST_OPEN_H - LID_OVERLAP + rows * STEP }, at.x, at.y, REACH);
   }
 
-  /** Where a drawer's tile sits once the chest is open, above the raised lid. */
-  private home(drawer: ChestDrawer): Box {
-    const index = DRAWERS.findIndex((d) => d.drawer === drawer);
-    return { x: this.x + (CHEST_W - TILE) / 2, y: CHEST_OPEN_H - LID_OVERLAP + index * STEP, w: TILE, h: TILE };
+  /** Where a thing's tile sits once the chest is open, above the raised lid. */
+  private home(item: ChestItem): Box {
+    const index = CHEST_ITEMS.indexOf(item);
+    const left = this.x + (CHEST_W - (COLUMNS * STEP - GAP)) / 2;
+    return { x: left + (index % COLUMNS) * STEP, y: CHEST_OPEN_H - LID_OVERLAP + Math.floor(index / COLUMNS) * STEP, w: TILE, h: TILE };
   }
 }

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { grabBall, spawnBall, stowBall } from '../../webview/sim/features/fetch';
 import { giveTreat, stowTreat, takeTreat } from '../../webview/sim/features/treat';
-import { DRAWERS } from '../../webview/sim/props/chest';
+import { holdPlush, stowPlush } from '../../webview/sim/features/plush';
+import { CHEST_ITEMS } from '../../webview/sim/props/chest';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('the toy chest', () => {
@@ -110,76 +111,42 @@ describe('the toy chest', () => {
     expect(chest.tucked).toBe(true);
   });
 
-  it('opens when the pointer comes to it: the lid first, then its drawers rise out one above the other', () => {
-    const { chest, onChest, point } = scene();
+  it('opens when the pointer comes to it: the lid first, then its things rise out, each on its tile', () => {
+    const { chest, onChest, point, middle } = scene();
     expect(chest.here).toBe(true);
     point(onChest, 30);
     expect(chest.open).toBeGreaterThan(0);
     expect(chest.moving).toBe(true);
     // Nothing shows above its rim until the lid is back.
-    expect(chest.tab('food').y + chest.tab('food').h).toBeLessThanOrEqual(chest.box.h);
+    expect(chest.slot('ball').y + chest.slot('ball').h).toBeLessThanOrEqual(chest.box.h);
+    expect(chest.itemAt(onChest.x, 20)).toBeUndefined();
     point(onChest);
     expect(chest.open).toBe(1);
-    const food = chest.tab('food');
-    const play = chest.tab('play');
-    // The first one sits just over the top of the raised lid.
-    expect(food.y).toBeGreaterThanOrEqual(chest.box.h - 2);
-    expect(play.y).toBeGreaterThanOrEqual(food.y + food.h);
-    expect(play.y + play.h).toBeLessThanOrEqual(40);
-    // No drawer is out yet, so there is nothing to take.
-    expect(chest.drawer).toBeUndefined();
-    expect(chest.itemAt(food.x - 6, food.y + 5)).toBeUndefined();
-  });
-
-  it('brings out the things of the drawer the pointer is on, and puts them back for the other one', () => {
-    const { chest, onChest, point, middle } = scene();
-    point(onChest);
-    point(middle(chest.tab('food')));
-    expect(chest.drawer).toBe('food');
-    expect(chest.unfolded).toEqual({ food: 1, play: 0 });
-    const meal = middle(chest.slot('meal'));
-    const treat = middle(chest.slot('treat'));
-    expect(treat.x).toBeLessThan(meal.x);
-    expect(meal.x).toBeLessThan(chest.tab('food').x);
-    expect(chest.itemAt(meal.x, meal.y)).toBe('meal');
-    expect(chest.itemAt(treat.x, treat.y)).toBe('treat');
-
-    // Going along the row keeps it out; going up to the other drawer swaps them.
-    point(treat);
-    expect(chest.drawer).toBe('food');
-    point(middle(chest.tab('play')));
-    expect(chest.unfolded).toEqual({ food: 0, play: 1 });
-    const ball = middle(chest.slot('ball'));
-    expect(chest.itemAt(ball.x, ball.y)).toBe('ball');
-    expect(chest.itemAt(meal.x, meal.y)).toBeUndefined();
-  });
-
-  it('holds every thing in one drawer, each in a place of its own', () => {
-    const { chest, onChest, point, middle } = scene();
-    point(onChest);
-    for (const { drawer, items } of DRAWERS) {
-      point(middle(chest.tab(drawer)));
-      const places = items.map((item) => chest.slot(item).x);
-      expect(new Set(places).size).toBe(items.length);
-      expect(Math.min(...places)).toBeGreaterThanOrEqual(0);
+    const places = CHEST_ITEMS.map((item) => chest.slot(item));
+    // Two rows of two, above the chest and inside the view.
+    expect(new Set(places.map((box) => `${box.x},${box.y}`)).size).toBe(CHEST_ITEMS.length);
+    for (const box of places) {
+      expect(box.y).toBeGreaterThanOrEqual(chest.box.h - 2);
+      expect(box.y + box.h).toBeLessThanOrEqual(40);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.w).toBeLessThanOrEqual(120);
+    }
+    for (const item of CHEST_ITEMS) {
+      const at = middle(chest.slot(item));
+      expect(chest.itemAt(at.x, at.y)).toBe(item);
     }
   });
 
-  it('waits a little when the pointer leaves, then puts its things away and shuts', () => {
+  it('stays open while the pointer goes over its things, then waits a little, puts them away and shuts', () => {
     const { chest, onChest, point, middle } = scene();
     point(onChest);
-    point(middle(chest.tab('play')));
-    point(undefined, 200);
+    point(middle(chest.slot('duck')));
     expect(chest.open).toBe(1);
-    expect(chest.unfolded.play).toBe(1);
-    // The things go back in their drawer before the drawers sink in.
-    point(undefined, 220);
-    expect(chest.unfolded.play).toBeLessThan(1);
+    point({ x: 60, y: 30 }, 200);
     expect(chest.open).toBe(1);
-    point(undefined, 800);
+    point({ x: 60, y: 30 }, 800);
     expect(chest.open).toBe(0);
-    expect(chest.unfolded.play).toBe(0);
-    expect(chest.moving).toBe(false);
+    expect(chest.itemAt(onChest.x, 20)).toBeUndefined();
   });
 
   it('stays open if the pointer comes back in time', () => {
@@ -205,7 +172,7 @@ describe('the toy chest', () => {
     point(onChest, 600, true);
     expect(chest.open).toBeGreaterThan(0);
     expect(chest.open).toBeLessThan(1);
-    expect(chest.tab('food').y + chest.tab('food').h).toBeLessThanOrEqual(chest.box.h);
+    expect(chest.slot('ball').y + chest.slot('ball').h).toBeLessThanOrEqual(chest.box.h);
     expect(chest.accepts(onChest.x, onChest.y)).toBe(true);
 
     stowBall(b);
@@ -240,16 +207,16 @@ describe('the toy chest', () => {
   it('no longer holds a toy that is out in the view', () => {
     const { b, chest, onChest, point, middle } = scene();
     spawnBall(b, 30, 20, 0);
+    holdPlush(b, 'teddy', 50, 20);
     point(onChest);
-    point(middle(chest.tab('play')));
     const ball = middle(chest.slot('ball'));
-    expect(chest.holds.ball).toBe(false);
+    expect(chest.holds).toEqual({ ball: false, treat: true, teddy: false, duck: true });
     expect(chest.itemAt(ball.x, ball.y)).toBeUndefined();
-    expect(chest.holds.bubbles).toBe(true);
 
     giveTreat(b, 60);
+    stowPlush(b, 'teddy');
     simulate(b, 100);
-    expect(chest.holds.treat).toBe(false);
+    expect(chest.holds).toEqual({ ball: false, treat: false, teddy: true, duck: true });
   });
 
   it('gives a treat straight into your hand, and the fox comes to beg for it', () => {

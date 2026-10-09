@@ -8,6 +8,8 @@ import { Bug } from './props/bug';
 import { Chest } from './props/chest';
 import { Grass } from './props/grass';
 import { Mouse } from './props/mouse';
+import { Plush } from './props/plush';
+import { Shelf } from './props/shelf';
 import { Basket } from './props/basket';
 import { Bubbles } from './props/bubbles';
 import { Scenery } from './props/scenery';
@@ -41,6 +43,9 @@ export class World {
   readonly basket = new Basket();
   readonly bubbles = new Bubbles();
   readonly chest = new Chest();
+  readonly shelf = new Shelf();
+  /** Its soft toys. */
+  readonly plushes = { teddy: new Plush('teddy'), duck: new Plush('duck') };
   /** Which way you are scrolling a file, for a moment after you do: up (-1), down (1), or not (0). */
   scroll: -1 | 0 | 1 = 0;
   private scrollMs = 0;
@@ -62,8 +67,9 @@ export class World {
   get restful(): boolean {
     const ballMoving = this.ball.state === 'held' || (this.ball.state === 'free' && !this.ball.resting);
     const treatMoving = this.treat.state === 'held' || (this.treat.state === 'free' && !this.treat.landed);
+    const plushes = Object.values(this.plushes);
     const critters = this.bug.active || this.bird.active || this.mouse.active || this.grass.active || this.scenery.active;
-    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
+    return !ballMoving && !treatMoving && !critters && !this.basket.moving && !this.bubbles.active && !this.chest.moving && !this.shelf.moving && plushes.every((p) => p.state === 'none' || p.landed) && !this.foodBowl.moving && !this.waterBowl.moving && this.buddies.every((b) => b.restful);
   }
 
   /** You scrolled: it shows for a moment. */
@@ -83,6 +89,7 @@ export class World {
     this.buddies.forEach((b) => b.worldResized());
     this.ball.place(this.ball.x, this.ball.y, this.width, this.height);
     this.chest.place(this.width);
+    this.shelf.place(this.width, this.height);
   }
 
   update(dtMs: number): void {
@@ -103,9 +110,13 @@ export class World {
     this.foodBowl.update(dtMs);
     this.waterBowl.update(dtMs);
     // A toy that is out in the view is not in the chest.
-    this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active });
-    // A pointer busy with the chest is not there for the fox: it does not come to it, or ask it for a stroke.
-    if (this.chest.asked) {
+    const { teddy, duck } = this.plushes;
+    teddy.update(dt, this.width);
+    duck.update(dt, this.width);
+    this.chest.update(dtMs, { ball: this.ball.state === 'none', treat: !this.treat.active, teddy: teddy.state === 'none', duck: duck.state === 'none' });
+    this.shelf.update(dtMs, !this.chest.asked);
+    // A pointer busy with the chest or the shelf is not there for the fox: it does not come to it, or ask it for a stroke.
+    if (this.chest.asked || this.shelf.asked) {
       this.pointer = undefined;
     }
     this.buddies.forEach((b) => b.update(dtMs));
