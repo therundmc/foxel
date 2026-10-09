@@ -7,6 +7,7 @@ import {
   mergeLives,
   moodOn,
   newLife,
+  peakOn,
   readLife,
   trimmed,
   withCare,
@@ -219,5 +220,22 @@ describe('reading what was saved', () => {
     expect(lost).toBe(false);
     expect(life.born).toBe(day(0));
     expect(life.days[day(1)].cares.fed).toBe(1);
+  });
+});
+
+describe('what it has reached, and a day without a look', () => {
+  it('never loses the most it was attached, however long you stay away', () => {
+    const life = perfectDays(newLife(day(0)), 0, 20);
+    const top = peakOn(life, day(19));
+    expect(top).toBeCloseTo(attachmentOn(life, day(19)));
+    expect(peakOn(life, day(400))).toBe(top);
+    expect(attachmentOn(life, day(400))).toBeLessThan(top);
+  });
+
+  it('is out of sorts when you were there for a long while without once looking after it, until the first care', () => {
+    const there = withPresence(newLife(day(0)), day(0), 50, []);
+    expect(moodOn(there, day(0))).toBeLessThan(-0.2);
+    expect(moodOn(withPresence(newLife(day(0)), day(0), 20, []), day(0))).toBeGreaterThan(0);
+    expect(moodOn(withCare(there, day(0), 'petted'), day(0))).toBeGreaterThan(0.3);
   });
 });

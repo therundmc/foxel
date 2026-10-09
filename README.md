@@ -40,7 +40,7 @@ Then open the **Foxel** tab in the bottom panel: that is where it has the most r
 - Leave your pointer resting on it.
 - Hold the button down and stroke it.
 - Double-click an empty spot, then throw whatever turns up.
-- Something is fidgeting at the right edge of its view. Take your pointer there, and see what is inside. Then look up.
+- Something is fidgeting at the right edge of its view. Take your pointer there, and see what is inside. Then look up, on both sides.
 - Keep it company for a whole working day, early start to late finish.
 
 The rest is up to you. Some of it only shows up once in a blue moon.
