@@ -1,7 +1,7 @@
+import { NOSE_X } from '../../sprites/fox/anchors';
 import { ANIMATIONS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, frameAt } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
-import { clamp } from '../math';
 import type { Plush } from '../props/plush';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
 import type { WorldPoint } from '../world';
@@ -9,8 +9,10 @@ import type { WorldPoint } from '../world';
 /** Where its mouth is from the middle of its head, in a frame; what it carries hangs a little under it. */
 const MOUTH = 5.5;
 const HANGS = 1;
-/** A step back this short, to get its nose on something, it does not bother with: it takes it from where it stands. */
-const STEP_BACK = 9;
+/** How far ahead of its middle its nose is; how far short of its nose a thing may lie and still be taken; and how far behind its middle a thing is behind it. */
+const NOSE_AHEAD = NOSE_X - SPRITE_SIZE / 2;
+const SHORT = 9;
+const BEHIND = 12;
 
 /** Where what it carries in its mouth hangs, wherever its head is in the frame it shows. */
 export function mouthPoint(b: Buddy): WorldPoint {
@@ -25,23 +27,30 @@ export function carryInMouth(b: Buddy, toy: Plush): void {
   toy.carry(at.x, at.y);
 }
 
+/** Whether its nose is on the thing, it is on its way, or the thing is under it, too close to its paws for its nose. */
+export type Reach = 'there' | 'going' | 'under';
+
 /**
- * Goes and puts its nose on `x`: at a run when it is far, and always facing the way it goes. It never walks
- * backwards: if it has overshot, it turns round, steps away and turns back. Returns true once it is there.
+ * Goes and puts its nose on something at `x`, the way an animal would: it walks or runs forward to what is ahead of
+ * it, turns round once for what is behind it, and never walks backwards or turns this way and that. What lies just
+ * short of its nose it takes from where it stands; what is right under it, it cannot reach (`under`).
  */
-export function noseTo(b: Buddy, x: number, dt: number, walk = FETCH_WALK_SPEED): boolean {
-  const facing = x >= b.x + SPRITE_SIZE / 2 ? 1 : -1;
-  const left = clamp(x - b.noseOffset(facing), 0, b.maxX) - b.x;
-  const backing = left * facing < 0;
-  b.running = Math.abs(left) > FETCH_FAR;
-  const pace = (b.running ? FETCH_RUN_SPEED : walk) * dt;
-  b.moving = Math.abs(left) > pace && !(backing && Math.abs(left) <= STEP_BACK);
-  if (b.moving) {
-    b.dir = left > 0 ? 1 : -1;
-    b.x += b.dir * pace;
-    return false;
+export function noseTo(b: Buddy, x: number, dt: number, walk = FETCH_WALK_SPEED): Reach {
+  const ahead = (x - (b.x + SPRITE_SIZE / 2)) * b.dir;
+  const gap = ahead - NOSE_AHEAD;
+  b.running = gap > FETCH_FAR;
+  b.moving = false;
+  if (ahead < -BEHIND) {
+    // Behind it: it turns round, and that puts it well ahead, so it does not turn back.
+    b.dir = b.flipped();
+    return 'going';
   }
-  b.x += backing ? 0 : left;
-  b.dir = facing;
-  return true;
+  if (gap <= 0) {
+    return gap >= -SHORT ? 'there' : 'under';
+  }
+  const room = b.dir === 1 ? b.maxX - b.x : b.x;
+  const pace = Math.min(gap, room, (b.running ? FETCH_RUN_SPEED : walk) * dt);
+  b.x += b.dir * pace;
+  b.moving = pace < gap && pace < room;
+  return b.moving ? 'going' : 'there';
 }

@@ -183,7 +183,7 @@ function updateRummage(b: Buddy, dt: number, dtMs: number): void {
   }
   switch (m.step) {
     case 'pick': {
-      if (noseTo(b, toy.center, dt, TROT_SPEED)) {
+      if (noseTo(b, toy.center, dt, TROT_SPEED) !== 'going') {
         carryInMouth(b, toy);
         step(b, 'reach');
       }

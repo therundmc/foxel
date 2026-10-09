@@ -1,36 +1,38 @@
-import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Plush } from '../props/plush';
 import type { AnimRef } from '../state';
-import { carryInMouth, mouthPoint, noseTo } from './mouth';
+import { carryInMouth, mouthPoint } from './mouth';
 
 /**
- * What it does with a toy once it has it, before it throws it: it shakes it, leaps with it and rolls as it lands,
- * bounces it on its nose, or spins round with it. `roll` is how it lands when it has caught one in the air.
+ * What it does with a toy once it has it, before it throws it: it shakes it, leaps with it and lands flat on its
+ * belly, bounces it on its nose, or spins round with it. `slide` is how it lands when it has caught one in the air.
  */
-export type Trick = 'shake' | 'frolic' | 'juggle' | 'spin' | 'roll';
+export type Trick = 'shake' | 'frolic' | 'juggle' | 'spin' | 'slide';
 const SHOWS: readonly Trick[] = ['shake', 'frolic', 'juggle', 'spin'];
 /** Now and then it just throws. */
 const NO_SHOW = 0.15;
 
 const SHAKE_MS = 720;
-/** The leap: a crouch, then up and forward with the toy; the roll that follows, curled up; and getting up proud of itself. */
+/**
+ * The leap: a crouch, then up and forward with the toy. It comes down flat on its belly and slides, fast at first
+ * and slower and slower, lies there a moment pleased with itself, then gets up.
+ */
 const CROUCH_MS = 160;
 const LEAP_MS = 460;
 const LEAP_HEIGHT = 12;
 const LEAP_SPEED = 48;
-const ROLL_MS = 400;
-const ROLL_SPEED = 40;
-const PROUD_MS = 520;
-/** Room it wants ahead of it for a leap and a roll. */
-const RUN_UP = (LEAP_SPEED * LEAP_MS + ROLL_SPEED * ROLL_MS) / 1000;
-/** Bouncing it on its nose: how many times, how hard, how near its nose the toy has to come down, how fast it shuffles under it. */
+const SLIDE_MS = 460;
+const SLIDE_SPEED = 80;
+const LIE_MS = 400;
+const PROUD_MS = 420;
+/** Room it wants ahead of it for a leap and a slide. */
+const RUN_UP = (LEAP_SPEED * LEAP_MS) / 1000 + (SLIDE_SPEED * SLIDE_MS) / 3000;
+/** Bouncing it on its nose, standing still: how many times, how hard, how far off straight, how near its nose the toy has to come down. */
 const BOUNCES = 3;
 const BOUNCE_UP = 46;
 const BOUNCE_MORE = 7;
-const BOUNCE_DRIFT = 5;
-const BOUNCE_NEAR = 6;
-const SHUFFLE = 20;
+const BOUNCE_DRIFT = 4;
+const BOUNCE_NEAR = 7;
 const BOOP_MS = 200;
 /** Spinning round with it: so many half turns, each this long, on little hops. */
 const HALF_TURNS = 6;
@@ -57,10 +59,10 @@ export function pickTrick(b: Buddy): Trick | undefined {
 export function startTrick(b: Buddy, toy: Plush, trick: Trick): void {
   const m = b.plush.trick;
   m.now = trick;
-  m.last = trick === 'roll' ? m.last : trick;
+  m.last = trick === 'slide' ? m.last : trick;
   m.bounces = 0;
   m.boopMs = 0;
-  if (trick === 'frolic' || trick === 'roll') {
+  if (trick === 'frolic' || trick === 'slide') {
     // Toward the side where there is room for it.
     const ahead = b.dir === 1 ? b.maxX - b.x : b.x;
     b.dir = ahead >= RUN_UP ? b.dir : b.flipped();
@@ -69,22 +71,18 @@ export function startTrick(b: Buddy, toy: Plush, trick: Trick): void {
   }
 }
 
-// Curled up and turning over as it goes, then up on its feet.
-function roll(b: Buddy, toy: Plush, t: number, dt: number): boolean {
-  if (t < ROLL_MS) {
+// Flat on its belly and sliding to a stop, a moment lying there, then up on its feet.
+function slide(b: Buddy, toy: Plush, t: number, dt: number): boolean {
+  if (t < SLIDE_MS) {
+    const left = 1 - t / SLIDE_MS;
     b.y = 0;
-    b.x = Math.min(b.maxX, Math.max(0, b.x + b.dir * ROLL_SPEED * dt));
-    b.quarter = 1 + (Math.floor((t / ROLL_MS) * 4) % 4);
-    // The toy is somewhere in the ball of fur.
-    toy.carry(b.x + SPRITE_SIZE / 2, b.y + 9);
-    return false;
+    b.x = Math.min(b.maxX, Math.max(0, b.x + b.dir * SLIDE_SPEED * left * left * dt));
   }
-  b.quarter = 0;
   carryInMouth(b, toy);
-  return t >= ROLL_MS + PROUD_MS;
+  return t >= SLIDE_MS + LIE_MS + PROUD_MS;
 }
 
-function juggle(b: Buddy, toy: Plush, dt: number, dtMs: number): boolean {
+function juggle(b: Buddy, toy: Plush, dtMs: number): boolean {
   const m = b.plush.trick;
   m.boopMs = Math.max(0, m.boopMs - dtMs);
   if (toy.state !== 'free' || toy.landed) {
@@ -101,8 +99,6 @@ function juggle(b: Buddy, toy: Plush, dt: number, dtMs: number): boolean {
     // Up again, a little higher, and never quite straight.
     toy.toss((b.world.random() - 0.5) * 2 * BOUNCE_DRIFT, BOUNCE_UP + BOUNCE_MORE * m.bounces);
     m.boopMs = BOOP_MS;
-  } else if (!under) {
-    noseTo(b, toy.center, dt, SHUFFLE);
   }
   return false;
 }
@@ -126,10 +122,10 @@ export function updateTrick(b: Buddy, toy: Plush, t: number, dt: number, dtMs: n
         carryInMouth(b, toy);
         return false;
       }
-      return roll(b, toy, inAir - LEAP_MS, dt);
+      return slide(b, toy, inAir - LEAP_MS, dt);
     }
-    case 'roll':
-      return roll(b, toy, t, dt);
+    case 'slide':
+      return slide(b, toy, t, dt);
     case 'spin': {
       const turns = Math.floor(t / HALF_TURN_MS);
       if (turns >= HALF_TURNS) {
@@ -144,23 +140,23 @@ export function updateTrick(b: Buddy, toy: Plush, t: number, dt: number, dtMs: n
       return false;
     }
     case 'juggle':
-      return juggle(b, toy, dt, dtMs);
+      return juggle(b, toy, dtMs);
   }
 }
 
 export function trickAnim(b: Buddy, t: number): AnimRef {
   const m = b.plush.trick;
-  const rolling = (since: number): AnimRef => (since < ROLL_MS ? { anim: 'tumble', elapsed: since } : { anim: 'proud', elapsed: since });
+  const sliding = (since: number): AnimRef => (since < SLIDE_MS + LIE_MS ? { anim: 'bellySlide', elapsed: since } : { anim: 'proud', elapsed: since });
   switch (m.now) {
     case 'shake':
       return { anim: 'toyShake', elapsed: t };
     case 'frolic':
-      return t < CROUCH_MS ? { anim: 'pounce', elapsed: 0 } : t < CROUCH_MS + LEAP_MS ? { anim: 'leap', elapsed: t - CROUCH_MS } : rolling(t - CROUCH_MS - LEAP_MS);
-    case 'roll':
-      return rolling(t);
+      return t < CROUCH_MS ? { anim: 'pounce', elapsed: 0 } : t < CROUCH_MS + LEAP_MS ? { anim: 'leap', elapsed: t - CROUCH_MS } : sliding(t - CROUCH_MS - LEAP_MS);
+    case 'slide':
+      return sliding(t);
     case 'spin':
       return { anim: 'ready', elapsed: t };
     case 'juggle':
-      return m.boopMs > 0 ? { anim: 'toyBoop', elapsed: 0 } : { anim: b.moving ? 'walk' : 'bubbleWatch', elapsed: b.elapsed };
+      return m.boopMs > 0 ? { anim: 'toyBoop', elapsed: 0 } : { anim: 'bubbleWatch', elapsed: b.elapsed };
   }
 }

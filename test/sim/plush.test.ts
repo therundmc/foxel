@@ -138,7 +138,7 @@ describe('the game with its soft toys', () => {
     tossPlush(b, 'teddy', 30, 20);
     const anims = new Set<AnimName>();
     const seen = new Set<string>();
-    const quarters = new Set<number>();
+    const speeds: number[] = [];
     const dirs = new Set<number>();
     const offsets = new Set<number>();
     let highest = 0;
@@ -146,13 +146,16 @@ describe('the game with its soft toys', () => {
     let travelled = 0;
     let ups = 0;
     let rising = false;
+    let last = b.x;
     simulate(b, 40_000, () => {
       anims.add(b.current().anim);
       seen.add(b.plush.phase);
       if (b.plush.phase === 'trick') {
         from ??= b.x;
         travelled = Math.abs(b.x - from);
-        quarters.add(b.quarter);
+        if (b.current().anim === 'bellySlide') {
+          speeds.push(Math.abs(b.x - last));
+        }
         dirs.add(b.dir);
         offsets.add(Math.round(teddy.center - b.x));
         highest = Math.max(highest, b.y);
@@ -160,9 +163,10 @@ describe('the game with its soft toys', () => {
         ups += up && !rising ? 1 : 0;
         rising = up;
       }
+      last = b.x;
       return phase(b, 'gaze');
     });
-    return { b, teddy, anims, seen, quarters, dirs, offsets, highest, travelled, ups };
+    return { b, teddy, anims, seen, speeds, dirs, offsets, highest, travelled, ups };
   };
 
   it('runs after a toy you throw, picks it up and throws it back up in the air', () => {
@@ -189,22 +193,24 @@ describe('the game with its soft toys', () => {
     expect(offsets.size).toBeGreaterThan(1);
   });
 
-  it('leaps with it in its mouth and lands in a roll, curled up, then gets up proud of itself', () => {
-    const { b, teddy, anims, quarters, highest, travelled } = round(0.3);
+  it('leaps with it in its mouth, lands flat on its belly and slides to a stop, then gets up proud of itself', () => {
+    const { b, teddy, anims, speeds, highest, travelled } = round(0.3);
     expect(b.plush.trick.last).toBe('frolic');
-    expect([...anims]).toEqual(expect.arrayContaining(['leap', 'tumble', 'proud']));
+    expect([...anims]).toEqual(expect.arrayContaining(['leap', 'bellySlide', 'proud']));
     expect(highest).toBeGreaterThan(8);
     expect(travelled).toBeGreaterThan(25);
-    // A whole turn, a quarter at a time, and the right way up at the end.
-    expect([...quarters].sort()).toEqual([0, 1, 2, 3, 4]);
-    expect(b.quarter).toBe(0);
+    // Fast as it lands, slower and slower, then still while it lies there.
+    expect(speeds[0]).toBeGreaterThan(1);
+    expect(speeds[10]).toBeLessThan(speeds[0]);
+    expect(speeds[20]).toBeLessThan(speeds[10]);
+    expect(speeds[speeds.length - 1]).toBe(0);
     expect(b.y).toBe(0);
     expect(b.x).toBeGreaterThanOrEqual(0);
     expect(b.x).toBeLessThanOrEqual(b.maxX);
     expect(teddy.state).toBe('free');
   });
 
-  it('bounces it on its nose a few times, shuffling under it, then catches it', () => {
+  it('bounces it on its nose a few times, standing still, then catches it', () => {
     const { b, anims, ups } = round(0.5);
     expect(b.plush.trick.last).toBe('juggle');
     expect(anims).toContain('toyBoop');
@@ -238,6 +244,10 @@ describe('the game with its soft toys', () => {
     let before = b.x;
     let wasInPlay = false;
     let wasTrick = false;
+    let facing = b.dir;
+    let sinceTurn = 1000;
+    let quickTurns = 0;
+    let spun = false;
     simulate(b, 600_000, () => {
       const tricking = b.plush.phase === 'trick';
       if (tricking && !wasTrick) {
@@ -251,6 +261,14 @@ describe('the game with its soft toys', () => {
         tossPlush(b, 'teddy', 40 * (throws.length % 2 === 0 ? 1 : -1), 30);
       }
       wasInPlay = b.plush.inPlay;
+      // Spinning round with the toy aside, it does not dither.
+      sinceTurn += 16;
+      if (b.dir !== facing) {
+        quickTurns += sinceTurn < 250 && !(tricking && b.plush.trick.now === 'spin') && !spun ? 1 : 0;
+        sinceTurn = 0;
+        facing = b.dir;
+      }
+      spun = tricking && b.plush.trick.now === 'spin';
       // Whenever it walks or runs, it is facing the way it goes.
       const moved = b.x - before;
       backwards += b.moving && Math.abs(moved) > 0.01 && Math.sign(moved) !== b.dir ? 1 : 0;
@@ -260,8 +278,10 @@ describe('the game with its soft toys', () => {
     expect(throws.length).toBe(12);
     expect(new Set(throws).size).toBe(12);
     expect(new Set(tricks).size).toBeGreaterThanOrEqual(3);
-    tricks.forEach((trick, i) => expect(i > 0 && trick !== 'roll' && trick === tricks[i - 1]).toBe(false));
+    tricks.forEach((trick, i) => expect(i > 0 && trick !== 'slide' && trick === tricks[i - 1]).toBe(false));
     expect(backwards).toBe(0);
+    // And it never turns this way and that: two turns are never less than a quarter of a second apart.
+    expect(quickTurns).toBe(0);
   });
 
   it('keeps the game going when you catch its throw, and cheers every third catch', () => {
@@ -301,17 +321,58 @@ describe('the game with its soft toys', () => {
     expect(leapt).toBe(true);
     expect(highest).toBeGreaterThan(5);
     expect(duck.state).toBe('carried');
-    // It lands in a roll.
+    // It comes down flat on its belly and slides.
     expect(phase(b, 'trick')).toBe(true);
-    expect(b.plush.trick.now).toBe('roll');
-    const quarters = new Set<number>();
+    expect(b.plush.trick.now).toBe('slide');
+    const from = b.x;
+    const anims = new Set<AnimName>();
     simulate(b, 3000, () => {
-      quarters.add(b.quarter);
+      anims.add(b.current().anim);
       return !phase(b, 'trick');
     });
-    expect(quarters.size).toBe(5);
+    expect(anims).toContain('bellySlide');
+    expect(Math.abs(b.x - from)).toBeGreaterThan(6);
     expect(phase(b, 'toss')).toBe(true);
     expect(b.y).toBe(0);
+  });
+
+  it('pulls out with a paw a toy that lies right under it, rather than backing away from it', () => {
+    const b = fox(0.1);
+    const { teddy } = b.world.plushes;
+    b.enter('sleep', 3_600_000);
+    teddy.rest(b.x + 12, 300);
+    simulate(b, 100);
+    b.enterNext('plush');
+    const x = b.x;
+    const anims = new Set<AnimName>();
+    simulate(b, 5000, () => {
+      anims.add(b.current().anim);
+      expect(b.x).toBe(x);
+      return teddy.state === 'carried';
+    });
+    expect(anims).toContain('toyPaw');
+    expect(teddy.state).toBe('carried');
+    expect(b.dir).toBe(1);
+  });
+
+  it('turns round once for a toy that is behind it, then goes to it', () => {
+    const b = fox(0.1);
+    const { teddy } = b.world.plushes;
+    b.restore(200, 1);
+    b.enter('sleep', 3_600_000);
+    teddy.rest(60, 300);
+    simulate(b, 100);
+    b.enterNext('plush');
+    let turns = 0;
+    let facing = b.dir;
+    simulate(b, 10_000, () => {
+      turns += b.dir !== facing ? 1 : 0;
+      facing = b.dir;
+      return teddy.state === 'carried';
+    });
+    expect(turns).toBe(1);
+    expect(b.dir).toBe(-1);
+    expect(teddy.state).toBe('carried');
   });
 
   it('is knocked silly for a moment by a toy that lands on its head, then goes after it', () => {

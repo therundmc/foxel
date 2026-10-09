@@ -43,9 +43,9 @@ const HOP_HEIGHT = 30;
  * The game, step by step: it runs after the toy (`chase`), jumps for it if it can (`leap`), shows off with it (`trick`), throws it up
  * (`toss`) and watches it go (`gaze`). Catch it and it waits for your throw (`ready`), cheering now and then; let
  * it fall a couple of times and it settles down with it (`settle`). A toy that lands on its head leaves it seeing
- * stars for a moment (`dazed`).
+ * stars for a moment (`dazed`). One that lies right under it, where its nose cannot go, it pulls out with a paw (`paw`).
  */
-type Phase = 'chase' | 'leap' | 'trick' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
+type Phase = 'chase' | 'paw' | 'leap' | 'trick' | 'toss' | 'gaze' | 'ready' | 'cheer' | 'settle' | 'dazed';
 
 export class PlushMemory {
   /** The soft toy it is busy with. */
@@ -151,14 +151,15 @@ function lying(b: Buddy): Plush | undefined {
     .sort((one, other) => Math.abs(one.center - b.x) - Math.abs(other.center - b.x))[0];
 }
 
-/** Runs to where its nose is on the toy; true once it is there. */
-function reach(b: Buddy, toy: Plush, dt: number): boolean {
-  return noseTo(b, toy.center, dt);
-}
+/** The paw that pulls out a toy lying under it: how long it takes, when the toy goes, and how it hops out ahead of it. */
+const PAW_MS = totalDuration(ANIMATIONS.toyPaw);
+const PAW_AT = 270;
+const PAW_OUT = 26;
+const PAW_UP = 16;
 
 // It has the toy: a trick first, most of the time, then the throw.
 function showOff(b: Buddy, toy: Plush, landing: boolean): void {
-  const trick = landing ? 'roll' : pickTrick(b);
+  const trick = landing ? 'slide' : pickTrick(b);
   phase(b, trick ? 'trick' : 'toss');
   if (trick) {
     b.startDir = b.dir;
@@ -207,13 +208,15 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
         phase(b, 'ready');
         break;
       }
-      const there = reach(b, toy, dt);
+      const at = noseTo(b, toy.center, dt);
       const near = Math.abs(toy.center - (b.x + b.noseOffset())) <= LEAP_NEAR;
       if (!toy.landed) {
         if (near && toy.falling && toy.y < LEAP_UNDER && toy.y > mouthHeight(b) && b.y === 0) {
           phase(b, 'leap');
         }
-      } else if (there) {
+      } else if (at === 'under') {
+        phase(b, 'paw');
+      } else if (at === 'there') {
         if (m.misses >= MISSES) {
           phase(b, 'settle');
         } else {
@@ -233,7 +236,7 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
       }
       if (p === 1) {
         b.y = 0;
-        // Caught in the air: it lands in a roll.
+        // Caught in the air: it comes down flat on its belly and slides.
         if (toy.state === 'carried') {
           showOff(b, toy, true);
         } else {
@@ -242,10 +245,17 @@ function updatePlush(b: Buddy, dt: number, dtMs: number): void {
       }
       break;
     }
+    case 'paw':
+      if (passed(PAW_AT) && toy.landed) {
+        toy.toss(b.dir * PAW_OUT, PAW_UP);
+      }
+      if (m.phaseMs >= PAW_MS) {
+        phase(b, 'chase');
+      }
+      break;
     case 'trick':
       if (updateTrick(b, toy, m.phaseMs, dt, dtMs)) {
         b.y = 0;
-        b.quarter = 0;
         phase(b, toy.state === 'carried' ? 'toss' : toy.state === 'held' ? 'ready' : 'chase');
       }
       break;
@@ -292,7 +302,7 @@ function settle(b: Buddy, toy: Plush, dt: number): void {
     return;
   }
   if (!m.with) {
-    m.with = reach(b, toy, dt);
+    m.with = noseTo(b, toy.center, dt) !== 'going';
     m.phaseMs = 0;
     return;
   }
@@ -325,6 +335,8 @@ function plushAnim(b: Buddy): AnimRef {
       return { anim: 'dizzy', elapsed: m.phaseMs };
     case 'leap':
       return { anim: 'leap', elapsed: m.phaseMs };
+    case 'paw':
+      return { anim: 'toyPaw', elapsed: m.phaseMs };
     case 'trick':
       return trickAnim(b, m.phaseMs);
     case 'toss':

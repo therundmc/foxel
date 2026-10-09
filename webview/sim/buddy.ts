@@ -54,8 +54,6 @@ export class Buddy {
   /** On its way somewhere, and running rather than walking there: picks the frames some states show. */
   moving = false;
   running = false;
-  /** How it is turned over, in quarter turns the way it faces: for a roll along the ground. */
-  quarter = 0;
   /** False until it has been given a spot in the view. */
   placed = false;
   // What each feature remembers from one frame to the next.
@@ -243,7 +241,6 @@ export class Buddy {
       this.clampX();
     }
     this.startDir = this.dir;
-    this.quarter = 0;
     this.state = state;
     this.elapsed = 0;
     this.duration = duration;

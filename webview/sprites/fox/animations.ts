@@ -143,8 +143,21 @@ export const ANIMATIONS = {
     [{ head: [0, -3], eye: 'up', mouth: 'open', tail: 'up' }, 140],
     [{ head: [0, -2], eye: 'up', mouth: 'open', tail: 'wagL' }, 180],
   ]),
-  // Rolled up in a ball, for a roll along the ground; and a nudge of the nose that sends a toy back up.
-  tumble: anim([[{ body: 'curl', eye: 'happy', ears: 'back' }, 400]]),
+  // Landing flat on its belly and sliding along, dust flying; a paw that pulls out a toy lying under it; and a nudge of
+  // the nose that sends a toy back up.
+  bellySlide: anim([
+    [{ body: 'lie', head: [1, 2], eye: 'closed', ears: 'back', mouth: 'flat', tail: 'sitA', extras: ['dirtA'] }, 130],
+    [{ body: 'lie', head: [1, 1], eye: 'closed', ears: 'back', mouth: 'open', tail: 'sitB', extras: ['dirtB'] }, 110],
+    [{ body: 'lie', eye: 'happy', ears: 'back', mouth: 'open', tail: 'sitA', extras: ['dirtA'] }, 110],
+    [{ body: 'lie', eye: 'happy', mouth: 'open', tail: 'sitB', extras: ['dirtB'] }, 110],
+    [{ body: 'lie', bob: 1, eye: 'happy', mouth: 'tongue', tail: 'sitA' }, 400],
+  ]),
+  toyPaw: anim([
+    [{ head: [0, 2], eye: 'down', tail: 'wagL' }, 150],
+    [{ head: [0, 3], eye: 'down', paw: 'wave2', tail: 'wagR' }, 120],
+    [{ head: [1, 3], eye: 'down', paw: 'wave1', tail: 'wagL' }, 130],
+    [{ head: [0, 1], eye: 'happy', tail: 'wagR' }, 120],
+  ]),
   toyBoop: anim([[{ head: [0, -2], eye: 'closed', ears: 'back', tail: 'up' }, 200]]),
   // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
   tug: anim([
