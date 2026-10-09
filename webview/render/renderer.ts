@@ -17,6 +17,9 @@ import {
   BUG_FRAMES,
   CAKE,
   CHEST,
+  CHEST_BALL,
+  CHEST_BALL_X,
+  CHEST_W,
   CHEST_RIM,
   CHEST_TILE_EMPTY,
   CHEST_TILES,
@@ -123,15 +126,20 @@ export class Renderer {
     ctx.drawImage(this.bitmaps.get(glyph), x, y, glyph[0].length * scale, glyph.length * scale);
   }
 
-  // Its toy chest, slid into its corner while the pointer is around: the lid lifts as the pointer comes to it.
+  // Its toy chest: a bit of it at the edge of the view, rolled out into its corner while the pointer is close.
   private drawChest(): void {
     const { chest } = this.session.world;
-    if (!chest.visible) {
-      return;
-    }
-    const glyph = CHEST[chest.open === 0 ? 0 : chest.open < LID_BACK ? 1 : 2];
-    const r = this.stage.rect({ x: chest.x, y: 0, w: glyph[0].length, h: glyph.length });
+    const lid = chest.lid;
+    // Its wheels turn as it rolls.
+    const glyph = CHEST[2 * lid + (Math.floor(chest.x / 2) & 1)];
+    const r = this.stage.rect({ x: chest.x - chest.nudge, y: 0, w: glyph[0].length, h: glyph.length });
+    this.drawShadow(r.x + r.w / 2, CHEST_W - 3);
     this.stage.ctx.drawImage(this.bitmaps.get(glyph), r.x, r.y, r.w, r.h);
+    if (lid === 2 && chest.holds.ball) {
+      // Its ball is in there.
+      const ball = this.stage.rect({ x: chest.x + CHEST_BALL_X, y: CHEST_RIM, w: CHEST_BALL[0].length, h: CHEST_BALL.length });
+      this.stage.ctx.drawImage(this.bitmaps.get(CHEST_BALL), ball.x, ball.y, ball.w, ball.h);
+    }
   }
 
   // What comes out of the chest, over everything else: its drawers rise from behind its rim, their things slide out from behind them.

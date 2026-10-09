@@ -22,8 +22,18 @@ const UNFOLD_MS = 130;
 const LINGER_MS = 350;
 /** The lid is thrown back by the time it is this far open; only then do the drawers start to rise. */
 export const LID_BACK = 0.3;
-/** How long the pointer has to be in the view before it comes: one that only crosses the view does not call it. */
+/** How much of it shows at the edge of the view while it waits. */
+const PEEK = 6;
+/** It comes out for a pointer this close to its corner: a small patch of the view round it. */
+const CALL = 10;
+/** How long the pointer has to be there before it comes: one that only passes does not call it. */
 const DWELL_MS = 250;
+/** While it waits it fidgets now and then, to be noticed: this often (and soon after the view opens), for this long. */
+const FIDGET_EVERY_MS = 9000;
+const FIDGET_SOON_MS = 3000;
+const FIDGET_MS = 900;
+/** One nudge of its fidgeting: a pixel into the view, its lid ajar, then back. */
+const NUDGE_MS = 150;
 /** A pointer left lying still this long is no longer asking for anything, unless it lies on the chest. */
 const IDLE_MS = 4000;
 /** How quickly it slides in and out: the share of the way left that it covers in a second. */
@@ -38,8 +48,9 @@ const toward = (from: number, to: number, step: number): number => (from < to ? 
 const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
 
 /**
- * The toy chest: everything you can give it is in there. It waits just out of view and slides into its corner when
- * the pointer comes into the view, then back out when it goes. Bring the pointer to it and its lid opens and its
+ * The toy chest: everything you can give it is in there. It waits at the edge of the view, only a bit of it showing,
+ * and fidgets now and then to be noticed. It rolls out into its corner when the pointer comes close, and back when
+ * it goes. Bring the pointer to it and its lid opens and its
  * drawers rise out; bring it to a drawer and its things come out in a row. A hand that holds a toy only gets the
  * lid: that is where the toy goes back. It only knows where the pointer is and how far open it is: what taking a
  * thing does, or putting one back, is the business of whoever does it.
@@ -47,9 +58,12 @@ const within = (box: Box, x: number, y: number, pad: number): boolean => x >= bo
 export class Chest {
   /** Its left edge; it stands on the ground. */
   x = 0;
-  /** Its place in the corner, and where it waits out of view. */
+  /** Its place in the corner, and where it waits at the edge of the view. */
   corner = 0;
   private away = 0;
+  /** While it fidgets: a pixel into the view, its lid ajar. */
+  nudge: 0 | 1 = 0;
+  private waitedMs = FIDGET_EVERY_MS - FIDGET_SOON_MS;
   /** How much of the way in it is meant to be, from 0 (out of view) to 1 (in its corner). */
   private share = 0;
   /** The pointer is asking for it. */
@@ -81,7 +95,7 @@ export class Chest {
   /** Its lid or its drawers are on their way. */
   get moving(): boolean {
     const settled = (v: number): boolean => v === 0 || v === 1;
-    return this.x !== this.target || !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
+    return this.x !== this.target || this.waitedMs >= FIDGET_EVERY_MS || !settled(this.open) || !DRAWERS.every(({ drawer }) => settled(this.unfolded[drawer])) || (this.open > 0 && this.lingerMs < LINGER_MS);
   }
 
   /** In its corner, ready to be opened. */
@@ -89,14 +103,19 @@ export class Chest {
     return this.x === this.corner;
   }
 
-  /** At least a little of it is in the view. */
-  get visible(): boolean {
-    return this.x < this.away;
+  /** Waiting at the edge of the view, only a bit of it showing. */
+  get tucked(): boolean {
+    return this.x === this.away;
+  }
+
+  /** How its lid shows: shut (0), ajar (1) or thrown back (2). */
+  get lid(): 0 | 1 | 2 {
+    return this.open >= LID_BACK ? 2 : this.open > 0 || this.nudge === 1 ? 1 : 0;
   }
 
   place(worldWidth: number): void {
     this.corner = Math.max(0, worldWidth - CHEST_W - MARGIN);
-    this.away = Math.max(worldWidth, this.corner + CHEST_W);
+    this.away = Math.max(worldWidth - PEEK, this.corner);
     this.x = this.target;
   }
 
@@ -163,11 +182,14 @@ export class Chest {
   update(dtMs: number, holds: Partial<Record<ChestItem, boolean>> = {}): void {
     Object.assign(this.holds, holds);
     const over = this.here && this.over();
-    this.aroundMs = this.pointer ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
+    const at = this.pointer;
+    const near = at !== undefined && (over !== false || within({ x: this.corner, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, CALL));
+    this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
     this.stillMs += dtMs;
-    // It comes for a pointer that is in the view and doing something, and never leaves while it is open.
+    // It comes for a pointer that is close to its corner and doing something, and never leaves while it is open.
     this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false);
     this.share = this.asked || this.open > 0 ? 1 : (this.hauled ?? 0);
+    this.fidget(dtMs);
     const left = this.target - this.x;
     this.x = Math.abs(left) < CLOSE_ENOUGH ? this.x + left : this.x + left * Math.min(1, (SLIDE * dtMs) / 1000);
 
@@ -188,6 +210,18 @@ export class Chest {
     const forPointer = !folded ? 1 : !wanted ? 0 : this.carrying ? LID_BACK : 1;
     const upTo = Math.max(forPointer, this.lifted && this.here ? LID_BACK : 0);
     this.open = toward(this.open, upTo, dtMs / OPEN_MS);
+
+  }
+
+  // Left waiting, it gives a few little nudges now and then: something is in there.
+  private fidget(dtMs: number): void {
+    this.waitedMs = this.tucked && this.share === 0 ? this.waitedMs + dtMs : 0;
+    const since = this.waitedMs - FIDGET_EVERY_MS;
+    this.nudge = since >= 0 && Math.floor(since / NUDGE_MS) % 2 === 0 ? 1 : 0;
+    if (since >= FIDGET_MS) {
+      this.waitedMs = 0;
+      this.nudge = 0;
+    }
   }
 
   private get target(): number {

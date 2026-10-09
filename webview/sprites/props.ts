@@ -114,18 +114,27 @@ export const BASKET_FRONT: Glyph = [
   '..tttttttttttttttttttttt..',
 ];
 
-// Its toy chest: a round red lid like its bowl, pale wood, a heart on the front and two little feet.
-// Lid shut, ajar, then thrown back so that its inside shows.
-const CHEST_LID = ['...AAAAAAAAAAA...', '.ArrrrAAAAAAAAAA.', 'AArAAAAAAAAAAAAAA', 'AAAAAAAAAAAAAAAAA', 'aaaaaaaaaaaaaaaaa'];
-const CHEST_LID_BACK = ['...AAAAAAAAAAA...', '.AaaaaaaaaaaaaaA.', 'AaaMMMMMMMMMMMaaA', 'AaMMMMMMMMMMMMMaA', 'AaMMMMMMMMMMMMMaA', 'AaaaaaaaaaaaaaaaA'];
-const CHEST_BODY = ['hhhhhhhhhhhhhhhhT', 'chhhhhhLhLhhhhhhT', 'chhhhhLLLLLhhhhhT', 'hhhhhhhLLLhhhhhhT', 'hhhhhhhhLhhhhhhhT', 'TTTTTTTTTTTTTTTTt', '.tt...........tt.'];
-const CHEST_GAP = 'ddddddddddddddddd';
-export const CHEST: readonly Glyph[] = [outlined([...CHEST_LID, ...CHEST_BODY]), outlined([...CHEST_LID, CHEST_GAP, ...CHEST_BODY]), outlined([...CHEST_LID_BACK, CHEST_GAP, ...CHEST_BODY])];
+// Its toy chest, on wheels: a round lid, pale wood with a paw print, and two wooden wheels that turn as it rolls.
+const CHEST_LID = ['...UUUUUUUUUUU...', '.UwwwwUUUUUUUUUU.', 'UUwUUUUUUUUUUUUUU', 'UUUUUUUUUUUUUUUUU', 'uuuuuuuuuuuuuuuuu'];
+const CHEST_LID_BACK = ['...UUUUUUUUUUU...', '.UuuuuuuuuuuuuuU.', 'UuuuuuuuuuuuuuuuU', 'UuuuuuuuuuuuuuuuU', 'UuuuuuuuuuuuuuuuU', 'UuuuuuuuuuuuuuuuU'];
+const CHEST_BOX = ['hhhhhhhhhhhhhhhhT', 'chhhhhhththhhhhhT', 'chhhhhthhhthhhhhT', 'hhhhhhhttthhhhhhT', 'hhhkkhhttthhkkhhT'];
+// The spot on each wheel moves from one frame to the other.
+const CHEST_WHEELS = [
+  ['TTkthkTTTTTkthkTt', '..khhk.....khhk..', '...kk.......kk...'],
+  ['TTkhhkTTTTTkhhkTt', '..khtk.....khtk..', '...kk.......kk...'],
+];
+const CHEST_DARK = 'ddddddddddddddddd';
+const chest = (top: Glyph, wheels: Glyph): Glyph => outlined([...top, ...CHEST_BOX, ...wheels]);
+/** Lid shut, ajar, then thrown back with the dark of its inside showing; each with its wheels on one frame, then the other. */
+export const CHEST: readonly Glyph[] = [CHEST_LID, [...CHEST_LID, CHEST_DARK], [...CHEST_LID_BACK, CHEST_DARK, CHEST_DARK]].flatMap((top) => CHEST_WHEELS.map((wheels) => chest(top, wheels)));
+/** The top of its ball, showing in the open chest while the ball is in there, and how far in from the chest's left edge. */
+export const CHEST_BALL: Glyph = ['.BB.', 'BgBB'];
+export const CHEST_BALL_X = 5;
 export const CHEST_W = CHEST[0][0].length;
 export const CHEST_H = CHEST[0].length;
-export const CHEST_OPEN_H = CHEST[2].length;
+export const CHEST_OPEN_H = CHEST[4].length;
 /** How high the top of its body is: what comes out of it rises from behind there. */
-export const CHEST_RIM = CHEST_BODY.length + 1;
+export const CHEST_RIM = CHEST_BOX.length + CHEST_WHEELS[0].length + 1;
 
 export type ChestDrawer = 'food' | 'play';
 export type ChestItem = 'meal' | 'treat' | 'ball' | 'bubbles';

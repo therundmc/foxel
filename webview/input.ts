@@ -177,6 +177,13 @@ export class Input {
     this.holding = undefined;
     const { stage } = this;
     const out = stage.toWorld(cssX, cssY);
+    const { chest } = this.session.world;
+    if (chest.accepts(out.x, out.y)) {
+      // Let go of over the chest, a toy goes back in it.
+      held.stow();
+      chest.stowed();
+      return;
+    }
     const away = { x: out.x - stage.width / stage.scale / 2, y: 1 };
     held.release(out, this.throwing.velocity(performance.now(), minSpeed, away));
   }
@@ -233,13 +240,7 @@ export class Input {
     const { chest } = this.session.world;
     const at = this.stage.toWorld(e.clientX, e.clientY);
     chest.point(at, this.holding !== undefined);
-    if (this.holding && chest.accepts(at.x, at.y)) {
-      // A toy carried over the chest goes back in it.
-      this.dragged = true;
-      this.holding.stow();
-      this.holding = undefined;
-      chest.stowed();
-    } else if (this.holding) {
+    if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
       this.holding.move(p);

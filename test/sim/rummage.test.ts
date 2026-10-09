@@ -19,7 +19,7 @@ describe('its toy chest', () => {
     const { chest, ball } = b.world;
     startErrand(b);
     expect(b.state).toBe('rummage');
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
 
     simulate(b, 30_000, () => step(b, 'haul'));
     // It went to the edge of the view to get hold of it.
@@ -44,7 +44,7 @@ describe('its toy chest', () => {
     simulate(b, 30_000, () => b.state === 'play');
     expect(b.state).toBe('play');
     expect(ball.state).toBe('free');
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
     expect(b.x).toBeLessThan(b.maxX - 20);
   });
 
@@ -58,7 +58,7 @@ describe('its toy chest', () => {
     simulate(b, 30_000, () => b.state !== 'rummage');
     expect(ball.state).toBe('none');
     simulate(b, 3000);
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
     expect(chest.holds.ball).toBe(true);
   });
 
@@ -66,14 +66,14 @@ describe('its toy chest', () => {
     const b = fox();
     const { chest } = b.world;
     const steps = new Set<string>();
-    chest.point({ x: 100, y: 20 });
+    chest.point({ x: 280, y: 10 });
     simulate(b, 1500);
     expect(chest.here).toBe(true);
     startErrand(b);
     let moves = 0;
     simulate(b, 30_000, () => {
       // A pointer that keeps moving about in the view.
-      chest.point({ x: 100 + (moves++ % 2), y: 20 });
+      chest.point({ x: 280 + (moves++ % 2), y: 10 });
       steps.add(b.rummage.step);
       return b.state !== 'rummage';
     });
@@ -92,7 +92,7 @@ describe('its toy chest', () => {
     expect(b.state).toBe('love');
     expect(ball.state).toBe('free');
     simulate(b, 3000);
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
     expect(chest.open).toBe(0);
   });
 
@@ -104,7 +104,7 @@ describe('its toy chest', () => {
     simulate(b, 200);
     expect(b.state).not.toBe('rummage');
     simulate(b, 3000);
-    expect(b.world.chest.visible).toBe(false);
+    expect(b.world.chest.tucked).toBe(true);
   });
 
   it('plays with a ball that is lying about rather than going to its chest', () => {

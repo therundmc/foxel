@@ -21,51 +21,83 @@ describe('the toy chest', () => {
     /** The middle of a tile, once it has settled. */
     const middle = (box: { x: number; y: number; w: number; h: number }) => ({ x: box.x + box.w / 2, y: box.y + box.h / 2 });
     if (there) {
-      point({ x: 40, y: 20 }, 1500);
+      point({ x: 100, y: 20 }, 1500);
     }
     return { b, chest, onChest, point, middle };
   }
 
-  it('waits out of view, and slides into its corner when the pointer comes into the view', () => {
+  it('waits at the edge of the view, a bit of it showing, and rolls into its corner when the pointer comes close', () => {
     const { b, chest, point } = scene(false);
-    expect(chest.visible).toBe(false);
-    expect(chest.moving).toBe(false);
-    expect(b.world.restful).toBe(true);
-    point({ x: 30, y: 20 }, 100);
-    expect(chest.visible).toBe(false);
-    point({ x: 30, y: 20 }, 300);
-    expect(chest.visible).toBe(true);
+    expect(chest.tucked).toBe(true);
+    expect(chest.box.x).toBeLessThan(120);
+    expect(chest.box.x).toBeGreaterThan(110);
+    point({ x: 100, y: 20 }, 100);
+    expect(chest.tucked).toBe(true);
+    point({ x: 100, y: 20 }, 300);
+    expect(chest.tucked).toBe(false);
     expect(chest.here).toBe(false);
     expect(chest.moving).toBe(true);
-    point({ x: 30, y: 20 }, 1000);
+    point({ x: 100, y: 20 }, 1000);
     expect(chest.here).toBe(true);
     expect(chest.box.x + chest.box.w).toBeLessThanOrEqual(120);
     expect(chest.box.x).toBeGreaterThan(95);
     expect(chest.open).toBe(0);
     expect(chest.moving).toBe(false);
+    expect(b.world.restful).toBe(true);
+  });
+
+  it('stays where it is for a pointer anywhere else in the view', () => {
+    const { chest, point } = scene(false);
+    point({ x: 40, y: 20 }, 2000);
+    expect(chest.tucked).toBe(true);
+    point({ x: 100, y: 45 }, 2000);
+    expect(chest.tucked).toBe(true);
+  });
+
+  it('fidgets now and then while it waits, to be noticed: soon after the view opens, then every so often', () => {
+    const { b, chest } = scene(false);
+    const nudgedWithin = (ms: number): boolean => {
+      let nudged = false;
+      simulate(b, ms, () => {
+        nudged ||= chest.nudge === 1 && chest.lid === 1;
+      });
+      return nudged;
+    };
+    expect(nudgedWithin(2500)).toBe(false);
+    expect(nudgedWithin(1500)).toBe(true);
+    simulate(b, 1000);
+    expect(chest.nudge).toBe(0);
+    expect(chest.lid).toBe(0);
+    expect(b.world.restful).toBe(true);
+    expect(nudgedWithin(6000)).toBe(false);
+    expect(nudgedWithin(4000)).toBe(true);
+    // Not while it is out for you.
+    chest.point({ x: 108, y: 4 });
+    expect(nudgedWithin(12_000)).toBe(false);
+    expect(chest.tucked).toBe(false);
   });
 
   it('slides back out when the pointer leaves the view, or lies still for a while', () => {
     const { chest, point } = scene(false);
-    point({ x: 30, y: 20 }, 1500);
+    point({ x: 100, y: 20 }, 1500);
     point(undefined, 1500);
-    expect(chest.visible).toBe(false);
-    point({ x: 30, y: 20 }, 1500);
+    expect(chest.tucked).toBe(true);
+    point({ x: 100, y: 20 }, 1500);
     expect(chest.here).toBe(true);
-    point({ x: 30, y: 20 }, 5000);
-    expect(chest.visible).toBe(false);
+    point({ x: 100, y: 20 }, 5000);
+    expect(chest.tucked).toBe(true);
     // A pointer lying on the chest keeps it there.
-    point({ x: 31, y: 20 }, 1500);
+    point({ x: 101, y: 20 }, 1500);
     point({ x: 108, y: 4 }, 8000);
     expect(chest.here).toBe(true);
     expect(chest.open).toBe(1);
   });
 
-  it('does not come for a pointer that only crosses the view', () => {
+  it('does not come for a pointer that only passes close to it', () => {
     const { chest, point } = scene(false);
-    point({ x: 30, y: 20 }, 150);
+    point({ x: 100, y: 20 }, 150);
     point(undefined, 1000);
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
   });
 
   it('follows its corner when the view is resized', () => {
@@ -75,7 +107,7 @@ describe('the toy chest', () => {
     expect(chest.here).toBe(true);
     point(undefined, 1500);
     b.world.resize(90, 60);
-    expect(chest.visible).toBe(false);
+    expect(chest.tucked).toBe(true);
   });
 
   it('opens when the pointer comes to it: the lid first, then its drawers rise out one above the other', () => {
@@ -158,9 +190,9 @@ describe('the toy chest', () => {
     expect(chest.open).toBe(1);
   });
 
-  it('does not open for a pointer that is in the view but not on it', () => {
-    const { chest, onChest, point } = scene();
-    point({ x: onChest.x, y: 30 });
+  it('does not open for a pointer that is close to it but not on it', () => {
+    const { chest, point } = scene();
+    point({ x: 92, y: 20 });
     expect(chest.here).toBe(true);
     expect(chest.open).toBe(0);
   });
@@ -184,7 +216,7 @@ describe('the toy chest', () => {
     point(onChest, 600);
     expect(chest.open).toBe(0);
     expect(chest.holds.ball).toBe(true);
-    point({ x: 40, y: 20 }, 100);
+    point({ x: 100, y: 20 }, 100);
     point(onChest, 600);
     expect(chest.open).toBe(1);
   });
