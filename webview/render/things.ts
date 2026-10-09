@@ -20,6 +20,8 @@ import {
   FIND_ORDER,
   FINDS,
   FINDS_KEPT,
+  FINDS_TO_COME,
+  FIND_SHINE,
   MOUND,
   PICTURES,
   PLUSH,
@@ -31,6 +33,9 @@ import type { Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 
 // Its things: the toy chest and what rises out of it, the shelf and what stands on it, its soft toys.
+
+/** A kind of find shines in the box once it has been found this many times. */
+const SHINES_FROM = 3;
 
 /** Paints a shadow on the ground under something: where its middle is on the canvas, and how wide in sprite pixels. */
 type Shadow = (centerX: number, widthPx: number) => void;
@@ -91,8 +96,12 @@ export function drawAlbum(stage: Stage, bitmaps: Bitmaps, world: World): void {
     draw(PICTURES[Math.min(picture, PICTURES.length - 1)], album.slot({ picture }));
   }
   for (const find of FIND_ORDER) {
-    if ((album.finds[find] ?? 0) > 0) {
-      draw(FINDS_KEPT[find], album.slot({ find }));
+    const found = album.finds[find] ?? 0;
+    const slot = album.slot({ find });
+    // What is still to be found shows as a shape stitched in the cloth; found three times, a kind shines.
+    draw(found > 0 ? FINDS_KEPT[find] : FINDS_TO_COME[find], slot);
+    if (found >= SHINES_FROM) {
+      draw(FIND_SHINE, { x: slot.x + slot.w - 2, y: slot.y + slot.h - 2, w: FIND_SHINE[0].length, h: FIND_SHINE.length });
     }
   }
   const { flying, flight } = album;

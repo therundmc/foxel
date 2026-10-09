@@ -102,6 +102,9 @@ function onEffect(effect: Effect): void {
     case 'confetti':
       sky.burst(stage, buddy.x + SPRITE_SIZE / 2);
       break;
+    case 'snap':
+      session.snappedAt = performance.now();
+      break;
     case 'petted':
     case 'treated':
       vscode.postMessage({ type: 'cared', care: effect });

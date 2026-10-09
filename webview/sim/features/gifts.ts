@@ -1,8 +1,8 @@
 import { SPRITE_SIZE } from '../../sprites/frames';
-import { FIND_ORDER, type FindKind } from '../../sprites/props';
+import type { FindKind } from '../../sprites/props';
 import type { Buddy } from '../buddy';
 import type { AnimRef, Feature } from '../state';
-import { has } from '../unlocks';
+import { has, owns } from '../unlocks';
 import { mouthPoint, noseTo } from './mouth';
 
 /** It brings you this many things a day at most, this long apart. */
@@ -79,6 +79,19 @@ function inMouth(b: Buddy): void {
   b.world.finds.carry(b.gift.kind, at.x, at.y);
 }
 
+/** A rare find comes this seldom, once it finds them at all. */
+const RARE = 0.12;
+
+// What it finds this time: common things at first, prettier ones later, and once in a long while something rare.
+function pickKind(b: Buddy): FindKind {
+  const { random } = b.world;
+  const pick = (kinds: readonly FindKind[]): FindKind => kinds[Math.floor(random() * kinds.length) % kinds.length];
+  if (owns(b.world, 'rareFinds') && random() < RARE) {
+    return pick(['clover', 'gem']);
+  }
+  return pick(owns(b.world, 'fineFinds') ? ['leaf', 'pebble', 'flower', 'feather'] : ['leaf', 'pebble']);
+}
+
 /** Finds you something: outside, in the earth, or from a bird, as `way` says (or as it happens). */
 export function startGift(b: Buddy, way?: Way): void {
   const m = b.gift;
@@ -86,7 +99,7 @@ export function startGift(b: Buddy, way?: Way): void {
   m.given = broughtToday(b) + 1;
   m.day = today(b);
   m.sinceGiftMs = 0;
-  m.kind = FIND_ORDER[Math.floor(random() * FIND_ORDER.length) % FIND_ORDER.length];
+  m.kind = pickKind(b);
   m.way = way ?? WAYS[Math.floor(random() * WAYS.length) % WAYS.length];
   b.enter('gift', Infinity);
   if (m.way === 'dug') {

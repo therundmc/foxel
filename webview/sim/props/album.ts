@@ -3,9 +3,13 @@ import type { Box } from '../math';
 
 /** How much of it shows at the edge of the view while it waits: its handle, and a little of its wicker. */
 const PEEK = 5;
-/** It comes out for a pointer this close to its place, after this long; and goes back for one that lies still this long. */
-const CALL = 8;
-const DWELL_MS = 250;
+/**
+ * It only comes out for a pointer right by the bit of it that shows, its handle: this near, and after this long.
+ * Once out it stays for a pointer anywhere on it, and goes back for one that lies still this long elsewhere.
+ */
+const HANDLE_W = 8;
+const CALL = 3;
+const DWELL_MS = 400;
 const IDLE_MS = 4000;
 const SPEED = 90;
 /** Something new goes into it: it comes out by itself, the thing flies to its place in this long, and it stays out a while. */
@@ -92,7 +96,8 @@ export class Album {
   update(dtMs: number, free = true): void {
     const at = this.pointer;
     const whole = { x: 0, y: this.y, w: ALBUM_W, h: ALBUM_H };
-    const near = free && at !== undefined && within(whole, at.x, at.y, CALL);
+    const zone = this.x > this.away ? whole : { ...whole, w: HANDLE_W };
+    const near = free && at !== undefined && within(zone, at.x, at.y, CALL);
     this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
     this.stillMs += dtMs;
     this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || (at !== undefined && within(whole, at.x, at.y, 1)));

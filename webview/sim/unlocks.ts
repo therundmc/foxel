@@ -9,7 +9,7 @@ import type { World } from './world';
 export const STAGES = [0, 0.07, 0.2, 0.35, 0.5, 0.7] as const;
 export const LAST_STAGE = STAGES.length - 1;
 /** What each stage is, in a few words: for the debug corner. */
-export const STAGE_NAMES = ['the first meeting', 'it trusts you', 'it is fond of you', 'you are its person', 'devoted', 'still to come'] as const;
+export const STAGE_NAMES = ['the first meeting', 'it trusts you', 'it is fond of you', 'you are its person', 'devoted', 'inseparable'] as const;
 export const stageFor = (peak: number): number => STAGES.filter((from) => peak >= from).length - 1;
 
 /**
@@ -38,13 +38,16 @@ export const UNLOCKS = {
   trusts: { stage: 1 },
   duck: { stage: 1 },
   bubbles: { stage: 1 },
-  // Stage 2, it is fond of you: its teddy; it catches what you throw and shakes it; it brings you what it finds.
+  // Stage 2, it is fond of you: its teddy; it catches what you throw and shakes it; it brings you what it finds
+  // (a leaf, a pebble).
   teddy: { stage: 2 },
   catches: { stage: 2 },
   shake: { stage: 2, mood: IN_SPIRITS },
   finds: { stage: 2, mood: 0 },
   overjoyed: { stage: 2 },
-  // Stage 3, you are its person: leaps and spins with its toys, and it will not let you put them away.
+  // Stage 3, you are its person: leaps and spins with its toys, and it will not let you put them away. It finds
+  // prettier things for you (a flower, a feather).
+  fineFinds: { stage: 3 },
   frolic: { stage: 3, mood: IN_SPIRITS },
   spin: { stage: 3, mood: IN_SPIRITS },
   fetchesBack: { stage: 3, mood: 0 },
@@ -52,6 +55,11 @@ export const UNLOCKS = {
   // Stage 4, devoted: it juggles, and draws hearts in the earth for you.
   juggle: { stage: 4, mood: IN_SPIRITS },
   hearts: { stage: 4, mood: 0.2 },
+  // Stage 5, inseparable: it wears the collar you gave it, lies down by your pointer when it comes to you, and
+  // once in a long while finds something rare (a four-leaf clover, a gem).
+  collar: { stage: 5 },
+  staysClose: { stage: 5 },
+  rareFinds: { stage: 5 },
 } satisfies Record<string, Needs>;
 export type Unlock = keyof typeof UNLOCKS;
 

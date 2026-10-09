@@ -29,7 +29,7 @@ export interface WorldPoint {
 }
 
 /** One-off things for the view to act on: tell the extension it ate or was played with, throw confetti. */
-export type Effect = 'fed' | 'played' | 'confetti' | 'petted' | 'treated' | 'unfed' | 'unheard';
+export type Effect = 'fed' | 'played' | 'confetti' | 'snap' | 'petted' | 'treated' | 'unfed' | 'unheard';
 
 /** What the buddies share: the ground, the toys and bowls on it, the pointer and the time of day. */
 export class World {

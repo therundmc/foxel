@@ -42,6 +42,8 @@ describe('coming to the pointer', () => {
 
   it('looks at it for a second, then walks over at its own pace and wags its tail once its head is under it', () => {
     const b = settled(10);
+    // Before you are inseparable: it sits down once it is there.
+    b.world.stage = 4;
     b.world.pointer = { x: 150, y: 20 };
     simulate(b, 1000);
     expect(b.state).toBe('sit');

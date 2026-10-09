@@ -111,7 +111,8 @@ function updateMilestone(b: Buddy, dt: number, dtMs: number): boolean {
       b.y = Math.min(HOP, b.maxY) * Math.abs(Math.sin((m.stepMs / HOP_MS) * Math.PI));
       if (m.stepMs >= SHOW_MS) {
         b.y = 0;
-        // And a picture of the day goes into the box of keepsakes.
+        // A photograph of the moment is taken, and goes into the box of keepsakes.
+        b.world.effects.push('snap');
         b.world.album.keep({ picture: m.marking }, b.x + SPRITE_SIZE / 2, 20);
         step(b, 'proud');
       }

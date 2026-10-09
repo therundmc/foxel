@@ -3,6 +3,7 @@ import { welcomeBack } from '../../webview/sim/features/bond';
 import { startIntro } from '../../webview/sim/features/intro';
 import { react } from '../../webview/sim/features/reactions';
 import { callOver } from '../../webview/sim/features/pointer';
+import { startGift } from '../../webview/sim/features/gifts';
 import { holdPlush, tossPlush } from '../../webview/sim/features/plush';
 import { pet, touch } from '../../webview/sim/features/touch';
 import { recall, remember } from '../../webview/sim/memory';
@@ -31,7 +32,10 @@ describe('the stages of a life together', () => {
     expect(mine()).toEqual(['ball']);
     b.world.stage = 1;
     expect(mine()).toEqual(['ball', 'trusts', 'duck', 'bubbles']);
+    b.world.stage = LAST_STAGE - 1;
+    expect(mine()).not.toContain('collar');
     b.world.stage = LAST_STAGE;
+    expect(mine()).toContain('collar');
     expect(mine()).toHaveLength(Object.keys(UNLOCKS).length);
     b.world.stage = -1;
     expect(mine()).toEqual([]);
@@ -77,6 +81,8 @@ describe('the stages of a life together', () => {
     expect(b.world.stage).toBe(0);
     expect(ball.state).toBe('free');
     expect(b.world.effects).toContain('confetti');
+    // A photograph was taken.
+    expect(b.world.effects).toContain('snap');
     expect(album.pictures).toBe(1);
     expect(chest.items).toEqual(['ball']);
   });
@@ -194,6 +200,25 @@ describe('wary at first, then trusting', () => {
     expect(other.state).toBe('petted');
   });
 
+  it('lies down by your pointer once you are inseparable, where before it only sat', () => {
+    const settles = (stage: number): BuddyState => {
+      const b = fox(stage);
+      b.enter('sit', 600_000);
+      const at = { x: 250, y: 20 };
+      simulate(b, 60_000, () => {
+        b.world.pointer = at;
+        return b.state === 'come' && b.pointer.arrived;
+      });
+      simulate(b, 3000, () => {
+        b.world.pointer = at;
+        return b.state !== 'come';
+      });
+      return b.state;
+    };
+    expect(settles(4)).toBe('sit');
+    expect(settles(5)).toBe('lie');
+  });
+
   it('comes to you once it trusts you, and takes a pat gladly', () => {
     const b = fox(1);
     b.enter('sit', 600_000);
@@ -297,7 +322,54 @@ describe('out of sorts', () => {
   });
 });
 
+describe('what it finds, stage by stage', () => {
+  const found = (stage: number): Set<string> => {
+    const b = fox(stage);
+    let seed = 21;
+    (b.world as { random: () => number }).random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    const kinds = new Set<string>();
+    for (let i = 0; i < 400; i++) {
+      startGift(b, 'dug');
+      kinds.add(b.gift.kind);
+      b.world.finds.gone();
+    }
+    return kinds;
+  };
+
+  it('brings common things at first, prettier ones later, and at the last stage something rare once in a long while', () => {
+    expect(found(2)).toEqual(new Set(['leaf', 'pebble']));
+    expect(found(3)).toEqual(new Set(['leaf', 'pebble', 'flower', 'feather']));
+    expect(found(5)).toEqual(new Set(['leaf', 'pebble', 'flower', 'feather', 'clover', 'gem']));
+  });
+});
+
 describe('the box of keepsakes', () => {
+  it('only comes out for a pointer right by its handle, not for one that passes where it would be', () => {
+    const b = fox(3);
+    b.enter('sleep', 3_600_000);
+    const { album } = b.world;
+    simulate(b, 2000, () => {
+      album.point({ x: 30, y: 50 });
+    });
+    expect(album.here).toBe(false);
+    simulate(b, 300, () => {
+      album.point({ x: 4, y: 50 });
+    });
+    expect(album.asked).toBe(false);
+    simulate(b, 1500, () => {
+      album.point({ x: 4, y: 50 });
+    });
+    expect(album.here).toBe(true);
+    // Out, it stays for a pointer anywhere on it.
+    simulate(b, 2000, () => {
+      album.point({ x: 40, y: 50 });
+    });
+    expect(album.here).toBe(true);
+  });
+
   it('waits at the top left edge and slides out when the pointer comes close, to be looked at', () => {
     const b = fox(3);
     b.enter('sleep', 3_600_000);

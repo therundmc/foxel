@@ -15,7 +15,9 @@ import {
   BIRD_W,
   BUG_FRAMES,
   CAKE,
+  COLLAR,
   EMOTE_BUD,
+  type Hat,
   EMOTES,
   type Emote,
   FOOD_BOWL,
@@ -31,11 +33,17 @@ import {
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
+import { owns } from '../sim/unlocks';
 import { drawBubbles } from './bubbles';
 import { drawAlbum, drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
+/** What is worn round the neck, over its collar. */
+const NECKWEAR = new Set<Hat>(['scarf', 'scarfDust', 'scarfSnow', 'cloak', 'cloakWind']);
+/** A photograph is taken: the view flashes white, this strongly and for this long. */
+const FLASH = 0.38;
+const FLASH_MS = 240;
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.25)';
 // Above the ear tips, where the picture bubble sits.
 const EMOTE_ABOVE_HEAD = 13;
@@ -107,6 +115,11 @@ export class Renderer {
     drawShelf(stage, this.bitmaps, world.shelf);
     drawAlbum(stage, this.bitmaps, world);
     sky.drawConfetti(stage, dt);
+    const since = now - (session.snappedAt ?? -Infinity);
+    if (since < FLASH_MS) {
+      stage.ctx.fillStyle = `rgba(255, 255, 255, ${(FLASH * (1 - since / FLASH_MS)).toFixed(3)})`;
+      stage.ctx.fillRect(0, 0, stage.width, stage.height);
+    }
   }
 
   // The basket sits under the curled-up fox: back rim and cushion behind it, front rim in front.
@@ -237,13 +250,20 @@ export class Renderer {
     }
   }
 
+  // What it wears: its hat of the moment, and, once you are inseparable, its collar (under a scarf or a cloak it does not show).
   private drawHat(frame: Frame, rect: Rect, flip: boolean): void {
-    const { ctx, scale: s } = this.stage;
-    const hat = this.session.buddy.hat();
-    if (!hat) {
-      return;
+    const { buddy, world } = this.session;
+    const hat = buddy.hat();
+    if (owns(world, 'collar') && !(hat && NECKWEAR.has(hat))) {
+      this.drawWorn(COLLAR, frame, rect, flip);
     }
-    const { glyph, x, y } = HATS[hat];
+    if (hat) {
+      this.drawWorn(HATS[hat], frame, rect, flip);
+    }
+  }
+
+  private drawWorn({ glyph, x, y }: { glyph: Glyph; x: number; y: number }, frame: Frame, rect: Rect, flip: boolean): void {
+    const { ctx, scale: s } = this.stage;
     const w = glyph[0].length;
     const img = this.bitmaps.get(glyph);
     const left = frame.head[0] + x;

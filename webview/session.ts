@@ -20,6 +20,8 @@ export interface Session {
   forced: { mood?: number; attachment?: number };
   /** Whether the debug corner is unfolded, or only its button shows. */
   debugOpen: boolean;
+  /** When a photograph was last taken (by the renderer's clock): the view flashes for a moment. */
+  snappedAt?: number;
   /** Asks the extension to forget everything and start a new life: the `new game` button of the debug corner. */
   startOver(): void;
 }

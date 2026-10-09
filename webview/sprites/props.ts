@@ -171,8 +171,8 @@ export const CHEST_TILE_EMPTY: Glyph = tile();
 
 // Its box of keepsakes: a wicker case like its chest and its basket, lined with the same blue cloth, lying open. In
 // it, a row of little photographs, one for each stage of your life together (its ball, its duck, its teddy, a star,
-// a heart, a sun), and under them one of each kind of thing it has found for you. Where a photograph is still to
-// come, four stitches mark its place. A leather handle at the end that shows.
+// a heart, its collar), and under them one of each kind of thing it has found for you. Where a photograph is still to
+// come, a frame is stitched in the cloth; where a find is, its shape. A leather handle at the end that shows.
 export const ALBUM_CELL = 7;
 export const ALBUM_COLUMNS = 6;
 /** How far in from its outer edge the first place is, on each side. */
@@ -181,8 +181,9 @@ const CASE_INNER = ALBUM_COLUMNS * (ALBUM_CELL + 1) - 1;
 const stitched = (row: number): string =>
   Array.from({ length: CASE_INNER }, (_, x) => {
     const inCellX = x % (ALBUM_CELL + 1);
-    const corner = (inCellX === 0 || inCellX === ALBUM_CELL - 1) && (row === 0 || row === ALBUM_CELL - 1);
-    return corner ? 'U' : 'C';
+    // An empty frame, stitched in thread a little darker than the cloth: a photograph goes there.
+    const edge = inCellX < ALBUM_CELL && (inCellX === 0 || inCellX === ALBUM_CELL - 1 || row === 0 || row === ALBUM_CELL - 1);
+    return edge && (inCellX + row) % 2 === 0 ? 'U' : 'C';
   }).join('');
 const weave = (from: 'T' | 'h'): string => Array.from({ length: CASE_INNER + 2 }, (_, x) => ((x % 2 === 0) === (from === 'T') ? 'T' : 'h')).join('');
 const CASE_ROWS = [
@@ -212,20 +213,28 @@ export const PICTURES: readonly Glyph[] = [
   ['t...t', 'tTTTt', 'TETET', '.ThT.', 'tT.Tt'],
   ['..x..', '.xXx.', 'xXXXx', '.xXx.', '.x.x.'],
   ['.L.L.', 'LLLLL', 'LLLLL', '.LLL.', '..L..'],
-  ['x.x.x', '.xXx.', 'xXXXx', '.xXx.', 'x.x.x'],
+  ['.....', 'AAAAA', '..S..', '.SxS.', '..S..'],
 ].map((picture) => inCell(picture, 'c'));
 // What it brings you from outside: small things, each set down in front of you.
-export type FindKind = 'flower' | 'pebble' | 'feather' | 'leaf';
+export type FindKind = 'leaf' | 'pebble' | 'flower' | 'feather' | 'clover' | 'gem';
 const FIND_FILLS: Record<FindKind, Glyph> = {
   flower: ['.p.p.', 'ppSpp', '.p.p.', '..F..', '.FF..', '..F..'],
   pebble: ['.eee.', 'eeeDD', '.DDD.'],
   feather: ['..W', '.WZ', '.WZ', 'WZ.', 'WZ.', 'Q..'],
   leaf: ['..FF.', '.FFfF', 'FFfF.', 'kF...'],
+  clover: ['FF.FF', 'FFfFF', '.fff.', 'FFfFF', 'FF.FF'],
+  gem: ['.VVV.', 'VWVVI', '.VVI.', '..I..'],
 };
-export const FIND_ORDER: readonly FindKind[] = ['flower', 'pebble', 'feather', 'leaf'];
+/** From the commonest to the rarest: the order they lie in, in the box of keepsakes. */
+export const FIND_ORDER: readonly FindKind[] = ['leaf', 'pebble', 'flower', 'feather', 'clover', 'gem'];
 export const FINDS = Object.fromEntries(FIND_ORDER.map((kind) => [kind, outlined(FIND_FILLS[kind])])) as Record<FindKind, Glyph>;
-/** As they lie in the tray of keepsakes. */
+/** As they lie in the box of keepsakes; and the shape stitched in the cloth where one is still to be found. */
 export const FINDS_KEPT = Object.fromEntries(FIND_ORDER.map((kind) => [kind, inCell(FIND_FILLS[kind])])) as Record<FindKind, Glyph>;
+export const FINDS_TO_COME = Object.fromEntries(FIND_ORDER.map((kind): [FindKind, Glyph] => [kind, inCell(FIND_FILLS[kind]).map((row) => row.replace(/[^.]/g, 'U'))])) as Record<FindKind, Glyph>;
+/** A kind it has found three times shines a little. */
+export const FIND_SHINE: Glyph = ['.X.', 'XJX', '.X.'];
+/** The collar it wears once you are inseparable: a red band and a little tag, worn this far from the middle of its head. */
+export const COLLAR = { glyph: ['aAAAAa', '....S.'] as Glyph, x: -5, y: 6 };
 // A heart scratched in the earth, stroke by stroke; and the little mound left where it dug, as it rises.
 export const DOODLE: readonly Glyph[] = [
   ['.TT....', 'T......', 'T......', '.T.....', '..T....', '...T...'],

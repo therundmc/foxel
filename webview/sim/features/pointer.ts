@@ -109,7 +109,8 @@ function updateCome(b: Buddy, dt: number, dtMs: number): boolean {
     if (m.arrivedMs < ARRIVED_MS) {
       return false;
     }
-    b.enterNext('sit');
+    // Inseparable, it settles down right there, by you.
+    b.enterNext(has(b.world, 'staysClose') ? 'lie' : 'sit');
     return true;
   }
   // A pointer that went still, or left, is still where it last saw it.
