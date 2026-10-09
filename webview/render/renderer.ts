@@ -45,7 +45,7 @@ import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
 /** The face that goes with each degree of its mood: none on an even day, nor on a merely good one (its eyes say it). */
-const FACE: Record<MoodLevel, Face | undefined> = { [-3]: 'cross', [-2]: 'cross', [-1]: 'sullen', 0: undefined, 1: undefined, 2: 'beaming' };
+const FACE: Record<MoodLevel, Face | undefined> = { [-3]: 'sad', [-2]: 'sad', [-1]: 'sullen', 0: undefined, 1: undefined, 2: 'beaming' };
 /** What is worn round the neck, over its neckerchief. */
 const NECKWEAR = new Set<Hat>(['scarf', 'scarfDust', 'scarfSnow', 'cloak', 'cloakWind']);
 /** A photograph is taken: the view flashes white, this strongly and for this long. */

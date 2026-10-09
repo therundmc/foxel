@@ -3,7 +3,7 @@ import { ellipse, inEllipse, lerp, poly, rect, set, type Grid } from '../grid';
 import { HEAD_RX, HEAD_RY } from './anchors';
 
 type Eye = 'open' | 'closed' | 'happy' | 'wide' | 'down' | 'up' | 'sleepy' | 'dizzy';
-type Mouth = 'smile' | 'open' | 'flat' | 'tongue' | 'blep';
+type Mouth = 'smile' | 'open' | 'flat' | 'sad' | 'tongue' | 'blep';
 type Ears = 'up' | 'back';
 
 export interface HeadPose {
@@ -26,6 +26,7 @@ const MOUTHS: Record<Mouth, readonly (readonly [number, number, string])[]> = {
   tongue: [[4, 4, 'K'], [5, 4, 'K'], [6, 3, 'K'], [5, 5, 'p']],
   blep: [[4, 4, 'K'], [5, 4, 'K'], [6, 4, 'K'], [5, 5, 'p'], [5, 6, 'r']],
   flat: [[4, 4, 'K'], [5, 4, 'K'], [6, 4, 'K']],
+  sad: [[4, 4, 'K'], [5, 4, 'K'], [6, 5, 'K']],
   open: [[3, 4, 'M'], [4, 4, 'M'], [5, 4, 'M'], [6, 4, 'M'], [3, 5, 'M'], [5, 5, 'M'], [6, 5, 'M'], [4, 5, 'p']],
 };
 

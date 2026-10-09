@@ -58,22 +58,25 @@ export class Eyes {
       y: buddy.y + GROUND_ROW + 1 - (ey + 1.5),
     };
     const gaze = blinking ? undefined : this.settle(buddy.gaze(eyeCenter), now);
-    // Out of sorts, its lid comes down over its eye; angry, a brow frowns over it, slanting down to its nose.
+    // A bad day shows in its eyes, sadly rather than crossly. Down: the outer corner of its eye droops. Sad: a
+    // little brow over it, raised at the inner end, the way a worried one is. At the worst: its eye wells up, and a
+    // tear hangs under it.
     const level = moodLevel(buddy.world.mood);
     const glare = (): void => {
       if (level > -1 || blinking) {
         return;
       }
-      const row = ey + Math.max(0, gaze?.y ?? 0);
-      paint(ex - 1, row, 4, bitmaps.colorOf('O'));
-      if (level <= -3 && (gaze?.y ?? 0) < 1) {
-        // Furious, its eye is no more than a slit.
-        paint(ex - 1, row + 1, 4, bitmaps.colorOf('O'));
-      }
+      const px = ex + (gaze?.x ?? 0);
+      const top = gaze?.y === 1 ? ey + 1 : ey + (gaze?.y ?? 0);
+      paint(px, top, 1, bitmaps.colorOf('O'));
       if (level <= -2) {
         const brow = bitmaps.colorOf('K');
-        paint(ex - 1, row - 1, 2, brow);
-        paint(ex + 1, row, 2, brow);
+        paint(px - 1, top, 1, brow);
+        paint(px, top - 1, 2, brow);
+      }
+      if (level <= -3) {
+        paint(px + 1, top + 1, 1, PALETTE.W);
+        paint(px + 1, ey + 3, 1, PALETTE.C);
       }
     };
     // On a good day its eyes smile for a moment, now and then; the better the day, the more often.

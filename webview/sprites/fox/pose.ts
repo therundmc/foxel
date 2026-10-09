@@ -288,16 +288,16 @@ const POSES = new WeakMap<Frame, Pose>();
 
 /**
  * The face it wears for the mood it is in, whatever it is doing: only its mouth, its ears and its eyes change,
- * and only a little. Sullen, its mouth is a flat line and its eyes do not smile; cross, its ears go flat too.
- * Beaming, the tip of its tongue shows. (What its lids and its brow do is the renderer's, eye by eye.)
+ * and only a little. Sullen, its mouth is a flat line and its eyes do not smile; sad, the corner of its mouth
+ * turns down and its ears droop. Beaming, the tip of its tongue shows. (What its eyes do is the renderer's.)
  */
-export type Face = 'sullen' | 'cross' | 'beaming';
+export type Face = 'sullen' | 'sad' | 'beaming';
 const FACES: Record<Face, (p: Pose) => Pose> = {
   sullen: (p) => ({ ...p, mouth: p.mouth === undefined || p.mouth === 'smile' ? 'flat' : p.mouth, eye: p.eye === 'happy' ? undefined : p.eye }),
-  cross: (p) => ({ ...FACES.sullen(p), ears: 'back' }),
+  sad: (p) => ({ ...FACES.sullen(p), mouth: p.mouth === undefined || p.mouth === 'smile' ? 'sad' : p.mouth, ears: 'back' }),
   beaming: (p) => ({ ...p, mouth: p.mouth === undefined || p.mouth === 'smile' ? 'tongue' : p.mouth }),
 };
-const FACED: Record<Face, WeakMap<Frame, Frame>> = { sullen: new WeakMap(), cross: new WeakMap(), beaming: new WeakMap() };
+const FACED: Record<Face, WeakMap<Frame, Frame>> = { sullen: new WeakMap(), sad: new WeakMap(), beaming: new WeakMap() };
 
 /** The same frame with that face: drawn the first time it is asked for, and kept. One whose head is turned away stays as it is. */
 export function withFace(base: Frame, face: Face): Frame {

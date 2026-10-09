@@ -417,16 +417,16 @@ describe('its mood, read on its face', () => {
     for (const name of ['idle', 'walk', 'run', 'sit', 'lie', 'eat', 'carry', 'ready'] as const) {
       for (const base of ANIMATIONS[name].frames) {
         const sullen = withFace(base, 'sullen');
-        const cross = withFace(base, 'cross');
+        const sad = withFace(base, 'sad');
         const beaming = withFace(base, 'beaming');
         // The same frame every time it is asked for, and the same head in the same place.
-        expect(withFace(base, 'cross')).toBe(cross);
-        for (const faced of [sullen, cross, beaming]) {
+        expect(withFace(base, 'sad')).toBe(sad);
+        for (const faced of [sullen, sad, beaming]) {
           expect(faced.head).toEqual(base.head);
           expect(faced.pixels).toHaveLength(base.pixels.length);
           expect(faced.treat).toBe(base.treat);
         }
-        expect(cross.pixels).not.toEqual(base.pixels);
+        expect(sad.pixels).not.toEqual(base.pixels);
       }
     }
     // Its mouth alone, on a plain frame: a few pixels.
@@ -435,7 +435,7 @@ describe('its mood, read on its face', () => {
     expect(changed(withFace(plain, 'sullen'))).toBeGreaterThan(0);
     expect(changed(withFace(plain, 'sullen'))).toBeLessThan(6);
     expect(changed(withFace(plain, 'beaming'))).toBeLessThan(6);
-    expect(changed(withFace(plain, 'cross'))).toBeGreaterThan(changed(withFace(plain, 'sullen')));
+    expect(changed(withFace(plain, 'sad'))).toBeGreaterThan(changed(withFace(plain, 'sullen')));
   });
 
   it('twirls for joy at a pat on its best days, as it never does on an ordinary one', () => {
