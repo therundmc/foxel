@@ -43,7 +43,7 @@ Every feature is judged against these four, before any technical consideration:
 | `webview/sim/unlocks.ts` | The stages of attachment, and the one table of what each brings into its life |
 | `webview/sim/registry.ts` | `FEATURES` and `STATES`, gathered from the features |
 | `webview/sim/features/*.ts` | One file per group of states: their definitions, logic, memory and commands |
-| `webview/sim/props/` | Ball, bubbles, butterfly, bird, treat, bowl, basket, chest, shelf, box of keepsakes, soft toys, grass, mouse, scenery: physics only |
+| `webview/sim/props/` | Ball, bubbles, butterfly, bird, treat, bowl, basket, chest, shelf, box of keepsakes, soft toys, grass, mouse, scenery: physics only. `edge.ts` is how the three that wait at an edge (chest, shelf, box of keepsakes) hear the pointer, the same for all, and not at all while a sky is out |
 | `webview/sim/memory.ts` | The needs it keeps when its view is closed and reopened |
 | `webview/sim/showcase.ts` | Debug scenes |
 | `webview/sprites/fox/` | The fox: `animations.ts` (table), `anims/` (the animations about your work, one file per group, each with its accessories), `pose.ts` and `head.ts` (drawn from poses), `anchors.ts` (geometry, touch zones) |

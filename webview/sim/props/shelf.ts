@@ -1,13 +1,11 @@
 import { SHELF_ABOVE, SHELF_H, SHELF_ITEMS, SHELF_W, type ShelfItem } from '../../sprites/props';
 import type { Box } from '../math';
+import { Beckon, within } from './edge';
 
 /** How much of it shows at the edge of the view while it waits. */
 const PEEK = 5;
 /** It comes out for a pointer this close to its place. */
 const CALL = 8;
-/** How long the pointer has to be there before it comes, and how long it may lie still before it goes. */
-const DWELL_MS = 250;
-const IDLE_MS = 4000;
 /** It slides at a steady pace and stops short: that is what sets the things on it swaying. */
 const SPEED = 90;
 /**
@@ -27,8 +25,6 @@ const STILL = 0.06;
 const REACH = 1;
 const PRESS_MS = 160;
 
-const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
-
 /**
  * The little shelf on the wall, top right: what is not a toy stands on it, its kibble, its cookies and its soap. Like the chest
  * it waits at the edge of the view, only its end showing, and slides out when the pointer comes close. It only knows
@@ -38,8 +34,8 @@ export class Shelf {
   /** Its left end, and how high its board is above the ground. */
   x = 0;
   y = 0;
-  /** The pointer is asking for it. */
-  asked = false;
+  /** How it hears the pointer. While a sky is out it is right out of sight, and hears nothing. */
+  readonly call = new Beckon();
   /** What stands on it: the things that have come into its life so far. */
   items: readonly ShelfItem[] = Object.keys(SHELF_ITEMS) as ShelfItem[];
   /** The thing just used, pushed down a little for a moment. */
@@ -47,15 +43,15 @@ export class Shelf {
   private out = 0;
   private peek = 0;
   private gone = 0;
-  /** A sky is out: nothing of it shows at the edge. It still comes when it is asked for. */
-  hidden = false;
-  private pointer: { x: number; y: number } | undefined;
-  private aroundMs = 0;
-  private stillMs = 0;
   private pressMs = 0;
   private speed = 0;
   /** How far the top of each thing leans (in sprite pixels, to the right when positive), and how fast that is changing. */
   private readonly lean: Record<ShelfItem, { at: number; speed: number }> = { meal: { at: 0, speed: 0 }, treat: { at: 0, speed: 0 }, bubbles: { at: 0, speed: 0 } };
+
+  /** The pointer is asking for it. */
+  get asked(): boolean {
+    return this.call.asked;
+  }
 
   /** Out at its place, its things within reach. */
   get here(): boolean {
@@ -63,7 +59,7 @@ export class Shelf {
   }
 
   private get away(): number {
-    return this.hidden ? this.gone : this.peek;
+    return this.call.hidden ? this.gone : this.peek;
   }
 
   get moving(): boolean {
@@ -80,10 +76,7 @@ export class Shelf {
 
   /** Where the pointer is in the view, or undefined when it is not there or holds something. */
   point(at: { x: number; y: number } | undefined): void {
-    if (at?.x !== this.pointer?.x || at?.y !== this.pointer?.y) {
-      this.stillMs = 0;
-    }
-    this.pointer = at;
+    this.call.point(at);
   }
 
   /** Where a thing on it stands right now. */
@@ -94,7 +87,7 @@ export class Shelf {
 
   /** The thing on it at this point, once it is out. */
   itemAt(x: number, y: number): ShelfItem | undefined {
-    return this.here ? this.items.find((item) => within(this.slot(item), x, y, REACH)) : undefined;
+    return this.here && !this.call.hidden ? this.items.find((item) => within(this.slot(item), x, y, REACH)) : undefined;
   }
 
   /** By how many pixels the top of a thing leans right now: thrown back as the shelf sets off, forward as it stops, then swaying to rest. */
@@ -112,13 +105,10 @@ export class Shelf {
 
   /** `free` is false while the pointer is busy with something else that comes out of the wall. */
   update(dtMs: number, free = true): void {
-    const at = this.pointer;
+    const at = this.call.at;
     const whole = { x: this.out, y: this.y - SHELF_H, w: SHELF_W, h: SHELF_H + SHELF_ABOVE };
     const near = free && at !== undefined && within(whole, at.x, at.y, CALL);
-    this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
-    this.stillMs += dtMs;
-    const on = near && at !== undefined && within(whole, at.x, at.y, REACH);
-    this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || on);
+    this.call.heed(dtMs, near, near && at !== undefined && within(whole, at.x, at.y, REACH));
     const dt = dtMs / 1000;
     const target = this.asked ? this.out : this.away;
     const left = target - this.x;

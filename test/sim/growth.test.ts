@@ -517,20 +517,25 @@ describe('what it finds, stage by stage', () => {
 });
 
 describe('the box of keepsakes', () => {
-  it('only comes out for a pointer right by its handle, not for one that passes where it would be', () => {
+  it('comes out for a pointer by the end of it that shows, as readily as the chest and the shelf, and not for one further along where it would lie', () => {
     const b = fox(3);
     b.enter('sleep', 3_600_000);
     const { album } = b.world;
     simulate(b, 2000, () => {
-      album.point({ x: 30, y: 50 });
+      album.point({ x: 40, y: 50 });
     });
     expect(album.here).toBe(false);
-    simulate(b, 300, () => {
-      album.point({ x: 4, y: 50 });
+    // One that only passes does not call it.
+    simulate(b, 150, () => {
+      album.point({ x: 20, y: 50 });
     });
     expect(album.asked).toBe(false);
-    simulate(b, 1500, () => {
-      album.point({ x: 4, y: 50 });
+    simulate(b, 200, () => {
+      album.point({ x: 20, y: 50 });
+    });
+    expect(album.asked).toBe(true);
+    simulate(b, 1300, () => {
+      album.point({ x: 20, y: 50 });
     });
     expect(album.here).toBe(true);
     // Out, it stays for a pointer anywhere on it.

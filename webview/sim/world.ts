@@ -143,8 +143,8 @@ export class World {
       this.chest.items = CHEST_ITEMS.filter((item) => owns(this, item));
       this.shelf.items = owns(this, 'bubbles') ? ['meal', 'treat', 'bubbles'] : ['meal', 'treat'];
     }
-    // While a sky is out there is only the fox and the sky: what waits at the edges draws right out of sight.
-    this.chest.hidden = this.shelf.hidden = this.album.hidden = this.scenery.active;
+    // While a sky is out there is only the fox and the sky: what waits at the edges draws right out of sight, and hears nothing.
+    this.chest.call.hidden = this.shelf.call.hidden = this.album.call.hidden = this.scenery.active;
     this.chest.update(dtMs, { ball: this.ball.state === 'none', teddy: teddy.state === 'none', duck: duck.state === 'none', rugby: rugby.state === 'none' });
     this.shelf.update(dtMs, !this.chest.asked);
     this.album.update(dtMs, !this.chest.asked && !this.shelf.asked);

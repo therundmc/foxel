@@ -1,5 +1,6 @@
 import { CHEST_H, CHEST_OPEN_H, CHEST_RIM, CHEST_W, TILE, type ChestItem } from '../../sprites/props';
 import type { Box } from '../math';
+import { Beckon, within } from './edge';
 
 /** Everything it may come to hold, as its tiles are laid out above it: from the bottom row up, left to right. */
 export const CHEST_ITEMS: readonly ChestItem[] = ['ball', 'duck', 'teddy', 'rugby'];
@@ -25,16 +26,12 @@ const PEEK = 6;
 const CLEAR = 2;
 /** It comes out for a pointer this close to its corner: a small patch of the view round it. */
 const CALL = 10;
-/** How long the pointer has to be there before it comes: one that only passes does not call it. */
-const DWELL_MS = 250;
 /** While it waits it fidgets now and then, to be noticed: this often (and soon after the view opens), for this long. */
 const FIDGET_EVERY_MS = 9000;
 const FIDGET_SOON_MS = 3000;
 const FIDGET_MS = 900;
 /** One nudge of its fidgeting: a pixel into the view, its lid ajar, then back. */
 const NUDGE_MS = 150;
-/** A pointer left lying still this long is no longer asking for anything, unless it lies on the chest. */
-const IDLE_MS = 4000;
 /** How quickly it slides in and out: the share of the way left that it covers in a second. */
 const SLIDE = 10;
 const CLOSE_ENOUGH = 0.4;
@@ -44,7 +41,6 @@ const TAKEABLE = 0.9;
 const STEP = TILE + GAP;
 const ease = (t: number): number => t * t * (3 - 2 * t);
 const toward = (from: number, to: number, step: number): number => (from < to ? Math.min(to, from + step) : Math.max(to, from - step));
-const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
 
 /**
  * The toy chest: everything you can give it is in there. It waits at the edge of the view, only a bit of it showing,
@@ -60,15 +56,13 @@ export class Chest {
   corner = 0;
   private peek = 0;
   private gone = 0;
-  /** A sky is out: nothing of it shows at the edge, and it does not fidget. It still comes when it is asked for. */
-  hidden = false;
+  /** How it hears the pointer. While a sky is out it is right out of sight, does not fidget, and only comes for the fox. */
+  readonly call = new Beckon();
   /** While it fidgets: a pixel into the view, its lid ajar. */
   nudge: 0 | 1 = 0;
   private waitedMs = FIDGET_EVERY_MS - FIDGET_SOON_MS;
   /** How much of the way in it is meant to be, from 0 (out of view) to 1 (in its corner). */
   private share = 0;
-  /** The pointer is asking for it. */
-  asked = false;
   /** How far in the fox has pulled it, while the fox is the one moving it; and whether it holds the lid up. */
   private hauled: number | undefined;
   private lifted = false;
@@ -78,17 +72,19 @@ export class Chest {
   readonly holds: Record<ChestItem, boolean> = { ball: true, teddy: true, duck: true, rugby: true };
   /** The toys that have come into its life so far: the others have no place in it yet. */
   items: readonly ChestItem[] = CHEST_ITEMS;
-  private pointer: { x: number; y: number } | undefined;
   /** The hand holds a toy. */
   private carrying = false;
-  private aroundMs = 0;
-  private stillMs = 0;
   private lingerMs = 0;
   /** Something was just put back in it: it stays shut until the pointer has left it. */
   private full = false;
 
   get box(): Box {
     return { x: this.x, y: 0, w: CHEST_W, h: this.open > 0 ? CHEST_OPEN_H : CHEST_H };
+  }
+
+  /** The pointer is asking for it. */
+  get asked(): boolean {
+    return this.call.asked;
   }
 
   /** It, its lid or its things are on their way. */
@@ -136,16 +132,13 @@ export class Chest {
 
   /** Where the pointer is in the view, or undefined when it is not there; `carrying` when the hand holds a toy. */
   point(at: { x: number; y: number } | undefined, carrying = false): void {
-    if (at?.x !== this.pointer?.x || at?.y !== this.pointer?.y) {
-      this.stillMs = 0;
-    }
-    this.pointer = at;
+    this.call.point(at);
     this.carrying = carrying;
   }
 
   /** Whether a toy held at this point is over the chest, to be put back in it. */
   accepts(x: number, y: number): boolean {
-    return this.here && within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, x, y, REACH);
+    return this.here && !this.call.hidden && within({ x: this.x, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, x, y, REACH);
   }
 
   /** A toy was put back in it: the lid shuts on it. */
@@ -163,7 +156,7 @@ export class Chest {
 
   /** The thing that can be taken at this point: risen out, and still in the chest. */
   itemAt(x: number, y: number): ChestItem | undefined {
-    if (this.open < TAKEABLE || this.carrying) {
+    if (this.open < TAKEABLE || this.carrying || this.call.hidden) {
       return undefined;
     }
     return this.items.find((item) => this.holds[item] && within(this.home(item), x, y, GAP / 2));
@@ -174,12 +167,9 @@ export class Chest {
     Object.assign(this.holds, holds);
     CHEST_ITEMS.forEach((item) => (this.holds[item] &&= this.items.includes(item)));
     const over = this.here && this.over();
-    const at = this.pointer;
-    const near = at !== undefined && (over !== false || within({ x: this.corner, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, CALL));
-    this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
-    this.stillMs += dtMs;
+    const at = this.call.at;
     // It comes for a pointer that is close to its corner and doing something, and never leaves while it is open.
-    this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || over !== false);
+    this.call.heed(dtMs, at !== undefined && (over || within({ x: this.corner, y: 0, w: CHEST_W, h: CHEST_OPEN_H }, at.x, at.y, CALL)), over);
     this.share = this.asked || this.open > 0 ? 1 : (this.hauled ?? 0);
     this.fidget(dtMs);
     const left = this.target - this.x;
@@ -196,7 +186,7 @@ export class Chest {
 
   // Left waiting, it gives a few little nudges now and then: something is in there.
   private fidget(dtMs: number): void {
-    this.waitedMs = this.tucked && !this.hidden && this.share === 0 ? this.waitedMs + dtMs : 0;
+    this.waitedMs = this.tucked && !this.call.hidden && this.share === 0 ? this.waitedMs + dtMs : 0;
     const since = this.waitedMs - FIDGET_EVERY_MS;
     this.nudge = since >= 0 && Math.floor(since / NUDGE_MS) % 2 === 0 ? 1 : 0;
     if (since >= FIDGET_MS) {
@@ -206,7 +196,7 @@ export class Chest {
   }
 
   private get away(): number {
-    return this.hidden ? this.gone : this.peek;
+    return this.call.hidden ? this.gone : this.peek;
   }
 
   private get target(): number {
@@ -215,7 +205,7 @@ export class Chest {
 
   /** Whether the pointer is on it, or on what has risen out of it. */
   private over(): boolean {
-    const at = this.pointer;
+    const at = this.call.at;
     if (!at) {
       return false;
     }

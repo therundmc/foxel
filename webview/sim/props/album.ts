@@ -1,23 +1,21 @@
 import { ALBUM_CELL, ALBUM_COLUMNS, ALBUM_H, ALBUM_IN, ALBUM_W, FIND_ORDER, type FindKind } from '../../sprites/keepsakes';
 import type { Box } from '../math';
+import { Beckon, within } from './edge';
 
 /** How much of it shows at the edge of the view while it waits: its handle, and a little of its wicker. */
 const PEEK = 5;
 /**
- * It only comes out for a pointer right by the bit of it that shows, its handle: this near, and after this long.
- * Once out it stays for a pointer anywhere on it, and goes back for one that lies still this long elsewhere.
+ * It comes out for a pointer by the end of it that shows: a patch of the view about as big as the one that calls
+ * the chest or the shelf, and not the whole of where it will lie, which is wide. Once out it stays for a pointer
+ * anywhere on it.
  */
-const HANDLE_W = 8;
-const CALL = 3;
-const DWELL_MS = 400;
-const IDLE_MS = 4000;
+const PATCH_W = 24;
+const CALL = 8;
 const SPEED = 90;
 /** Something new goes into it: it comes out by itself, the thing flies to its place in this long, and it stays out a while. */
 const FLIGHT_MS = 900;
 const ARC = 9;
 const SHOWN_MS = 2600;
-
-const within = (box: Box, x: number, y: number, pad: number): boolean => x >= box.x - pad && x < box.x + box.w + pad && y >= box.y - pad && y < box.y + box.h + pad;
 
 /** Something kept in it: the picture of a stage of your life together, or a kind of thing it found for you. */
 export type Keepsake = { picture: number } | { find: FindKind };
@@ -35,18 +33,19 @@ export class Album {
   x = TUCKED;
   /** The height of its bottom above the ground. */
   y = 0;
-  asked = false;
+  /** How it hears the pointer. While a sky is out not even its handle shows, and it only comes for what flies into it. */
+  readonly call = new Beckon();
   /** How many pictures are in it, and how many of each kind of find. */
   pictures = 0;
   readonly finds: Partial<Record<FindKind, number>> = {};
   /** What is on its way into it, from where, and for how long it has been flying. */
   flying: { what: Keepsake; fromX: number; fromY: number; ms: number } | undefined;
-  /** A sky is out: not even its handle shows. It still comes when it is asked for, or when something flies into it. */
-  hidden = false;
-  private pointer: { x: number; y: number } | undefined;
-  private aroundMs = 0;
-  private stillMs = 0;
   private shownMs = 0;
+
+  /** The pointer is asking for it. */
+  get asked(): boolean {
+    return this.call.asked;
+  }
 
   get here(): boolean {
     return this.x === 0;
@@ -58,7 +57,7 @@ export class Album {
   }
 
   private get away(): number {
-    return this.hidden ? -ALBUM_W - 1 : TUCKED;
+    return this.call.hidden ? -ALBUM_W - 1 : TUCKED;
   }
 
   get moving(): boolean {
@@ -75,10 +74,7 @@ export class Album {
   }
 
   point(at: { x: number; y: number } | undefined): void {
-    if (at?.x !== this.pointer?.x || at?.y !== this.pointer?.y) {
-      this.stillMs = 0;
-    }
-    this.pointer = at;
+    this.call.point(at);
   }
 
   /** Where a keepsake has its place in the tray: pictures along the top, finds under them. */
@@ -106,13 +102,10 @@ export class Album {
 
   /** `free` is false while the pointer is busy with something else that comes out of the wall. */
   update(dtMs: number, free = true): void {
-    const at = this.pointer;
+    const at = this.call.at;
     const whole = { x: 0, y: this.y, w: ALBUM_W, h: ALBUM_H };
-    const zone = this.x > TUCKED ? whole : { ...whole, w: HANDLE_W };
-    const near = free && at !== undefined && within(zone, at.x, at.y, CALL);
-    this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
-    this.stillMs += dtMs;
-    this.asked = this.aroundMs >= DWELL_MS && (this.stillMs < IDLE_MS || (at !== undefined && within(whole, at.x, at.y, 1)));
+    const zone = this.x > TUCKED ? whole : { ...whole, w: PATCH_W };
+    this.call.heed(dtMs, free && at !== undefined && within(zone, at.x, at.y, CALL), at !== undefined && within(whole, at.x, at.y, 1));
     this.shownMs = Math.max(0, this.shownMs - dtMs);
     const target = this.wanted ? 0 : this.away;
     const left = target - this.x;

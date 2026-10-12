@@ -28,8 +28,8 @@ describe('the toy chest', () => {
     return { b, chest, onChest, point, middle };
   }
 
-  it('draws right out of sight with the shelf and the box of keepsakes while a sky is out, and is back at the edge once it has gone', () => {
-    const { b, chest, point } = scene(false);
+  it('draws right out of sight with the shelf and the box of keepsakes while a sky is out, hears nothing, and is back at the edge once it has gone', () => {
+    const { b, chest, point, middle } = scene(false);
     const { shelf, album, scenery } = b.world;
     const showing = (): boolean[] => [chest.box.x < 120, shelf.x < 120, album.x + ALBUM_W > 0];
     simulate(b, 1000);
@@ -40,11 +40,32 @@ describe('the toy chest', () => {
     // Nothing fidgets at the edge during the sky.
     simulate(b, 12_000, () => expect(chest.nudge).toBe(0));
     expect(showing()).toEqual([false, false, false]);
-    // It still comes for a pointer that goes to its corner.
+    // None of them comes for the pointer: there is nothing to do with them until the sky has gone.
+    for (const at of [{ x: 100, y: 20 }, { x: 110, y: shelf.y }, { x: 4, y: album.y + 4 }]) {
+      chest.point(at);
+      shelf.point(at);
+      album.point(at);
+      simulate(b, 1500, () => expect([chest.asked, shelf.asked, album.asked]).toEqual([false, false, false]));
+    }
+    expect(showing()).toEqual([false, false, false]);
+    expect(chest.accepts(100, 4)).toBe(false);
+    expect(shelf.itemAt(110, shelf.y + 2)).toBeUndefined();
+    point(undefined, 100);
+    shelf.point(undefined);
+    album.point(undefined);
+    // One that was open when the sky came out shuts and goes.
+    scenery.update(60_000);
+    simulate(b, 12_000, () => !scenery.active);
+    expect(scenery.active).toBe(false);
     point({ x: 100, y: 20 }, 1500);
     expect(chest.here).toBe(true);
-    point(undefined, 3000);
+    point(middle(chest.box), 800);
+    expect(chest.open).toBe(1);
+    scenery.appear('stars', 40, 1, 10_000, 20_000);
+    simulate(b, 2500);
+    expect(chest.open).toBe(0);
     expect(showing()).toEqual([false, false, false]);
+    point(undefined, 100);
     simulate(b, 60_000, () => !scenery.active);
     expect(scenery.active).toBe(false);
     simulate(b, 2000);
