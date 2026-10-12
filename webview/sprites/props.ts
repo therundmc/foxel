@@ -143,14 +143,16 @@ export type PlushKind = 'teddy' | 'duck' | 'rugby';
 const PLUSH_FILLS: Record<PlushKind, Glyph> = {
   teddy: ['tt...tt', 'tTTTTTt', 'TETTTET', 'TTcEcTT', '.TcccT.', 'tTTTTTt', '.tt.tt.'],
   duck: ['..SSS..', '.SSESOO', '.SSSS..', 'SSSSSS.', 'SxxxSS.', '.SSSS..'],
-  // Not soft, this one, but it is thrown about the same way: a rugby ball, with its laces.
-  rugby: ['.tTTTt.', 'tTcTcTt', 'TTTcTTT', 'tTTTTTt', '.ttttt.'],
+  // Not soft, this one, but it is thrown about the same way: a leather ball with two points, a white band near each and its lace on top.
+  rugby: ['..TTTTT..', '.WtWWWtW.', 'tWtttttWt', '.WkkkkkW.', '..kkkkk..'],
 };
 export const PLUSH: Record<PlushKind, Glyph> = { teddy: outlined(PLUSH_FILLS.teddy), duck: outlined(PLUSH_FILLS.duck), rugby: outlined(PLUSH_FILLS.rugby) };
 
 const CHEST_ICONS: Record<ChestItem, Glyph> = {
   ball: BALL_FRAMES[0],
   ...PLUSH_FILLS,
+  // On the white of a tile the bands of its leather ball would be lost at its edge: there they sit a pixel further in.
+  rugby: ['..TTTTT..', '.TWTWTWT.', 'ttWtttWtt', '.kWkkkWk.', '..kkkkk..'],
 };
 
 export const TILE = 11;

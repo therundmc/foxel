@@ -47,7 +47,7 @@ export const PICTURES: readonly Glyph[] = [
   ['.BBB.', 'BBgBB', 'BBBBb', 'BBBbb', '.Bbb.'],
   ['..SS.', '.SSOO', 'SSSS.', 'SxxS.', '.SS..'],
   ['t...t', 'tTTTt', 'TETET', '.ThT.', 'tT.Tt'],
-  ['.....', '.TTT.', 'TcTcT', '.ttt.', '.....'],
+  ['.....', '.TTT.', 'tWWWt', '.kkk.', '.....'],
   ['.L.L.', 'LLLLL', 'LLLLL', '.LLL.', '..L..'],
   ['.....', 'UCCCU', '.CCC.', '..C..', '.....'],
 ].map((picture) => inCell(picture, 'c'));
