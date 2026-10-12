@@ -129,7 +129,8 @@ describe('LifeStore', () => {
     const newer = { version: LIFE_VERSION + 1, born: '2026-09-01', days: {}, past: { attachment: 0.5, peak: 0.5, until: '2026-10-01' }, friends: ['a mouse'] };
     kept.put(LIFE_KEY, newer);
     const store = open();
-    expect(store.feelings.attachment).toBeGreaterThan(0.4);
+    // It wore off a little over the summer away, and no further.
+    expect(store.feelings.attachment).toBeGreaterThan(0.25);
     store.care('fed');
     await store.save();
     expect(kept.keep.get(LIFE_KEY)).toEqual(newer);
@@ -171,6 +172,55 @@ describe('LifeStore', () => {
     vi.advanceTimersByTime(10 * MINUTE);
     expect(kept.saved()?.days).toEqual({});
     expect(open(TODAY).life.born).toBe(TODAY);
+  });
+
+  // What each version left in the editor's storage, as it was written then. An update never takes its progression
+  // away: whatever the saved shapes become, these have to go on being read.
+  it('starts from nothing for someone who comes from 1.3 or before: there was no life to keep yet', () => {
+    kept.put('foxel.installedOn', '2026-03-02');
+    kept.put('foxel.lastCommitDay', '2026-10-06');
+    kept.put('foxel.fed', { date: '2026-10-06', meals: ['breakfast', 'lunch'] });
+    const store = open('2026-03-02');
+    expect(store.life).toEqual({ version: LIFE_VERSION, born: '2026-03-02', days: {}, past: { attachment: 0, peak: 0 } });
+    // Nothing to be attached to yet, nobody it has waited for, and nothing that has come into its life.
+    expect(store.feelings).toEqual({ attachment: 0, peak: 0, mood: 0, daysAway: undefined });
+    expect(store.needs).toBeUndefined();
+  });
+
+  it('keeps everything for someone who comes from 1.4.0: the life, the stage reached and what was found', async () => {
+    const life = {
+      version: 1,
+      born: '2026-06-14',
+      days: {
+        '2026-10-05': { cares: { fed: 3, played: 4, petted: 2, treated: 1 }, slights: {}, presentMin: 140, off: [] },
+        '2026-10-06': { cares: { fed: 1, petted: 1 }, slights: { unfed: 1 }, presentMin: 35, off: ['played'] },
+      },
+      past: { attachment: 0.42, peak: 0.55, until: '2026-07-08' },
+    };
+    const needs = {
+      savedAt: Date.now() - 3 * 60 * MINUTE,
+      thirsty: false,
+      breakWanted: false,
+      breakAsks: 0,
+      greeted: {},
+      vistaInMs: 600_000,
+      mouseFriend: true,
+      stage: 3,
+      toys: { duck: 40 },
+      collected: { leaf: 3, pebble: 1, flower: 2, clover: 1 },
+    };
+    kept.put(LIFE_KEY, life);
+    kept.put(NEEDS_KEY, needs);
+    const store = open('2026-10-07');
+    expect(store.life).toEqual(life);
+    expect(store.needs).toEqual(needs);
+    expect(store.feelings.peak).toBeGreaterThanOrEqual(0.55);
+    // It wore off a little over the summer away, and no further.
+    expect(store.feelings.attachment).toBeGreaterThan(0.25);
+    // And a day more is added to it, not put in its place.
+    store.care('fed');
+    await store.save();
+    expect(kept.saved()).toEqual({ ...life, days: { ...life.days, [TODAY]: { cares: { fed: 1 }, slights: {}, presentMin: 0, off: [] } } });
   });
 
   it('keeps its needs of the moment on this machine, apart from its life', () => {

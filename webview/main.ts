@@ -127,9 +127,11 @@ function onEffect(effect: Effect): void {
 
 // The extension keeps what the fox carries over, for the next time the view is opened.
 let saved = remember(buddy, Date.now());
+// Not before the extension has said what it kept: a view that has just opened knows nothing yet, and would write that over it.
+let told = false;
 function saveMemory(): void {
   const memory = remember(buddy, Date.now());
-  if (!sameMemory(saved, memory)) {
+  if (told && !sameMemory(saved, memory)) {
     saved = memory;
     vscode.postMessage({ type: 'memory', memory });
   }
@@ -168,6 +170,7 @@ function onMessage(msg: HostMessage): void {
       recall(buddy, msg.memory, Date.now());
       break;
     case 'feelings':
+      told = true;
       session.felt = { mood: msg.mood, attachment: msg.attachment };
       // While its attachment is forced from the debug corner, so is the most it ever was.
       world.peak = session.forced.attachment === undefined ? msg.peak : world.peak;

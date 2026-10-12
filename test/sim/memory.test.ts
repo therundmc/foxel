@@ -16,6 +16,24 @@ describe('memory', () => {
     return b;
   }
 
+  // What 1.4.0 noted, as it was written then: an update never takes its progression away, so this has to go on being read.
+  it('finds the stage it had reached and what it had found in a memory noted by 1.4.0, however long ago', () => {
+    const memory = { savedAt: noon.getTime() - 40 * 24 * 60 * MINUTE, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 600_000, mouseFriend: true, stage: 3, toys: { duck: 40 }, collected: { leaf: 3, pebble: 1, flower: 2, clover: 1 } };
+    const b = fox();
+    b.world.stage = -1;
+    recall(b, JSON.parse(JSON.stringify(memory)), noon.getTime());
+    expect(b.world.stage).toBe(3);
+    expect(b.world.album.pictures).toBe(4);
+    expect(b.world.album.finds).toEqual({ leaf: 3, pebble: 1, flower: 2, clover: 1 });
+    expect(b.visitors.mouseFriend).toBe(true);
+    // What was only of that day has passed.
+    expect(b.meals.thirsty).toBe(false);
+    expect(b.world.plushes.duck.state).toBe('none');
+    // And it is noted again as it was.
+    simulate(b, 100);
+    expect(remember(b, noon.getTime())).toMatchObject({ stage: 3, collected: memory.collected, mouseFriend: true });
+  });
+
   it('lets a need pass that was noted hours ago: it does not sulk this morning over yesterday', () => {
     const before = fox();
     react(before, 'hungry');

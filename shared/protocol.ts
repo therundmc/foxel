@@ -125,7 +125,7 @@ export interface BuddyMemory {
   /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
   toys?: Partial<Record<'ball' | 'teddy' | 'duck' | 'rugby', number>>;
   /** How many of each kind of thing it has found for you: what its box of keepsakes holds. And where the mound is today, if it dug. */
-  collected?: Partial<Record<'flower' | 'pebble' | 'feather' | 'leaf', number>>;
+  collected?: Partial<Record<'leaf' | 'pebble' | 'flower' | 'feather' | 'clover' | 'gem', number>>;
   mound?: number;
   /** A treat left lying: where its middle is, how much of it is eaten, and which way its bitten end points. */
   treat?: { x: number; stage: number; facing: 1 | -1 };
