@@ -6,7 +6,7 @@ import { clamp } from '../math';
 import type { Bubble } from '../props/bubbles';
 import { urge, type Feature } from '../state';
 import { FETCH_RUN_SPEED } from '../tuning';
-import { STRIKES, type Strike, type StrikeName } from './bubbleStrikes';
+import { FLOAT_UNDER, JUMP_MAX, STRIKES, type Strike, type StrikeName } from './bubbleStrikes';
 import { asleep, tookBreak } from './rest';
 
 /**
@@ -75,7 +75,7 @@ function setPhase(b: Buddy, phase: Phase): void {
 /** You blow bubbles: a stream of them rises from the bottom of the view, and it goes after them if it is up to it. */
 export function blowBubbles(b: Buddy): void {
   const { bubbles, width, height, random } = b.world;
-  bubbles.blow(width, height, random);
+  bubbles.blow(width, Math.min(height, FLOAT_UNDER), random);
   if (b.state !== 'bubbles' && !asleep(b)) {
     startBubbles(b);
   }
@@ -124,9 +124,11 @@ function burstAround(b: Buddy, x: number, y: number, reach: number, spare?: Bubb
   return touched.length;
 }
 
+const jumpsTo = (b: Buddy): number => clamp(b.maxY, 0, JUMP_MAX);
+
 /** Whether a strike can get at a bubble where it floats. */
 function reaches(b: Buddy, strike: Strike, bubble: Bubble): boolean {
-  const top = strike.jump ? Math.max(strike.heights[1] === Infinity ? 0 : strike.heights[1], strike.jump.part + Math.max(0, b.maxY) + 2) : strike.heights[1];
+  const top = strike.jump ? Math.max(strike.heights[1] === Infinity ? 0 : strike.heights[1], strike.jump.part + jumpsTo(b) + 2) : strike.heights[1];
   if (bubble.y < strike.heights[0] || bubble.y > top) {
     return false;
   }
@@ -176,7 +178,7 @@ function startStrike(b: Buddy, target: Bubble): void {
   if (strike.jump) {
     // It jumps at where the bubble will be when it gets up there.
     const ahead = (strike.jump.at + strike.jump.air / 2) / 1000;
-    m.height = clamp(target.y + target.vy * ahead - strike.jump.part, 0, Math.max(0, b.maxY));
+    m.height = clamp(target.y + target.vy * ahead - strike.jump.part, 0, jumpsTo(b));
     if (b.world.random() < MISS_CHANCE) {
       // And now and then the bubble bobs out of the way just then.
       target.vy += DODGE[1];

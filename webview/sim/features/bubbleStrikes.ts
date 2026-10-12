@@ -5,6 +5,11 @@ import { SPRITE_SIZE } from '../../sprites/frames';
 // The ways it knows of bursting a soap bubble: where it has to stand, whether it jumps, and which part of it
 // bursts what it touches, when. What it does with them is in bubbles.ts.
 
+/** However high a bubble floats, it never jumps higher than this: a fox, not a flea. */
+export const JUMP_MAX = 16;
+/** The bubbles you blow for it are given this much room at most: they hover within four fifths of it, which is what its nose gets at. */
+export const FLOAT_UNDER = 40;
+
 /** A part of it that bursts bubbles for a while during a strike: when (ms), where on its sprite, and how far around. */
 interface Hit {
   readonly from: number;

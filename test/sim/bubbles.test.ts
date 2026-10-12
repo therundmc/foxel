@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Buddy } from '../../webview/sim/buddy';
 import { blowBubbles, popBubbleAt } from '../../webview/sim/features/bubbles';
+import { JUMP_MAX } from '../../webview/sim/features/bubbleStrikes';
 import { react } from '../../webview/sim/features/reactions';
 import type { AnimName } from '../../webview/sprites/fox/animations';
 import { simulate, spawn } from './helpers';
@@ -36,6 +37,25 @@ describe('soap bubbles', () => {
     expect(bubbles.floating.some((bubble) => bubble.grown > 0 && bubble.grown < 1)).toBe(true);
     simulate(b, 2500, () => bubbles.list.length === 0);
     expect(bubbles.floating.every((bubble) => bubble.y > bubble.r)).toBe(true);
+  });
+
+  it('never jumps higher than a fox would, however tall its view, and still gets them all', () => {
+    let highest = 0;
+    let burst = 0;
+    for (const seed of [11, 12, 13]) {
+      const b = fox(seed, 220, 200);
+      blowBubbles(b);
+      simulate(b, 90_000, () => {
+        highest = Math.max(highest, b.y);
+        return b.state !== 'bubbles';
+      });
+      expect(b.state).not.toBe('bubbles');
+      expect(b.world.bubbles.around).toBe(false);
+      burst += b.bubbles.burst;
+    }
+    expect(highest).toBeGreaterThan(4);
+    expect(highest).toBeLessThanOrEqual(JUMP_MAX);
+    expect(burst).toBeGreaterThan(15);
   });
 
   it('adds more every time you blow, up to a limit', () => {
