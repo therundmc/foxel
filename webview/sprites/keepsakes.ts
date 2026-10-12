@@ -82,4 +82,6 @@ export const DOODLE: readonly Glyph[] = [
 ];
 /** The heart once it has lifted off the ground: the same, turned pink. */
 export const DOODLE_FLYING: Glyph = DOODLE[DOODLE.length - 1].map((row) => row.replace(/T/g, 'L'));
-export const MOUND: readonly Glyph[] = [outlined(['kk']), outlined(['.kk.', 'kkkk']), outlined(['..kk..', '.kTkk.', 'kkkkkk'])];
+// Where it dug: a little hole, with the earth it threw up in a low bank on either side. Flat, pale and loose, so that
+// nobody takes it for anything else.
+export const MOUND: readonly Glyph[] = [['tKKt'], ['.t....t.', 'tTkKKkTt'], ['.tTt...tTt.', 'tkTkKKKkTkt']];
