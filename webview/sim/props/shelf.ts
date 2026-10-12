@@ -45,7 +45,10 @@ export class Shelf {
   /** The thing just used, pushed down a little for a moment. */
   pressed: ShelfItem | undefined;
   private out = 0;
-  private away = 0;
+  private peek = 0;
+  private gone = 0;
+  /** A sky is out: nothing of it shows at the edge. It still comes when it is asked for. */
+  hidden = false;
   private pointer: { x: number; y: number } | undefined;
   private aroundMs = 0;
   private stillMs = 0;
@@ -59,13 +62,18 @@ export class Shelf {
     return this.x === this.out;
   }
 
+  private get away(): number {
+    return this.hidden ? this.gone : this.peek;
+  }
+
   get moving(): boolean {
     return this.x !== (this.asked ? this.out : this.away) || this.pressed !== undefined || Object.values(this.lean).some((lean) => lean.at !== 0 || lean.speed !== 0);
   }
 
   place(worldWidth: number, worldHeight: number): void {
     this.out = Math.max(0, worldWidth - SHELF_W);
-    this.away = Math.max(worldWidth - PEEK, this.out);
+    this.peek = Math.max(worldWidth - PEEK, this.out);
+    this.gone = Math.max(worldWidth + 1, this.out);
     this.y = Math.max(0, worldHeight - SHELF_ABOVE - 2);
     this.x = this.asked ? this.out : this.away;
   }

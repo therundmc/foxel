@@ -22,6 +22,9 @@ const within = (box: Box, x: number, y: number, pad: number): boolean => x >= bo
 /** Something kept in it: the picture of a stage of your life together, or a kind of thing it found for you. */
 export type Keepsake = { picture: number } | { find: FindKind };
 
+/** Where it waits at the edge of the view, only its handle showing. */
+const TUCKED = -(ALBUM_W - PEEK);
+
 /**
  * The box of keepsakes, top left: a little case lying open, with a photograph for each stage of your life together
  * and one of each kind of thing it has found for you. Like the chest and the shelf it waits at the edge of the view and slides out when
@@ -29,7 +32,7 @@ export type Keepsake = { picture: number } | { find: FindKind };
  * looked at.
  */
 export class Album {
-  x = -(ALBUM_W - PEEK);
+  x = TUCKED;
   /** The height of its bottom above the ground. */
   y = 0;
   asked = false;
@@ -38,7 +41,8 @@ export class Album {
   readonly finds: Partial<Record<FindKind, number>> = {};
   /** What is on its way into it, from where, and for how long it has been flying. */
   flying: { what: Keepsake; fromX: number; fromY: number; ms: number } | undefined;
-  private away = -(ALBUM_W - PEEK);
+  /** A sky is out: not even its handle shows. It still comes when it is asked for, or when something flies into it. */
+  hidden = false;
   private pointer: { x: number; y: number } | undefined;
   private aroundMs = 0;
   private stillMs = 0;
@@ -53,6 +57,10 @@ export class Album {
     return this.x === this.away;
   }
 
+  private get away(): number {
+    return this.hidden ? -ALBUM_W - 1 : TUCKED;
+  }
+
   get moving(): boolean {
     return this.x !== (this.wanted ? 0 : this.away) || this.flying !== undefined;
   }
@@ -62,7 +70,6 @@ export class Album {
   }
 
   place(worldHeight: number): void {
-    this.away = -(ALBUM_W - PEEK);
     this.y = Math.max(0, worldHeight - ALBUM_H - 2);
     this.x = this.wanted ? 0 : this.away;
   }
@@ -101,7 +108,7 @@ export class Album {
   update(dtMs: number, free = true): void {
     const at = this.pointer;
     const whole = { x: 0, y: this.y, w: ALBUM_W, h: ALBUM_H };
-    const zone = this.x > this.away ? whole : { ...whole, w: HANDLE_W };
+    const zone = this.x > TUCKED ? whole : { ...whole, w: HANDLE_W };
     const near = free && at !== undefined && within(zone, at.x, at.y, CALL);
     this.aroundMs = near ? Math.min(DWELL_MS, this.aroundMs + dtMs) : 0;
     this.stillMs += dtMs;

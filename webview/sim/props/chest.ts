@@ -21,6 +21,8 @@ const LINGER_MS = 350;
 export const LID_BACK = 0.3;
 /** How much of it shows at the edge of the view while it waits. */
 const PEEK = 6;
+/** Out of sight, it is this far past the edge: its shadow goes with it. */
+const CLEAR = 2;
 /** It comes out for a pointer this close to its corner: a small patch of the view round it. */
 const CALL = 10;
 /** How long the pointer has to be there before it comes: one that only passes does not call it. */
@@ -56,7 +58,10 @@ export class Chest {
   x = 0;
   /** Its place in the corner, and where it waits at the edge of the view. */
   corner = 0;
-  private away = 0;
+  private peek = 0;
+  private gone = 0;
+  /** A sky is out: nothing of it shows at the edge, and it does not fidget. It still comes when it is asked for. */
+  hidden = false;
   /** While it fidgets: a pixel into the view, its lid ajar. */
   nudge: 0 | 1 = 0;
   private waitedMs = FIDGET_EVERY_MS - FIDGET_SOON_MS;
@@ -108,7 +113,8 @@ export class Chest {
 
   place(worldWidth: number): void {
     this.corner = Math.max(0, worldWidth - CHEST_W - MARGIN);
-    this.away = Math.max(worldWidth - PEEK, this.corner);
+    this.peek = Math.max(worldWidth - PEEK, this.corner);
+    this.gone = Math.max(worldWidth + CLEAR, this.corner);
     this.x = this.target;
   }
 
@@ -190,13 +196,17 @@ export class Chest {
 
   // Left waiting, it gives a few little nudges now and then: something is in there.
   private fidget(dtMs: number): void {
-    this.waitedMs = this.tucked && this.share === 0 ? this.waitedMs + dtMs : 0;
+    this.waitedMs = this.tucked && !this.hidden && this.share === 0 ? this.waitedMs + dtMs : 0;
     const since = this.waitedMs - FIDGET_EVERY_MS;
     this.nudge = since >= 0 && Math.floor(since / NUDGE_MS) % 2 === 0 ? 1 : 0;
     if (since >= FIDGET_MS) {
       this.waitedMs = 0;
       this.nudge = 0;
     }
+  }
+
+  private get away(): number {
+    return this.hidden ? this.gone : this.peek;
   }
 
   private get target(): number {

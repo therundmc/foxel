@@ -3,6 +3,7 @@ import { grabBall, spawnBall, stowBall } from '../../webview/sim/features/fetch'
 import { stowTreat, takeTreat } from '../../webview/sim/features/treat';
 import { holdPlush, stowPlush } from '../../webview/sim/features/plush';
 import { CHEST_ITEMS } from '../../webview/sim/props/chest';
+import { ALBUM_W } from '../../webview/sprites/keepsakes';
 import { fixed, simulate, spawn } from './helpers';
 
 describe('the toy chest', () => {
@@ -26,6 +27,30 @@ describe('the toy chest', () => {
     }
     return { b, chest, onChest, point, middle };
   }
+
+  it('draws right out of sight with the shelf and the box of keepsakes while a sky is out, and is back at the edge once it has gone', () => {
+    const { b, chest, point } = scene(false);
+    const { shelf, album, scenery } = b.world;
+    const showing = (): boolean[] => [chest.box.x < 120, shelf.x < 120, album.x + ALBUM_W > 0];
+    simulate(b, 1000);
+    expect(showing()).toEqual([true, true, true]);
+    scenery.appear('stars', 40, 1, 10_000, 20_000);
+    simulate(b, 2000);
+    expect(showing()).toEqual([false, false, false]);
+    // Nothing fidgets at the edge during the sky.
+    simulate(b, 12_000, () => expect(chest.nudge).toBe(0));
+    expect(showing()).toEqual([false, false, false]);
+    // It still comes for a pointer that goes to its corner.
+    point({ x: 100, y: 20 }, 1500);
+    expect(chest.here).toBe(true);
+    point(undefined, 3000);
+    expect(showing()).toEqual([false, false, false]);
+    simulate(b, 60_000, () => !scenery.active);
+    expect(scenery.active).toBe(false);
+    simulate(b, 2000);
+    expect(showing()).toEqual([true, true, true]);
+    expect(chest.tucked).toBe(true);
+  });
 
   it('waits at the edge of the view, a bit of it showing, and rolls into its corner when the pointer comes close', () => {
     const { b, chest, point } = scene(false);
