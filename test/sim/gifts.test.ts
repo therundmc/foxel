@@ -44,7 +44,7 @@ describe('what it brings you', () => {
     expect(b.current().anim).toBe('proud');
   });
 
-  it('digs one up where it stands, leaving a little mound', () => {
+  it('digs one up where it stands, the earth coming up as it does', () => {
     const b = fox();
     const x = b.x;
     startGift(b, 'dug');
@@ -214,18 +214,21 @@ describe('the heart it draws for you', () => {
 });
 
 describe('the traces of its day', () => {
-  it('leaves a little mound where it dug, found again the same day and gone the next', () => {
+  it('throws up a little earth while it digs, which settles as soon as it has done: nothing stays on the ground, or is found again later', () => {
     const b = fox(0, 0);
     b.enterNext('dig');
-    simulate(b, 4000);
+    simulate(b, 60_000, () => b.state !== 'dig');
+    // All of it was there for as long as it dug.
     expect(b.world.mound.stage).toBe(2);
+    simulate(b, 4000);
+    expect(b.world.mound.there).toBe(false);
+    const again = fox(0, 0);
+    again.enterNext('dig');
+    simulate(again, 2500);
+    expect(again.world.mound.there).toBe(true);
     const noon = new Date(2026, 9, 7, 12).getTime();
-    const memory = remember(b, noon);
     const after = fox();
-    recall(after, memory, noon + 3_600_000);
-    expect(after.world.mound.stage).toBe(2);
-    const tomorrow = fox();
-    recall(tomorrow, memory, noon + 24 * 3_600_000);
-    expect(tomorrow.world.mound.there).toBe(false);
+    recall(after, JSON.parse(JSON.stringify({ ...remember(again, noon), mound: 40 })), noon + 60_000);
+    expect(after.world.mound.there).toBe(false);
   });
 });

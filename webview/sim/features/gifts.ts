@@ -103,7 +103,6 @@ export function startGift(b: Buddy, way?: Way): void {
   m.way = way ?? WAYS[Math.floor(random() * WAYS.length) % WAYS.length];
   b.enter('gift', Infinity);
   if (m.way === 'dug') {
-    b.world.mound.begin(b.x + b.noseOffset());
     step(b, 'dig');
   } else if (m.way === 'bird') {
     const ahead = b.dir === 1 ? b.maxX - b.x : b.x;
@@ -278,9 +277,14 @@ export const giftsFeature = {
   tick(b, dtMs) {
     b.gift.sinceGiftMs += dtMs;
     b.gift.sinceDoodleMs += dtMs;
-    // Where it digs, a little mound is left.
-    if (b.state === 'dig' && !b.world.mound.there) {
-      b.world.mound.begin(b.x + b.noseOffset());
+    // Where it digs, the earth comes up for as long as it is at it, and settles when it has done.
+    const { mound } = b.world;
+    if (b.state === 'dig' || (b.state === 'gift' && b.gift.step === 'dig')) {
+      if (mound.there) {
+        mound.keep();
+      } else {
+        mound.begin(b.x + b.noseOffset());
+      }
     }
   },
   // Called away in the middle of it: the find is for another time.

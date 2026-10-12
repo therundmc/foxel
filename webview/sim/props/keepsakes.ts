@@ -149,10 +149,9 @@ export class Mark {
     this.ageMs = 0;
   }
 
-  /** There already, as it was left, with all its time ahead of it. */
-  restore(x: number): void {
-    this.x = x;
-    this.ageMs = this.comesMs;
+  /** Still being made: once it is all there, its time to stay does not start yet. */
+  keep(): void {
+    this.ageMs = Math.min(this.ageMs, this.comesMs);
   }
 
   update(dtMs: number): void {
@@ -168,5 +167,5 @@ export class Mark {
 
 /** The heart it scratches in the earth: a couple of seconds to draw, a moment for you to see it, then it lifts off and floats away. */
 export const newDoodle = (): Mark => new Mark(DOODLE, 1800, 2800, 4500, 16);
-/** The mound where it dug: it rises as it digs, stays twenty minutes, then settles. */
-export const newMound = (): Mark => new Mark(MOUND, 1600, 20 * 60_000, 6000);
+/** The earth it throws up where it digs: it rises as it digs, and settles as soon as it has done. Nothing is left on the ground. */
+export const newMound = (): Mark => new Mark(MOUND, 1600, 900, 2400);

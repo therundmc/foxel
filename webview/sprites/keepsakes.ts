@@ -74,7 +74,7 @@ export const FIND_SHINE: Glyph = ['.X.', 'XJX', '.X.'];
  * knotted round its neck. Worn this far from the middle of its head.
  */
 export const NECKERCHIEF = { glyph: ['UCCCCCU', '.CCCCC.', '..CUC..', '...C...'] as Glyph, x: -6, y: 5 };
-// A heart scratched in the earth, stroke by stroke; and the little mound left where it dug, as it rises.
+// A heart scratched in the earth, stroke by stroke; and the earth that comes up where it digs.
 export const DOODLE: readonly Glyph[] = [
   ['.TT....', 'T......', 'T......', '.T.....', '..T....', '...T...'],
   ['.TT.TT.', 'T..T..T', 'T......', '.T.....', '..T....', '...T...'],
@@ -82,6 +82,6 @@ export const DOODLE: readonly Glyph[] = [
 ];
 /** The heart once it has lifted off the ground: the same, turned pink. */
 export const DOODLE_FLYING: Glyph = DOODLE[DOODLE.length - 1].map((row) => row.replace(/T/g, 'L'));
-// Where it dug: a little hole, with the earth it threw up in a low bank on either side. Flat, pale and loose, so that
-// nobody takes it for anything else.
+// Where it digs: a little hole, with the earth it throws up in a low bank on either side. Flat, pale and loose, so
+// that nobody takes it for anything else; it does not stay once it has done.
 export const MOUND: readonly Glyph[] = [['tKKt'], ['.t....t.', 'tTkKKkTt'], ['.tTt...tTt.', 'tkTkKKKkTkt']];

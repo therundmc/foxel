@@ -39,7 +39,6 @@ export function remember(b: Buddy, now: number): BuddyMemory {
     toys: lying(b),
     stage: b.world.stage,
     collected: { ...b.world.album.finds },
-    mound: b.world.mound.x === undefined ? undefined : Math.round(b.world.mound.x),
     treat: b.world.treat.landed ? { x: Math.round(b.world.treat.centerX), stage: b.world.treat.stage, facing: b.world.treat.facing } : undefined,
   };
 }
@@ -58,7 +57,6 @@ export function sameMemory(a: BuddyMemory, b: BuddyMemory): boolean {
     JSON.stringify(a.toys ?? {}) === JSON.stringify(b.toys ?? {}) &&
     a.stage === b.stage &&
     JSON.stringify(a.collected ?? {}) === JSON.stringify(b.collected ?? {}) &&
-    a.mound === b.mound &&
     JSON.stringify(a.treat) === JSON.stringify(b.treat) &&
     Math.abs(a.savedAt + a.vistaInMs - (b.savedAt + b.vistaInMs)) < VISTA_SLACK_MS
   );
@@ -82,7 +80,7 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   b.visitors.mouseFriend = memory.mouseFriend === true;
   // Its toys are where it left them, for the day: by the next morning they are back in the chest.
   // What has come into its life so far, and what its box of keepsakes holds: for good.
-  const { ball, plushes, album, mound, width, height } = b.world;
+  const { ball, plushes, album, width, height } = b.world;
   b.world.stage = memory.stage ?? -1;
   album.pictures = b.world.stage + 1;
   Object.assign(album.finds, memory.collected);
@@ -94,9 +92,6 @@ export function recall(b: Buddy, memory: BuddyMemory, now: number): void {
   const toys = sameDay ? (memory.toys ?? {}) : {};
   if (sameDay && memory.treat && !b.world.treat.active) {
     b.world.treat.rest(memory.treat.x, memory.treat.stage, memory.treat.facing, width);
-  }
-  if (sameDay && memory.mound !== undefined && !mound.there) {
-    mound.restore(memory.mound);
   }
   if (toys.ball !== undefined && ball.state === 'none') {
     ball.place(toys.ball, 0, width, height);

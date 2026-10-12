@@ -53,7 +53,7 @@ export function drawPlushes(stage: Stage, bitmaps: Bitmaps, world: World, shadow
   }
 }
 
-/** What is on the ground behind it: the mound where it dug, the heart it scratched. */
+/** What is on the ground behind it: the earth where it is digging, the heart it scratched. */
 export function drawGround(stage: Stage, bitmaps: Bitmaps, world: World): void {
   const draw = (glyph: Glyph, box: { x: number; y: number; w: number; h: number } | undefined): void => {
     if (box) {

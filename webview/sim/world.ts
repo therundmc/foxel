@@ -50,7 +50,7 @@ export class World {
   readonly chest = new Chest();
   readonly shelf = new Shelf();
   readonly album = new Album();
-  /** What it is bringing you, the heart it scratched in the earth, the mound where it dug. */
+  /** What it is bringing you, the heart it scratched in the earth, the earth it throws up where it digs. */
   readonly finds = new Finds();
   readonly doodle = newDoodle();
   readonly mound = newMound();
