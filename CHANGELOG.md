@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+- It remembers you. What you do for it (its meals, playing, a stroke, a treat, the time you keep it company) makes its day a good or a bad one, and builds a bond over the weeks. Your work has nothing to do with it: its affection does not depend on how much you get done. None of it is ever shown as a number: you read it in what it does. With Settings Sync on, its memory follows you from one machine to the next.
+- It starts as a wild little thing. The first time, it walks in with its ball in its mouth and puts it down in front of you; it is wary of your pointer and a click makes it jump. One good day together and it trusts you. If you already had Foxel, yours starts from this first meeting too.
+- It grows on you, stage by stage. As the bond grows it brings its toys home one at a time, learns tricks with them, shows its hearts (not before it has come to love you, and never on a bad day), brings back little things it has found for you, scratches a heart in the earth, and one day wears a little something round its neck. Each stage is a small party.
+- Its toy chest. The buttons in the title bar are gone: nothing stays on screen but the fox. A wicker chest waits at the right edge of its view and fidgets now and then; bring your pointer near and it slides out, holding the toys you can take in your hand. Let go of a toy over it to put it away. The fox uses it too: it fetches its ball from it, tidies a toy left lying about, and when it feels like playing takes back out what you have just put away.
+- A little shelf, top right, for what is not a toy: its bag of kibble, the soap bottle, and a cookie, which is its treat now. Click the cookie and one falls from the sky, or take it in your hand and hold it out.
+- A box of keepsakes, top left: a photograph for every stage you reach together, and one of each kind of thing it has found for you. Some are rare, and a kind found three times starts to shine.
+- Toys to throw about, with real physics: they tumble, bounce off the ground, the walls and the ceiling, knock into each other, and land on its head when it misses. Throw one and it runs after it, leaps for it, does a trick with it and throws it back for you to catch; three catches in a row call for confetti.
+- Its mood is on its face, whatever it is doing: its mouth, its ears, its eyes. When its mood changes, a little something shows by its head for a moment: a drop or a small sad cloud, a twinkle or a note. On a bad day it looks away from your pointer, does not come when called and walks off when touched; after a missed meal or an ignored break it sulks with its back to you. It is sad, never cross, and it does not hold it against you: play with it, feed it, stroke it, and it comes round. A meal missed while you were away does not count.
+- It was waiting for you. Its welcome is not the same after a night, after a few days or after a couple of weeks, and its toys have moved while you were gone. A few days away cost nothing; after that the bond wears off slowly, and never all the way.
+- It catches up: if you commit, push or run something while its view is out of sight, it gives you its reaction when you are back.
+- And the smaller things: a toy left out is where you left it when its view comes back, until the next day; it always comes in from the left; a full tummy turns down another bowl; it no longer walks backwards to its ball; and its jumps at soap bubbles are those of a fox.
+- Like everything else, none of this reads what is in your files. Its life is kept in the editor's own storage, and goes nowhere but through your Settings Sync.
+
 ## 1.3.0
 
 - It follows your work, not just your typing (`foxel.reactToWork`). A commit and it plants a little flag, made more of for the first one of the day. A push and a bird flies the letter away. A merge conflict and it gets tangled in yarn, until you are out of it.
