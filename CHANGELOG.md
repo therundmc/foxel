@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Only the fox and the sky: while it stops to contemplate one, its chest, its shelf and its box of keepsakes draw right out of sight and wait until the sky has gone. There is nothing to do with them in the meantime.
+- The box of keepsakes comes out for your pointer as readily as the chest and the shelf do: it was much harder to call.
+- The earth it throws up where it digs settles as soon as it has done, instead of lying there for twenty minutes, and it is drawn as a little hole between two low banks.
+- What you have built together is safe from updates: the stage you have reached and what it has found for you are kept from one version to the next, and a view that has just opened can no longer write over them.
+
 ## 1.4.0
 
 - It remembers you. What you do for it (its meals, playing, a stroke, a treat, the time you keep it company) makes its day a good or a bad one, and builds a bond over the weeks. Your work has nothing to do with it: its affection does not depend on how much you get done. None of it is ever shown as a number: you read it in what it does. With Settings Sync on, its memory follows you from one machine to the next.
