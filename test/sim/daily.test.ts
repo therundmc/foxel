@@ -131,7 +131,8 @@ describe('living with you', () => {
   it('fetches its ball and asks for a break, then sighs when you keep working', () => {
     const b = fox(at(15));
     react(b, 'breakTime');
-    expect(b.state).toBe('rummage');
+    // Its ball is not in the view: it trots out to get it.
+    expect(b.state).toBe('leave');
     simulate(b, 30_000, () => b.state === 'askBreak');
     expect(b.state).toBe('askBreak');
     expect(b.emote()).toBe('cup');

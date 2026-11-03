@@ -45,23 +45,27 @@ export function lightTint(date: Date): LightTint {
 export type Vista =
   | 'sunrise'
   | 'dunes'
+  | 'balloons'
   | 'clouds'
   | 'blossom'
   | 'wheat'
+  | 'whales'
   | 'rain'
+  | 'rainbow'
   | 'sunset'
   | 'train'
   | 'stars'
   | 'fireflies'
+  | 'lanterns'
   | 'snow';
 
 /** The skies of each time of day, each with its odds: weather comes less often than a clear sky. */
 export type VistaOdds = readonly (readonly [Vista, number])[];
-const NIGHT_SKIES: VistaOdds = [['stars', 1], ['fireflies', 1], ['snow', 0.6]];
+const NIGHT_SKIES: VistaOdds = [['stars', 1], ['fireflies', 1], ['lanterns', 1], ['snow', 0.6]];
 const VISTAS: readonly (readonly [number, VistaOdds])[] = [
   [at(6), NIGHT_SKIES],
-  [at(9), [['sunrise', 1], ['dunes', 1]]],
-  [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['rain', 0.6]]],
+  [at(9), [['sunrise', 1], ['dunes', 1], ['balloons', 1]]],
+  [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['whales', 1], ['rain', 0.6], ['rainbow', 0.6]]],
   [at(21), [['sunset', 1], ['train', 1]]],
 ];
 

@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import { clockAt, dateKey } from '../shared/day';
-import { PRESENT_FULL_MIN, dayWorth, type Care } from '../shared/life';
+import type { Care } from '../shared/life';
 import {
   SCENES,
   type HostMessage,
-  type LifeFacts,
   type Reaction,
   type Scene,
   type WebviewMessage,
@@ -61,10 +60,14 @@ const SCENE_LABELS: Record<Scene, string> = {
   wheat: 'Contemplating the wheat in the wind',
   train: 'Contemplating the train on the water',
   fireflies: 'Contemplating the fireflies',
+  lanterns: 'Contemplating the sky lanterns',
+  balloons: 'Contemplating the hot-air balloons',
+  whales: 'Watching the whales leap',
   sunrise: 'Contemplating the sunrise',
   daydream: 'Contemplating mountains and clouds',
   sunset: 'Contemplating the sunset',
   rain: 'Contemplating the rain',
+  rainbow: 'Contemplating the rainbow after the shower',
   goodNight: 'Good night',
   bedtime: 'Bedtime in the basket',
 };
@@ -126,28 +129,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const routine = new Routine(watcher, context.globalState, readConfig, clock, react, viewLive);
   /** Cares switched off in the settings: not doing them is never held against you. */
   const caresOff = (): Care[] => (readConfig().meals ? [] : ['fed']);
-  // For the gauges of the debug corner of its view: the facts its feelings are worked out from.
-  const lifeFacts = (): LifeFacts => {
-    const { life, feelings: felt } = store;
-    const today = life.days[dateKey(clock())] ?? { cares: {}, slights: {}, presentMin: 0, off: [] };
-    return {
-      born: life.born,
-      daysKept: Object.keys(life.days).length,
-      daysAway: felt.daysAway,
-      togetherMin: today.presentMin,
-      togetherFullMin: PRESENT_FULL_MIN,
-      worth: dayWorth(today),
-      cares: today.cares,
-      slights: today.slights,
-      off: today.off,
-    };
-  };
-  /** Between starting its life over and its views being loaded afresh. */
-  let forgetting = false;
-  /** What it feels, as its life stands right now. */
+  /** What it feels, as its life stands right now: the view keeps it to itself. */
   const feelings = (): HostMessage => {
-    const { mood, attachment, peak } = store.feelings;
-    return { type: 'feelings', mood, attachment, peak, facts: readConfig().debug ? lifeFacts() : undefined };
+    const { mood, attachment } = store.feelings;
+    return { type: 'feelings', mood, attachment };
   };
   // A minute with its view open and you there is a minute spent together.
   const together = setInterval(() => {
@@ -159,7 +144,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Opening its view is coming to see it: it is awake for that.
   const onReady = (provider: BuddyHost): void => {
-    forgetting = false;
     watcher.interacted();
     provider.post(settingsMessage());
     // A view forgets everything when it is closed: it is told what the fox needed when the last one noted it.
@@ -186,25 +170,6 @@ export function activate(context: vscode.ExtensionContext): void {
     if (mood() !== 'atEase') {
       provider.post({ type: 'reaction', reaction: mood() });
     }
-  };
-  // From the debug corner: everything it has lived is forgotten, and its views start again from the first meeting.
-  const startOver = async (): Promise<void> => {
-    if (!readConfig().debug) {
-      return;
-    }
-    const sure = 'Start over';
-    const answer = await vscode.window.showWarningMessage('Start a new life with your fox? Everything it has lived with you is forgotten, on all your machines.', { modal: true }, sure);
-    if (answer !== sure) {
-      return;
-    }
-    // What its views still say they remember, until they have been loaded afresh, is of the life that is over.
-    forgetting = true;
-    const today = dateKey(clock());
-    await context.globalState.update(INSTALLED_KEY, today);
-    await context.globalState.update(WELCOMED_KEY, undefined);
-    await store.startOver(today);
-    missed = undefined;
-    providers.forEach((p) => p.reload());
   };
   const onMessage = (msg: WebviewMessage, provider: BuddyHost): void => {
     switch (msg?.type) {
@@ -237,12 +202,7 @@ export function activate(context: vscode.ExtensionContext): void {
         broadcast(feelings());
         break;
       case 'memory':
-        if (!forgetting) {
-          store.noteNeeds(msg.memory);
-        }
-        break;
-      case 'newLife':
-        void startOver();
+        store.noteNeeds(msg.memory);
         break;
       default:
         // Anything else is ignored; the compiler flags a message of ours left unhandled.

@@ -3,7 +3,7 @@ import { ANIMATIONS, JUMP_AIR_MS, JUMP_CROUCH_MS, JUMP_LAND_MS } from '../../spr
 import { totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import type { Feature, Weights } from '../state';
-import { CHASE_FLIP_MS, WALK_SPEED, moodLevel } from '../tuning';
+import { CHASE_FLIP_MS, WALK_SPEED } from '../tuning';
 
 const JUMP_MS = JUMP_CROUCH_MS + JUMP_AIR_MS + JUMP_LAND_MS;
 const JUMP_HEIGHT = 10;
@@ -14,15 +14,15 @@ export const DEFAULT_NEXT: Weights = [['idle', 40], ['sit', 40], ['walk', 20]];
 
 // Extra things it feels like doing at certain times of day, when calm.
 export const PHASE_NEXT: Partial<Record<DayPhase, Weights>> = {
-  dawn: [['stretch', 12], ['yawn', 12]],
-  afternoon: [['doze', 20], ['yawn', 8]],
-  evening: [['zoomies', 6], ['mousing', 6]],
-  night: [['drowsy', 25], ['yawn', 12], ['lantern', 10]],
+  dawn: [['stretch', 12], ['yawn', 12], ['earScratch', 5]],
+  afternoon: [['doze', 20], ['yawn', 8], ['loaf', 10], ['circleDown', 4]],
+  evening: [['zoomies', 6], ['mousing', 6], ['pronk', 3]],
+  night: [['drowsy', 25], ['yawn', 12], ['lantern', 10], ['circleDown', 8], ['loaf', 6]],
 };
 /** What a good or a bad day adds to what it feels like doing, when calm: playful when its mood is high, listless when it is low. */
 export const MOOD_NEXT: readonly { from: number; to: number; next: Weights }[] = [
-  { from: 0.4, to: 1, next: [['play', 14], ['plush', 12], ['rummage', 8], ['jump', 8], ['run', 5], ['chaseTail', 3]] },
-  { from: -1, to: -0.2, next: [['mope', 18], ['lie', 30], ['sit', 15]] },
+  { from: 0.4, to: 1, next: [['play', 14], ['leave', 8], ['jump', 8], ['run', 5], ['chaseTail', 3], ['pronk', 5], ['bellyUp', 3]] },
+  { from: -1, to: -0.2, next: [['lie', 30], ['sit', 15], ['yawn', 8], ['loaf', 10]] },
 ];
 /** How much less likely the `nightDamped` states get at night. */
 export const NIGHT_DAMPING = 0.25;
@@ -39,14 +39,14 @@ export const ambientFeature = {
       calm: true,
       restful: true,
       facesTarget: true,
-      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3]],
+      next: [['walk', 30], ['sit', 25], ['sniff', 12], ['play', 12], ['lookAround', 10], ['hunt', 7], ['leave', 5], ['stretch', 4], ['jump', 3], ['run', 2], ['chaseTail', 1], ['mousing', 5], ['dig', 3], ['glass', 3], ['pronk', 2], ['circleDown', 2], ['hiccups', 1], ['petalSneeze', 1]],
     },
     walk: {
       speed: WALK_SPEED,
       free: true,
       gazes: true,
       duration: between(4000, 9000),
-      next: [['idle', 30], ['sit', 20], ['sniff', 20], ['play', 10], ['lookAround', 10], ['hunt', 7], ['rummage', 4], ['plush', 8], ['gift', 4], ['doodle', 3], ['jump', 3], ['run', 3], ['mousing', 5]],
+      next: [['idle', 30], ['sit', 20], ['sniff', 20], ['play', 10], ['lookAround', 10], ['hunt', 7], ['leave', 5], ['jump', 3], ['run', 3], ['mousing', 5], ['circleDown', 3], ['pronk', 1]],
     },
     run: {
       speed: 35,
@@ -73,16 +73,14 @@ export const ambientFeature = {
       restful: true,
       facesTarget: true,
       duration: between(6000, 14_000),
-      next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8], ['glass', 5]],
-      // Really cross, it sits the way it sulks: nose up, a glance over its shoulder now and then.
-      anim: (b) => ({ anim: moodLevel(b.world.mood) <= -2 ? 'sulk' : 'sit', elapsed: b.elapsed }),
+      next: [['lie', 30], ['walk', 20], ['groom', 15], ['idle', 15], ['yawn', 10], ['lookAround', 10], ['play', 8], ['glass', 5], ['earScratch', 6], ['loaf', 5], ['petalSneeze', 3], ['hiccups', 2]],
     },
     lie: {
       calm: true,
       restful: true,
       facesTarget: true,
       duration: between(8000, 20_000),
-      next: [['stretch', 30], ['sit', 25], ['idle', 20], ['groom', 10], ['walk', 10]],
+      next: [['stretch', 30], ['sit', 25], ['idle', 20], ['groom', 10], ['walk', 10], ['loaf', 8], ['knead', 5], ['bellyUp', 5]],
     },
     groom: {
       calm: true,

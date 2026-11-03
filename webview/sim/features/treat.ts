@@ -2,7 +2,6 @@ import { BEG_MOUTH_HEIGHT, BEG_MOUTH_X, TREAT_PAWS_X } from '../../sprites/fox/a
 import { ANIMATIONS, EAT_RESUME_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, frameAt, totalDuration } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
-import { cared } from './bond';
 import { urge, type Feature } from '../state';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
 
@@ -30,26 +29,6 @@ export function grabTreat(b: Buddy, x: number, y: number): void {
   }
   b.world.treat.hold(x, y, b.world.width, b.world.height);
   startBeg(b);
-}
-
-/** You take a new treat out of the chest: it is in your hand straight away. */
-export function takeTreat(b: Buddy, x: number, y: number): void {
-  if (b.world.treat.active) {
-    return;
-  }
-  b.world.treat.drop(x, b.world.width, b.world.height);
-  grabTreat(b, x, y);
-}
-
-/** You put the treat in your hand back in the chest: it stops begging. */
-export function stowTreat(b: Buddy): void {
-  if (b.world.treat.state !== 'held') {
-    return;
-  }
-  b.world.treat.state = 'none';
-  if (b.state === 'beg') {
-    b.enterNext('sit');
-  }
 }
 
 export function moveHeldTreat(b: Buddy, x: number, y: number): void {
@@ -103,7 +82,6 @@ function updateSnack(b: Buddy, dt: number): void {
     if (b.snack.eatMs >= totalDuration(ANIMATIONS.eat)) {
       treat.state = 'none';
       b.world.effects.push('treated');
-      cared(b);
       b.enter('lie', b.ambientDuration('lie'));
     }
     return;

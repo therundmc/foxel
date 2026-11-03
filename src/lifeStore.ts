@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode';
 import { dateKey } from '../shared/day';
-import { attachmentOn, peakOn, daysAway, mergeLives, moodOn, newLife, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
+import { attachmentOn, daysAway, mergeLives, moodOn, readLife, trimmed, withCare, withPresence, withSlight, type Care, type Life, type Slight } from '../shared/life';
 import type { BuddyMemory } from '../shared/protocol';
 
 /** Its life: follows you from one machine to another. */
@@ -33,7 +33,7 @@ export class LifeStore implements vscode.Disposable {
 
   constructor(
     private readonly keep: Keep,
-    private born: string,
+    private readonly born: string,
     private readonly clock: () => Date,
   ) {
     keep.setKeysForSync?.([LIFE_KEY]);
@@ -58,9 +58,9 @@ export class LifeStore implements vscode.Disposable {
   }
 
   /** How attached to you it is (0 to 1), its mood today (-1 to 1), and how many days it is since you were last there. */
-  get feelings(): { attachment: number; peak: number; mood: number; daysAway: number | undefined } {
+  get feelings(): { attachment: number; mood: number; daysAway: number | undefined } {
     const life = this.life;
-    return { attachment: attachmentOn(life, this.today), peak: peakOn(life, this.today), mood: moodOn(life, this.today), daysAway: daysAway(life, this.today) };
+    return { attachment: attachmentOn(life, this.today), mood: moodOn(life, this.today), daysAway: daysAway(life, this.today) };
   }
 
   /** What it needed when a view last noted it. */
@@ -99,19 +99,6 @@ export class LifeStore implements vscode.Disposable {
     }
     this.current = trimmed(this.current, this.today);
     return this.keep.update(LIFE_KEY, this.current);
-  }
-
-  /**
-   * Forgets everything and starts a new life on `born`. It writes over what is kept without merging with it, and
-   * that goes to your other machines too: for trying things out, from the debug corner only.
-   */
-  startOver(born: string): Thenable<void> {
-    this.born = born;
-    this.current = newLife(born);
-    this.dirtySince = undefined;
-    this.urgent = false;
-    void this.keep.update(NEEDS_KEY, undefined);
-    return this.foreign ? Promise.resolve() : this.keep.update(LIFE_KEY, this.current);
   }
 
   dispose(): void {

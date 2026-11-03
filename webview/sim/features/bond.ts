@@ -1,108 +1,22 @@
 import type { Reaction } from '../../../shared/protocol';
-import { ANIMATIONS } from '../../sprites/fox/animations';
-import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
+import { SPRITE_SIZE } from '../../sprites/frames';
+import { fond } from '../affection';
 import type { Buddy } from '../buddy';
 import { urge, type AnimRef, type Feature } from '../state';
-import { SHUNS_UNDER } from '../tuning';
-import { has, owns } from '../unlocks';
 
-/** How long it sulks over something it had to put up with, and how long it holds out when you come back after weeks. */
-const SULK_MS = 40_000;
-const GRUDGE_MS = 7000;
-const MAKE_UP_MS = totalDuration(ANIMATIONS.makeUp);
-/** A day this bad and it sulks without being given a reason; it is over it once its mood is back above the second. */
-export const LOW = -0.4;
-const OVER_IT = -0.15;
-/** Days away after which it is beside itself to see you, and after which it needs a moment to forgive you. */
+/** Days away after which it is beside itself to see you. */
 const MISSED_YOU = 2;
-const TOO_LONG = 14;
 /** Beside itself: how long it bounces about, how high, how fast, before it settles into hearts. */
 const OVERJOYED_MS = 4200;
 const BOUNCING = 0.6;
 const BOUNCE_MS = 360;
 const BOUNCE_HEIGHT = 7;
-/** Out of sorts, it keeps away from your pointer: when it comes this near, it walks this far off, slowly, and sits with its back to it for a while. */
-const SHUN_NEAR = 30;
-const SHUN_STEP = 28;
-const SHUN_SPEED = 8;
-const SHUN_SIT_MS = 5000;
-const SHUN_REST_MS = 7000;
-/** What it may have left about while you were away: how likely each thing is. */
-const BALL_LEFT = 0.7;
-const TOY_LEFT = 0.6;
 
 export class BondMemory {
-  /** It had to put up with something and has not sulked over it yet. */
-  slighted = false;
-  /** It has sulked and nobody has made it up to it yet; and somebody just did, while it was busy. */
-  sulky = false;
-  soothed = false;
-  /** It has already sulked over today's low mood. */
-  sulkedLow = false;
-  /** This sulk ends by itself, with it coming round. */
-  forgives = false;
-  /** Keeping away from your pointer: where it is walking off to, and how long since it last did. */
-  shunTo = 0;
-  sinceShunMs = SHUN_REST_MS;
-  /** For how long it has been sat there since it walked off. */
-  satMs = 0;
-  /** It was out of sorts a moment ago. */
-  wasLow = false;
   /** You are back after this many days: the welcome it has not given yet. */
   awayDays: number | undefined;
   /** What happened in your work while its view was out of sight, not played yet. */
   missed: Reaction | undefined;
-}
-
-const you = (b: Buddy): number => b.world.pointer?.x ?? b.world.width / 2;
-const facing = (b: Buddy, x: number): 1 | -1 => (x >= b.x + SPRITE_SIZE / 2 ? 1 : -1);
-
-/** A meal time went by unfed, or a break it asked for was ignored: it will sulk over it once it has a quiet moment. */
-export function slighted(b: Buddy): void {
-  b.bond.slighted = true;
-}
-
-/** Out of sorts: its day has gone badly enough that it wants nothing to do with your pointer. */
-export const outOfSorts = (b: Buddy): boolean => b.world.mood <= SHUNS_UNDER;
-
-/**
- * You looked after it. Sulking over one thing, it melts; if it had sulked, it comes and makes up once it is free.
- * Out of sorts, one kindness is not enough: it comes round when its mood has (see `tick`).
- */
-export function cared(b: Buddy): void {
-  if (outOfSorts(b)) {
-    return;
-  }
-  if (b.state === 'sulk') {
-    makeUp(b);
-  } else if (b.bond.sulky) {
-    b.bond.soothed = true;
-  }
-}
-
-/**
- * Out of sorts, it will not be touched: a pat or a stroke and it gets up and walks off, to sit with its back to
- * you. Returns whether it shrugged you off; it was no caress then.
- */
-export function shrugOff(b: Buddy): boolean {
-  if (!outOfSorts(b)) {
-    return false;
-  }
-  if (b.state !== 'shun' || !b.moving) {
-    b.bond.sinceShunMs = SHUN_REST_MS;
-    shun(b);
-  }
-  return true;
-}
-
-/** A stroke or a pat on a fox sulking over one thing: that is all it was waiting for. Returns whether it was sulking. */
-export function soothe(b: Buddy): boolean {
-  if (b.state !== 'sulk') {
-    return false;
-  }
-  b.world.effects.push('petted');
-  makeUp(b);
-  return true;
 }
 
 /** You are back after this many days away. */
@@ -122,97 +36,19 @@ export function takeMissed(b: Buddy): Reaction | undefined {
   return reaction;
 }
 
-// Its back to you, wherever you are.
-function sulk(b: Buddy, ms: number, forgives: boolean): void {
-  const m = b.bond;
-  m.slighted = false;
-  m.sulky = true;
-  m.forgives = forgives;
-  b.dir = facing(b, you(b)) === 1 ? -1 : 1;
-  b.tryEnter('sulk', ms);
-}
-
-function makeUp(b: Buddy): void {
-  const m = b.bond;
-  m.sulky = false;
-  m.soothed = false;
-  m.slighted = false;
-  m.forgives = false;
-  b.dir = facing(b, you(b));
-  b.enter('makeUp', MAKE_UP_MS);
-}
-
-// It lived without you: its ball rolled off somewhere, a soft toy was left lying.
-function leaveTraces(b: Buddy): void {
-  const { ball, plushes, width, height, random } = b.world;
-  if (owns(b.world, 'ball') && ball.state === 'none' && random() < BALL_LEFT) {
-    ball.place(width * (0.15 + 0.6 * random()), 0, width, height);
-    ball.launch(0, 0);
-  }
-  // One of the soft toys that have come into its life, if any.
-  const mine = Object.values(plushes).filter((plush) => owns(b.world, plush.kind));
-  const toy = mine[Math.floor(random() * mine.length) % Math.max(1, mine.length)];
-  if (toy && toy.state === 'none' && random() < TOY_LEFT) {
-    toy.rest(width * (0.1 + 0.6 * random()), width);
-  }
-}
-
 /**
- * The welcome your absence calls for, given once: beside itself after a few days, a moment of sulking after weeks.
- * Returns false when its usual hello will do (you were only gone for the night).
+ * The welcome your absence calls for, given once: when it is fond of you and you were gone a few days, it is
+ * beside itself. Returns false when its usual hello will do.
  */
 export function welcome(b: Buddy): boolean {
   const days = b.bond.awayDays;
   b.bond.awayDays = undefined;
-  if (days === undefined) {
+  if (days === undefined || days < MISSED_YOU || !fond(b.world)) {
     return false;
   }
-  leaveTraces(b);
-  if (days >= TOO_LONG) {
-    sulk(b, GRUDGE_MS, true);
-    b.enter('sulk', GRUDGE_MS);
-  } else if (days >= MISSED_YOU && has(b.world, 'overjoyed')) {
-    b.dir = facing(b, you(b));
-    b.enter('overjoyed', OVERJOYED_MS);
-  } else {
-    return false;
-  }
-  return true;
-}
-
-// Your pointer has come too near for the mood it is in.
-function crowded(b: Buddy): boolean {
-  const p = b.world.shunned;
-  return p !== undefined && b.bond.sinceShunMs >= SHUN_REST_MS && Math.abs(p.x - (b.x + SPRITE_SIZE / 2)) <= SHUN_NEAR && p.y <= SPRITE_SIZE + 8;
-}
-
-function shun(b: Buddy): void {
-  const away = facing(b, b.world.shunned?.x ?? you(b)) === 1 ? -1 : 1;
-  // Away from it, or past it if the wall is in the way.
-  const room = away === 1 ? b.maxX - b.x : b.x;
-  b.dir = room >= SHUN_STEP ? away : (-away as 1 | -1);
-  b.bond.shunTo = Math.min(b.maxX, Math.max(0, b.x + b.dir * SHUN_STEP));
-  b.bond.sinceShunMs = 0;
-  b.bond.satMs = 0;
-  b.moving = true;
-  b.tryEnter('shun', Infinity);
-}
-
-function updateShun(b: Buddy, dt: number, dtMs: number): boolean {
-  const m = b.bond;
-  b.fall(dt);
-  const left = (m.shunTo - b.x) * b.dir;
-  b.moving = left > SHUN_SPEED * dt;
-  if (b.moving) {
-    b.x += b.dir * SHUN_SPEED * dt;
-    m.satMs = 0;
-    return true;
-  }
-  // Sat down with its back to you, for a while.
-  m.satMs += dtMs;
-  if (m.satMs >= SHUN_SIT_MS || !outOfSorts(b)) {
-    b.enterNext('mope');
-  }
+  const you = b.world.pointer?.x ?? b.world.width / 2;
+  b.dir = you >= b.x + SPRITE_SIZE / 2 ? 1 : -1;
+  b.enter('overjoyed', OVERJOYED_MS);
   return true;
 }
 
@@ -220,32 +56,9 @@ function overjoyedAnim(b: Buddy): AnimRef {
   return { anim: b.elapsed < OVERJOYED_MS * BOUNCING ? 'celebrate' : 'love', elapsed: b.elapsed };
 }
 
-// What its life with you does to it: it sulks when let down and melts when made up to, and greets you as your absence deserves.
+// What your absences do to it: it greets you as they deserve.
 export const bondFeature = {
   states: {
-    sulk: {
-      priority: 1,
-      restful: true,
-      finish(b) {
-        if (b.bond.forgives) {
-          makeUp(b);
-        } else {
-          b.enterNext('mope');
-        }
-      },
-    },
-    makeUp: { priority: 2, next: [['sit', 100]] },
-    // It walks off, slowly, and sits down with its back to you.
-    shun: {
-      priority: 1,
-      update: updateShun,
-      anim: (b) => (b.moving ? { anim: 'walk', elapsed: b.elapsed } : { anim: 'sulk', elapsed: b.bond.satMs }),
-    },
-    mope: {
-      duration: () => totalDuration(ANIMATIONS.sigh),
-      next: [['lie', 60], ['sit', 40]],
-      anim: (b) => ({ anim: 'sigh', elapsed: b.elapsed }),
-    },
     overjoyed: {
       priority: 2,
       update(b) {
@@ -258,37 +71,10 @@ export const bondFeature = {
       next: [['sit', 100]],
     },
   },
-  tick(b, dtMs) {
-    const m = b.bond;
-    m.sinceShunMs += dtMs;
-    if (b.world.mood > OVER_IT) {
-      m.sulkedLow = false;
-    }
-    // Its mood is back: whatever it was sulking about, it comes round, as soon as it has a quiet moment.
-    const low = outOfSorts(b);
-    if (m.wasLow && !low) {
-      m.soothed = true;
-      m.slighted = false;
-    }
-    m.wasLow = low;
-  },
   urges: [
     urge(
       (b) => b.bond.awayDays !== undefined,
       (b) => void welcome(b),
-    ),
-    urge((b) => b.bond.soothed, makeUp),
-    urge(crowded, shun),
-    urge(
-      (b) => b.bond.slighted,
-      (b) => sulk(b, SULK_MS, false),
-    ),
-    urge(
-      (b) => !b.bond.sulkedLow && b.world.mood <= LOW,
-      (b) => {
-        b.bond.sulkedLow = true;
-        sulk(b, SULK_MS, false);
-      },
     ),
   ],
 } satisfies Feature;

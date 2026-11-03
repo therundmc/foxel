@@ -4,7 +4,6 @@ import { ANIMATIONS, KIBBLE_MS } from '../../sprites/fox/animations';
 import { SPRITE_SIZE, totalDuration } from '../../sprites/frames';
 import { BOWL_CAPACITY } from '../../sprites/props';
 import type { Buddy } from '../buddy';
-import { cared, slighted } from './bond';
 import { asleep } from './rest';
 import { urge, type Feature } from '../state';
 import { FETCH_RUN_SPEED, FETCH_WALK_SPEED, WALK_SPEED } from '../tuning';
@@ -126,7 +125,6 @@ function updateFeast(b: Buddy, dt: number): void {
     b.meals.done = 'foodBowl';
     b.world.effects.push('fed');
     b.meals.ateAt = b.world.now.getTime();
-    cared(b);
     perform(b, FULL);
   }
 }
@@ -249,7 +247,6 @@ export const mealsFeature = {
       // Asleep because you were gone (at lunch yourself, most likely), it does not hold it against you.
       if (!asleep(b)) {
         b.world.effects.push('unfed');
-        slighted(b);
       }
       bowl.hide();
       if (b.state === 'hungry') {

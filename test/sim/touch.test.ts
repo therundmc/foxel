@@ -38,14 +38,27 @@ describe('touch', () => {
     expect(b.elapsed).toBe(elapsed);
   });
 
-  it('gets the zoomies when clicked over and over, then flops down', () => {
+  it('twirls for joy on a double click', () => {
+    const b = spawn(fixed(0));
+    b.world.resize(300, 60);
+    touch(b, 'nose');
+    touch(b, 'nose', 2);
+    expect(b.current().anim).toBe('twirl');
+    let top = 0;
+    simulate(b, 3000, () => {
+      top = Math.max(top, b.y);
+      return b.state !== 'touched';
+    });
+    expect(top).toBeGreaterThan(3);
+    expect(b.state).toBe('sit');
+  });
+
+  it('gets the zoomies on a triple click, then flops down', () => {
     const b = spawn(fixed(0));
     b.world.resize(300, 60);
     touch(b, 'paw');
-    for (let i = 0; i < 3; i++) {
-      touch(b, 'paw');
-    }
-    simulate(b, 5000, () => b.state === 'zoomies');
+    touch(b, 'paw', 2);
+    touch(b, 'paw', 3);
     expect(b.state).toBe('zoomies');
     const dirs = new Set<number>();
     simulate(b, 6000, () => {

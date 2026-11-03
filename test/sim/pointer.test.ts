@@ -15,35 +15,9 @@ function settled(x: number, state: 'sit' | 'lie' = 'sit') {
 }
 
 describe('coming to the pointer', () => {
-  it('does not come to a pointer that is busy with its toy chest', () => {
-    const b = settled(10);
-    const at = { x: 185, y: 8 };
-    b.world.chest.point(at);
-    let came = false;
-    let moves = 0;
-    simulate(b, 30_000, () => {
-      // The view tells where the pointer is at every frame, and it keeps moving a little.
-      b.world.chest.point({ x: at.x + (moves++ % 2), y: at.y });
-      b.world.pointer = at;
-      came ||= b.state === 'come' || b.state === 'nudge';
-    });
-    expect(b.world.chest.here).toBe(true);
-    expect(came).toBe(false);
-    expect(b.x).toBe(10);
-    // Once the pointer has left the chest, it is there for the fox again.
-    b.world.chest.point(undefined);
-    simulate(b, 30_000, () => {
-      b.world.pointer = { x: 120, y: 20 };
-      return b.state === 'come';
-    });
-    expect(b.state).toBe('come');
-  });
-
-
   it('looks at it for a second, then walks over at its own pace and wags its tail once its head is under it', () => {
     const b = settled(10);
-    // Before you are inseparable: it sits down once it is there.
-    b.world.stage = 4;
+    // Before it is devoted to you: it sits down once it is there.
     b.world.pointer = { x: 150, y: 20 };
     simulate(b, 1000);
     expect(b.state).toBe('sit');

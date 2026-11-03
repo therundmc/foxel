@@ -1,4 +1,5 @@
 import { ambientFeature } from './features/ambient';
+import { anticsFeature } from './features/antics';
 import { bubblesFeature } from './features/bubbles';
 import { contemplateFeature } from './features/contemplate';
 import { fetchFeature } from './features/fetch';
@@ -7,11 +8,7 @@ import { introFeature } from './features/intro';
 import { mealsFeature } from './features/meals';
 import { mousingFeature } from './features/mousing';
 import { bondFeature } from './features/bond';
-import { giftsFeature } from './features/gifts';
-import { growthFeature } from './features/growth';
 import { playFeature } from './features/play';
-import { plushFeature } from './features/plush';
-import { rummageFeature } from './features/rummage';
 import { pointerFeature } from './features/pointer';
 import { reactionsFeature } from './features/reactions';
 import { restFeature } from './features/rest';
@@ -25,6 +22,7 @@ import type { Feature, StateDefs, Urge } from './state';
 // The order matters where features share a hook: earlier urges win, earlier ticks run first.
 export const FEATURES: readonly Feature[] = [
   ambientFeature,
+  anticsFeature,
   reactionsFeature,
   huntFeature,
   visitorsFeature,
@@ -34,10 +32,6 @@ export const FEATURES: readonly Feature[] = [
   tricksFeature,
   playFeature,
   bondFeature,
-  giftsFeature,
-  growthFeature,
-  plushFeature,
-  rummageFeature,
   touchFeature,
   pointerFeature,
   treatFeature,
@@ -51,6 +45,7 @@ export const FEATURES: readonly Feature[] = [
 /** Every state, gathered from the features. The compiler complains here when a `BuddyState` has no definition. */
 export const STATES: StateDefs = {
   ...ambientFeature.states,
+  ...anticsFeature.states,
   ...reactionsFeature.states,
   ...huntFeature.states,
   ...visitorsFeature.states,
@@ -60,10 +55,6 @@ export const STATES: StateDefs = {
   ...tricksFeature.states,
   ...playFeature.states,
   ...bondFeature.states,
-  ...giftsFeature.states,
-  ...growthFeature.states,
-  ...plushFeature.states,
-  ...rummageFeature.states,
   ...touchFeature.states,
   ...pointerFeature.states,
   ...treatFeature.states,

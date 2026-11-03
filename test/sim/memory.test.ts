@@ -16,25 +16,24 @@ describe('memory', () => {
     return b;
   }
 
-  // What 1.4.0 noted, as it was written then: an update never takes its progression away, so this has to go on being read.
-  it('finds the stage it had reached and what it had found in a memory noted by 1.4.0, however long ago', () => {
+  // What 1.4.0 noted, as it was written then: it has to go on being read, though stages and finds are no more.
+  it('still reads a memory noted by 1.4.0, and lets go of what this version no longer keeps', () => {
     const memory = { savedAt: noon.getTime() - 40 * 24 * 60 * MINUTE, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 600_000, mouseFriend: true, stage: 3, toys: { duck: 40 }, collected: { leaf: 3, pebble: 1, flower: 2, clover: 1 } };
     const b = fox();
-    b.world.stage = -1;
     recall(b, JSON.parse(JSON.stringify(memory)), noon.getTime());
-    expect(b.world.stage).toBe(3);
-    expect(b.world.album.pictures).toBe(4);
-    expect(b.world.album.finds).toEqual({ leaf: 3, pebble: 1, flower: 2, clover: 1 });
     expect(b.visitors.mouseFriend).toBe(true);
     // What was only of that day has passed.
     expect(b.meals.thirsty).toBe(false);
-    expect(b.world.plushes.duck.state).toBe('none');
-    // And it is noted again as it was.
+    // And it is noted again without what it no longer keeps.
     simulate(b, 100);
-    expect(remember(b, noon.getTime())).toMatchObject({ stage: 3, collected: memory.collected, mouseFriend: true });
+    const noted = remember(b, noon.getTime());
+    expect(noted.mouseFriend).toBe(true);
+    expect(noted).not.toHaveProperty('stage');
+    expect(noted).not.toHaveProperty('collected');
+    expect(noted).not.toHaveProperty('toys');
   });
 
-  it('lets a need pass that was noted hours ago: it does not sulk this morning over yesterday', () => {
+  it('lets a need pass that was noted hours ago: it is not hungry this morning for yesterday', () => {
     const before = fox();
     react(before, 'hungry');
     react(before, 'breakTime');
@@ -48,42 +47,6 @@ describe('memory', () => {
     expect(after.rest.breakAsks).toBe(0);
     // What lasts is still there.
     expect(after.visitors.mouseFriend).toBe(true);
-  });
-
-  it('finds its toys where they were left when the view is opened again the same day', () => {
-    const before = fox();
-    before.world.ball.place(200, 0, 300, 60);
-    before.world.ball.launch(0, 0);
-    before.world.plushes.teddy.rest(60, 300);
-    before.world.plushes.duck.hold(100, 30, 300, 60);
-    simulate(before, 100);
-    const memory = remember(before, noon.getTime());
-    // A toy in your hand is not lying anywhere.
-    expect(memory.toys).toEqual({ ball: Math.round(before.world.ball.x), teddy: 60 });
-    expect(sameMemory(memory, remember(before, noon.getTime() + 1000))).toBe(true);
-    before.world.plushes.teddy.rest(90, 300);
-    simulate(before, 100);
-    expect(sameMemory(memory, remember(before, noon.getTime()))).toBe(false);
-
-    const after = fox();
-    recall(after, memory, noon.getTime() + 3 * 60 * MINUTE);
-    expect(after.world.ball.state).toBe('free');
-    expect(after.world.ball.x).toBe(memory.toys?.ball);
-    expect(after.world.plushes.teddy.landed).toBe(true);
-    expect(after.world.plushes.teddy.x).toBe(60);
-    expect(after.world.plushes.duck.state).toBe('none');
-    simulate(after, 500);
-    expect(after.world.ball.x).toBe(memory.toys?.ball);
-    expect(after.world.chest.holds).toEqual({ ball: false, teddy: false, duck: true, rugby: true });
-
-    // By the next day everything is back in the chest.
-    const tomorrow = fox();
-    recall(tomorrow, memory, noon.getTime() + 24 * 60 * MINUTE);
-    expect(tomorrow.world.ball.state).toBe('none');
-    expect(tomorrow.world.plushes.teddy.state).toBe('none');
-    // And a memory from before toys were kept is still read.
-    recall(tomorrow, { ...memory, toys: undefined }, noon.getTime());
-    expect(tomorrow.world.plushes.teddy.state).toBe('none');
   });
 
   it('is still hungry in a new view, and hungrier for the time spent away', () => {
@@ -106,7 +69,7 @@ describe('memory', () => {
 
   it('still wants the drink and the break it could not get to', () => {
     const after = fox();
-    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: false, stage: 5 }, MINUTE);
+    recall(after, { savedAt: 0, thirsty: true, breakWanted: false, breakAsks: 0, greeted: {}, vistaInMs: 0, mouseFriend: false }, MINUTE);
     simulate(after, 3000, () => after.state === 'drink');
     expect(after.state).toBe('drink');
   });

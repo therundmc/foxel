@@ -1,10 +1,7 @@
 import { StrokeTracker, ThrowTracker } from './gestures';
 import { currentFrame } from './render/renderer';
-import { coversDebug, pressDebug } from './render/debug';
 import { foxShown, type Session } from './session';
-import { blowBubbles, popBubbleAt } from './sim/features/bubbles';
-import { acceptFind } from './sim/features/gifts';
-import { giveTreat } from './sim/features/treat';
+import { popBubbleAt } from './sim/features/bubbles';
 import { spawnBall } from './sim/features/fetch';
 import { fillBowl } from './sim/features/meals';
 import { callOver } from './sim/features/pointer';
@@ -14,27 +11,25 @@ import type { Box } from './sim/math';
 import type { WorldPoint } from './sim/world';
 import { touchZone, type TouchZone } from './sprites/fox/anchors';
 import { SPRITE_SIZE } from './sprites/frames';
-import type { ChestItem, ShelfItem } from './sprites/props';
 import { inside, type Stage } from './stage';
-import { draggables, type Draggable, type Holdable } from './toys';
+import { draggables, type Draggable } from './toys';
 
 const POINTER_IDLE_MS = 4000;
 const STROKE_MIN_TRAVEL = 3;
 const EXIT_THROW_SPEED = 90;
 const CLICK_SLOP = 2;
 
-/** Turns what the mouse does on the canvas into what happens to the buddy and its toys. */
+/**
+ * Turns what the mouse does on the canvas into what happens to the buddy and its toys. On the fox: a click
+ * touches it where it lands, a double click makes it twirl, a triple click sets off the zoomies, and stroking it
+ * with the button down pets it. Elsewhere: a click calls it over, a double click drops a ball there.
+ */
 export class Input {
   /** What the user is dragging around. */
   holding: Draggable | undefined;
-  private readonly toys: Record<Holdable, Draggable>;
-  /** A treat just taken off the shelf, and where: let go of there without moving, it drops from the sky instead. */
-  private offShelf: { x: number; y: number } | undefined;
   private readonly draggables: readonly Draggable[];
   private pointer: { x: number; y: number; time: number } | undefined;
   private dragged = false;
-  /** The press started on the debug corner: dragging goes on setting its gauges. */
-  private onDebug = false;
   private pressedOnBuddy: { x: number; y: number } | undefined;
   private readonly throwing = new ThrowTracker();
   private readonly stroke = new StrokeTracker();
@@ -45,8 +40,7 @@ export class Input {
     /** Called whenever the user does something with the fox or its things. */
     private readonly onInteraction: () => void,
   ) {
-    this.toys = draggables(session);
-    this.draggables = Object.values(this.toys);
+    this.draggables = draggables(session);
     const canvas = stage.canvas;
     canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
     window.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -54,7 +48,6 @@ export class Input {
     window.addEventListener('blur', () => this.onBlur());
     window.addEventListener('mouseout', (e) => this.onMouseOut(e));
     canvas.addEventListener('click', (e) => this.onClick(e));
-    canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
   }
 
   /** Where the pointer is in the world, as long as it moved recently or holds something. */
@@ -88,56 +81,9 @@ export class Input {
     return this.draggables.find((d) => d.free() && this.over(d.box(), x, y));
   }
 
-  private shelfItemAt(x: number, y: number): ShelfItem | undefined {
-    const at = this.stage.toWorld(x, y);
-    return this.session.world.shelf.itemAt(at.x, at.y);
-  }
-
-  private chestItemAt(x: number, y: number): ChestItem | undefined {
-    const at = this.stage.toWorld(x, y);
-    return this.session.world.chest.itemAt(at.x, at.y);
-  }
-
-  // What using each thing on the shelf does.
-  private useShelf(item: ShelfItem): void {
-    const { buddy, world } = this.session;
-    this.onInteraction();
-    // The click that ends this press is not one on its view.
-    this.dragged = true;
-    world.shelf.press(item);
-    switch (item) {
-      case 'meal':
-        fillBowl(buddy);
-        break;
-      case 'bubbles':
-        blowBubbles(buddy);
-        break;
-      case 'treat':
-        // Handled where it is pressed: it comes into the hand.
-        break;
-      default:
-        // A thing added to the shelf must say here what using it does.
-        item satisfies never;
-    }
-  }
-
-  private hold(picked: Draggable, p: WorldPoint, how: 'grab' | 'take'): void {
-    this.holding = picked;
-    this.throwing.reset();
-    picked[how](p);
-    this.throwing.sample(p, performance.now());
-    // A hand that holds something is not rummaging in the chest: it only gets its lid.
-    this.session.world.chest.point(p, true);
-  }
-
   private overBubble(x: number, y: number): boolean {
     const at = this.stage.toWorld(x, y);
     return this.session.world.bubbles.at(at.x, at.y, 3) !== undefined;
-  }
-
-  private overFind(x: number, y: number): boolean {
-    const { offered, box } = this.session.world.finds;
-    return offered?.state === 'down' && box !== undefined && this.over(box, x, y);
   }
 
   private overFoodBowl(x: number, y: number): boolean {
@@ -153,13 +99,6 @@ export class Input {
     this.holding = undefined;
     const { stage } = this;
     const out = stage.toWorld(cssX, cssY);
-    const { chest } = this.session.world;
-    if (held !== this.toys.treat && chest.accepts(out.x, out.y)) {
-      // Let go of over the chest, a toy goes back in it.
-      held.stow();
-      chest.stowed();
-      return;
-    }
     const away = { x: out.x - stage.width / stage.scale / 2, y: 1 };
     held.release(out, this.throwing.velocity(performance.now(), minSpeed, away));
   }
@@ -168,9 +107,9 @@ export class Input {
     let cursor = 'default';
     if (this.holding || (this.pressedOnBuddy && this.dragged)) {
       cursor = 'grabbing';
-    } else if (this.draggableAt(x, y) || this.chestItemAt(x, y)) {
+    } else if (this.draggableAt(x, y)) {
       cursor = 'grab';
-    } else if (this.shelfItemAt(x, y) || this.overFind(x, y) || this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
+    } else if (this.zoneAt(x, y) || this.overFoodBowl(x, y) || this.overBubble(x, y)) {
       cursor = 'pointer';
     }
     this.stage.canvas.style.cursor = cursor;
@@ -179,57 +118,26 @@ export class Input {
   private onMouseDown(e: MouseEvent): void {
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
     this.dragged = false;
-    // The debug corner takes what is pressed on it: the fox does not get that click.
-    this.onDebug = this.session.settings.debug === true && pressDebug(this.stage, this.session, e.clientX, e.clientY);
-    if (this.onDebug) {
-      this.dragged = true;
-      e.preventDefault();
-      return;
-    }
-    const p = this.stage.toWorld(e.clientX, e.clientY);
-    const item = this.chestItemAt(e.clientX, e.clientY);
     const picked = this.draggableAt(e.clientX, e.clientY);
-    const onShelf = this.shelfItemAt(e.clientX, e.clientY);
-    if (item || onShelf) {
-      if (item) {
-        // Out of the chest, straight into the hand.
-        this.onInteraction();
-        this.hold(this.toys[item], p, 'take');
-      } else if (onShelf === 'treat' && !this.session.world.treat.active) {
-        // A treat off the shelf: in the hand to hold out to it, or, on a plain click, dropped from above.
-        this.onInteraction();
-        this.session.world.shelf.press('treat');
-        this.hold(this.toys.treat, p, 'take');
-        this.offShelf = { x: e.clientX, y: e.clientY };
-      } else if (onShelf) {
-        this.useShelf(onShelf);
-      }
-      this.dragged = true;
-      this.updateCursor(e.clientX, e.clientY);
-      e.preventDefault();
-      return;
-    } else if (picked) {
+    if (picked) {
       this.onInteraction();
-      this.hold(picked, p, 'grab');
+      this.holding = picked;
+      this.throwing.reset();
+      const p = this.stage.toWorld(e.clientX, e.clientY);
+      picked.grab(p);
+      this.throwing.sample(p, performance.now());
+      this.dragged = true;
     } else if (this.zoneAt(e.clientX, e.clientY)) {
       this.pressedOnBuddy = { x: e.clientX, y: e.clientY };
       this.stroke.reset();
-      this.updateCursor(e.clientX, e.clientY);
-      e.preventDefault();
-      return;
     } else {
       return;
     }
-    this.dragged = true;
     this.updateCursor(e.clientX, e.clientY);
     e.preventDefault();
   }
 
   private onMouseMove(e: MouseEvent): void {
-    if (this.onDebug && (e.buttons & 1) !== 0) {
-      pressDebug(this.stage, this.session, e.clientX, e.clientY, true);
-      return;
-    }
     const { buddy } = this.session;
     const pressed = this.pressedOnBuddy;
     this.pointer = { x: e.clientX, y: e.clientY, time: performance.now() };
@@ -238,13 +146,6 @@ export class Input {
     if (!asleep(buddy)) {
       this.onInteraction();
     }
-    const { chest } = this.session.world;
-    const at = this.stage.toWorld(e.clientX, e.clientY);
-    // Over the debug corner, the pointer is on it and on nothing under it.
-    const onCorner = this.session.settings.debug === true && coversDebug(this.stage, this.session, e.clientX, e.clientY);
-    chest.point(onCorner ? undefined : at, this.holding !== undefined && this.holding !== this.toys.treat);
-    this.session.world.shelf.point(this.holding || onCorner ? undefined : at);
-    this.session.world.album.point(this.holding || onCorner ? undefined : at);
     if (this.holding) {
       this.dragged = true;
       const p = this.stage.toWorld(e.clientX, e.clientY);
@@ -265,20 +166,7 @@ export class Input {
 
   private onMouseUp(e: MouseEvent): void {
     this.pressedOnBuddy = undefined;
-    this.onDebug = false;
-    const off = this.offShelf;
-    this.offShelf = undefined;
-    if (this.holding && off && Math.hypot(e.clientX - off.x, e.clientY - off.y) <= CLICK_SLOP * this.stage.scale) {
-      // A click on the treat: it goes back, and one falls from the sky somewhere for it to run to.
-      this.holding.stow();
-      this.holding = undefined;
-      giveTreat(this.session.buddy, this.session.world.width * (0.2 + 0.6 * Math.random()));
-    }
-    if (this.holding) {
-      this.releaseHeld(e.clientX, e.clientY);
-      // The hand is empty again.
-      this.session.world.chest.point(this.stage.toWorld(e.clientX, e.clientY));
-    }
+    this.releaseHeld(e.clientX, e.clientY);
     this.updateCursor(e.clientX, e.clientY);
   }
 
@@ -294,27 +182,20 @@ export class Input {
       return;
     }
     this.pressedOnBuddy = undefined;
-    if (this.holding) {
-      this.releaseHeld(e.clientX, e.clientY, EXIT_THROW_SPEED);
-    }
+    this.releaseHeld(e.clientX, e.clientY, EXIT_THROW_SPEED);
     this.pointer = undefined;
-    this.session.world.chest.point(undefined);
-    this.session.world.shelf.point(undefined);
-    this.session.world.album.point(undefined);
   }
 
+  // `detail` counts the clicks in a row: 2 on a double click, 3 on a triple one.
   private onClick(e: MouseEvent): void {
     const { buddy } = this.session;
     if (this.dragged || buddy.state === 'petted') {
       return;
     }
+    const clicks = Math.min(e.detail, 3) || 1;
     // A bubble under the pointer bursts, whatever is behind it.
     const at = this.stage.toWorld(e.clientX, e.clientY);
     if (popBubbleAt(buddy, at.x, at.y)) {
-      this.onInteraction();
-      return;
-    }
-    if (this.overFind(e.clientX, e.clientY) && acceptFind(buddy)) {
       this.onInteraction();
       return;
     }
@@ -323,24 +204,20 @@ export class Input {
       this.onInteraction();
       return;
     }
-    const zone = this.zoneAt(e.clientX, e.clientY);
-    if (zone) {
-      // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
-      touch(buddy, zone);
+    if (this.overBuddy(e.clientX, e.clientY)) {
+      // A twirl may have lifted it off the spot the first click found: a click on it is a click on it.
+      const zone = this.zoneAt(e.clientX, e.clientY) ?? (clicks > 1 ? 'head' : undefined);
+      if (zone) {
+        // Told after the touch, so that a sleeping fox is patted in its sleep before it hears you are there.
+        touch(buddy, zone, clicks);
+        this.onInteraction();
+      }
+    } else if (clicks === 2 && this.session.world.ball.state === 'none') {
+      // A double click on an empty spot drops its ball there.
+      spawnBall(buddy, at.x, at.y, 0);
       this.onInteraction();
-    } else if (this.session.world.chest.asked || this.session.world.shelf.asked || this.session.world.album.asked) {
-      // A click at the chest or the shelf is for them: it does not call the fox over.
-    } else if (!this.overBuddy(e.clientX, e.clientY) && (callOver(buddy, this.stage.toWorld(e.clientX, e.clientY).x) || asleep(buddy))) {
+    } else if (clicks === 1 && (callOver(buddy, at.x) || asleep(buddy))) {
       // A click in its view calls it over, or wakes it.
-      this.onInteraction();
-    }
-  }
-
-  private onDoubleClick(e: MouseEvent): void {
-    const { world } = this.session;
-    if (world.ball.state === 'none' && !this.overBuddy(e.clientX, e.clientY)) {
-      const p = this.stage.toWorld(e.clientX, e.clientY);
-      spawnBall(this.session.buddy, p.x, p.y, 0);
       this.onInteraction();
     }
   }

@@ -77,25 +77,6 @@ export interface BuddySettings {
   installedOn: string;
   /** Hidden `foxel.debugHour` setting: forces the hour of the day for testing. */
   debugHour?: number;
-  /** Hidden `foxel.debug` setting: also writes what it feels, and why, in a corner of its view. */
-  debug?: boolean;
-}
-
-/** The facts its feelings are worked out from, for the gauges of the debug corner. */
-export interface LifeFacts {
-  born: string;
-  daysKept: number;
-  /** Days since you were last there, today aside. */
-  daysAway?: number;
-  /** Minutes spent together today, and how many count in full. */
-  togetherMin: number;
-  togetherFullMin: number;
-  /** How well today has been spent so far, from 0 to 1. */
-  worth: number;
-  /** How many times each care was given and each slight suffered today; the cares switched off in the settings. */
-  cares: Partial<Record<'fed' | 'played' | 'petted' | 'treated', number>>;
-  slights: Partial<Record<'unfed' | 'unheard', number>>;
-  off: readonly string[];
 }
 
 /** The welcomes it keeps for the first time it sees you. */
@@ -120,14 +101,6 @@ export interface BuddyMemory {
   lastVista?: Vista;
   /** Whether a mouse has made friends with it. */
   mouseFriend: boolean;
-  /** The stage of your life together that it has reached and marked: what has come into its life so far. */
-  stage?: number;
-  /** Its toys lying about in the view, and where each one is (its left edge, in sprite pixels). */
-  toys?: Partial<Record<'ball' | 'teddy' | 'duck' | 'rugby', number>>;
-  /** How many of each kind of thing it has found for you: what its box of keepsakes holds. */
-  collected?: Partial<Record<'leaf' | 'pebble' | 'flower' | 'feather' | 'clover' | 'gem', number>>;
-  /** A treat left lying: where its middle is, how much of it is eaten, and which way its bitten end points. */
-  treat?: { x: number; stage: number; facing: 1 | -1 };
 }
 
 export const SCENES = [
@@ -158,14 +131,18 @@ export const SCENES = [
   'drowsy',
   'sunrise',
   'dunes',
+  'balloons',
   'rain',
+  'rainbow',
   'blossom',
   'daydream',
   'wheat',
+  'whales',
   'sunset',
   'train',
   'stargaze',
   'fireflies',
+  'lanterns',
   'snow',
   'goodNight',
   'bedtime',
@@ -176,8 +153,8 @@ export type HostMessage =
   | { type: 'reaction'; reaction: Reaction }
   | { type: 'settings'; settings: BuddySettings }
   | { type: 'memory'; memory: BuddyMemory }
-  /** What it feels today, and how attached to you it has grown: worked out by the extension from its life. `facts` come with the hidden `foxel.debug` setting only. */
-  | { type: 'feelings'; mood: number; attachment: number; peak: number; facts?: LifeFacts }
+  /** What it feels today, and how attached to you it has grown: worked out by the extension from its life, never shown. */
+  | { type: 'feelings'; mood: number; attachment: number }
   /** You are back after this many days away: sent once, the first time its view opens that day. */
   | { type: 'welcome'; daysAway: number }
   /** Something happened in your work while its view was out of sight: the last such thing, to be played once it is back. */
@@ -200,6 +177,4 @@ export type WebviewMessage =
   | { type: 'cared'; care: 'petted' | 'treated' }
   /** The fox had to put up with something: a meal time gone by unfed, a break it asked for in vain. */
   | { type: 'slighted'; slight: 'unfed' | 'unheard' }
-  | { type: 'memory'; memory: BuddyMemory }
-  /** From the debug corner: forget everything and start a new life, as on the day it was installed. */
-  | { type: 'newLife' };
+  | { type: 'memory'; memory: BuddyMemory };

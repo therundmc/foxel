@@ -235,15 +235,15 @@ describe('when it contemplates', () => {
 
   it('waits a good while after its view opens, then stops for one of the skies of the hour', () => {
     expect(skyAfter(at(14), 40 * MINUTE)).toBeUndefined();
-    expect(['clouds', 'blossom', 'wheat', 'rain']).toContain(skyAfter(at(14), 50 * MINUTE));
-    expect(['sunrise', 'dunes']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
+    expect(['clouds', 'blossom', 'wheat', 'whales', 'rain', 'rainbow']).toContain(skyAfter(at(14), 50 * MINUTE));
+    expect(['sunrise', 'dunes', 'balloons']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
     expect(['sunset', 'train']).toContain(skyAfter(at(19, 30), 50 * MINUTE));
-    expect(['stars', 'fireflies', 'snow']).toContain(skyAfter(at(23), 50 * MINUTE));
+    expect(['stars', 'fireflies', 'lanterns', 'snow']).toContain(skyAfter(at(23), 50 * MINUTE));
   });
 
   it('draws among them, and never the one it stopped for last', () => {
     expect(skyAfter(at(14), 50 * MINUTE, 0.01)).toBe('clouds');
-    expect(skyAfter(at(14), 50 * MINUTE, 0.99)).toBe('rain');
+    expect(skyAfter(at(14), 50 * MINUTE, 0.99)).toBe('rainbow');
     expect(skyAfter(at(23), 50 * MINUTE, 0.99)).toBe('snow');
     expect(skyAfter(at(19, 30), 50 * MINUTE, 0.9)).toBe('train');
     expect(skyAfter(at(14), 50 * MINUTE, 0.01, 'clouds')).toBe('blossom');

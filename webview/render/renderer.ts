@@ -16,7 +16,6 @@ import {
   BUG_FRAMES,
   CAKE,
   EMOTE_BUD,
-  type Hat,
   EMOTES,
   type Emote,
   FOOD_BOWL,
@@ -29,28 +28,20 @@ import {
   TREAT_W,
   WATER_BOWL,
 } from '../sprites/props';
-import { NECKERCHIEF } from '../sprites/keepsakes';
 import type { Rect, Stage } from '../stage';
 import type { Bitmaps } from './bitmaps';
 import { Eyes } from './eyes';
-import { MoodMarks } from './mood';
 import { asleep } from '../sim/features/rest';
 import { moodLevel, type MoodLevel } from '../sim/tuning';
-import { has, owns } from '../sim/unlocks';
+import { fond } from '../sim/affection';
 import { withFace, type Face } from '../sprites/fox/pose';
 import { HEARTS } from '../sprites/fox/overlays';
 import { drawBubbles } from './bubbles';
-import { drawAlbum, drawChest, drawChestTiles, drawFind, drawGround, drawPlushes, drawShelf } from './things';
 import { SceneryLayers } from './scenery';
 import type { Sky } from './sky';
 
 /** The face that goes with each degree of its mood: none on an even day, nor on a merely good one (its eyes say it). */
 const FACE: Record<MoodLevel, Face | undefined> = { [-3]: 'sad', [-2]: 'sad', [-1]: 'sullen', 0: undefined, 1: undefined, 2: 'beaming' };
-/** What is worn round the neck, over its neckerchief. */
-const NECKWEAR = new Set<Hat>(['scarf', 'scarfDust', 'scarfSnow', 'cloak', 'cloakWind']);
-/** A photograph is taken: the view flashes white, this strongly and for this long. */
-const FLASH = 0.38;
-const FLASH_MS = 240;
 const SHADOW_COLOR = 'rgba(0, 0, 0, 0.25)';
 // Above the ear tips, where the picture bubble sits.
 const EMOTE_ABOVE_HEAD = 13;
@@ -73,7 +64,6 @@ export function currentFrame(buddy: Buddy): Frame {
 /** Paints one frame of the scene, back to front. */
 export class Renderer {
   private readonly eyes = new Eyes();
-  private readonly mood = new MoodMarks();
   private readonly scenery = new SceneryLayers();
   private emote: { shown: Emote; since: number } | undefined;
 
@@ -94,7 +84,6 @@ export class Renderer {
     stage.ctx.clearRect(0, 0, stage.width, stage.height);
     this.scenery.drawBack(stage, world.scenery);
     this.drawCake(now);
-    drawGround(stage, this.bitmaps, world);
     const frame = currentFrame(buddy);
     this.drawBasket(BASKET_BACK, BASKET_FRONT.length + BASKET_BACK.length);
     this.drawBowl(world.foodBowl, FOOD_BOWL);
@@ -106,32 +95,17 @@ export class Renderer {
       this.drawBuddy(stage.buddyRect(buddy), frame, now);
     }
     this.drawBasket(BASKET_FRONT, BASKET_FRONT.length);
-    const shadow = (centerX: number, widthPx: number): void => this.drawShadow(centerX, widthPx);
-    // What it carries in its mouth goes into the chest behind its front.
-    drawPlushes(stage, this.bitmaps, world, shadow, true);
-    drawFind(stage, this.bitmaps, world);
-    drawChest(stage, this.bitmaps, world.chest, shadow);
     this.drawMouse();
     this.drawGrass();
     if (fox) {
       this.drawEmote(stage.buddyRect(buddy), frame, now);
-      this.mood.draw(stage, this.bitmaps, session, frame, stage.buddyRect(buddy), now);
     }
-    drawPlushes(stage, this.bitmaps, world, shadow, false);
     this.drawBall();
     this.drawBug();
     this.drawBird(false);
     drawBubbles(stage, world.bubbles, session.light);
     this.scenery.drawFront(stage, world.scenery);
-    drawChestTiles(stage, this.bitmaps, world.chest);
-    drawShelf(stage, this.bitmaps, world.shelf);
-    drawAlbum(stage, this.bitmaps, world);
     sky.drawConfetti(stage, dt);
-    const since = now - (session.snappedAt ?? -Infinity);
-    if (since < FLASH_MS) {
-      stage.ctx.fillStyle = `rgba(255, 255, 255, ${(FLASH * (1 - since / FLASH_MS)).toFixed(3)})`;
-      stage.ctx.fillRect(0, 0, stage.width, stage.height);
-    }
   }
 
   // The basket sits under the curled-up fox: back rim and cushion behind it, front rim in front.
@@ -242,7 +216,7 @@ export class Renderer {
   private drawOverlays(frame: Frame, rect: Rect, flip: boolean, behind: boolean): void {
     const { ctx, scale: s } = this.stage;
     // Hearts are earned: a fox that is not yet fond of you, or whose day is not a good one, shows none.
-    const loving = has(this.session.world, 'showsLove');
+    const loving = fond(this.session.world);
     for (const o of frame.overlays) {
       if ((o.behind === true) !== behind || (!loving && HEARTS.has(o.glyph))) {
         continue;
@@ -264,13 +238,9 @@ export class Renderer {
     }
   }
 
-  // What it wears: its hat of the moment, and, once you are inseparable, its neckerchief (under a scarf or a cloak it does not show).
+  // What it wears: its hat of the moment.
   private drawHat(frame: Frame, rect: Rect, flip: boolean): void {
-    const { buddy, world } = this.session;
-    const hat = buddy.hat();
-    if (owns(world, 'neckerchief') && !(hat && NECKWEAR.has(hat))) {
-      this.drawWorn(NECKERCHIEF, frame, rect, flip);
-    }
+    const hat = this.session.buddy.hat();
     if (hat) {
       this.drawWorn(HATS[hat], frame, rect, flip);
     }
