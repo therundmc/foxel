@@ -2,7 +2,8 @@ import { gradient, mix, prerender, seeded, type VistaView } from './paint';
 
 // A calm turquoise sea on a summer afternoon, seen from the top of a cliff, painted once for a view: the sky, the
 // sea with its lazy swell, and far out behind the fox's shoulder a green headland with a little lighthouse on it.
-// Nothing of it moves; the glints, the clouds, the gulls, the boat and the whales are painted over it.
+// Nothing of it moves; the glints, the clouds, the gulls, the boat and the whales are painted over it. It also says
+// where on it the two whales will be, so that they never come behind the fox nor in each other's way.
 
 const clamp = (v: number, low: number, high: number): number => Math.min(high, Math.max(low, v));
 
@@ -40,19 +41,30 @@ export interface Sea {
   readonly sky: HTMLCanvasElement;
   readonly image: HTMLCanvasElement;
   readonly horizon: number;
-  /** The length of the big whale from its nose to its tail. */
+  /** The length of the mother from her nose to her tail, and of her calf. */
   readonly whale: number;
-  /** Where it comes up from the deep, where its calf leaps, and the two places it is first seen on the way. */
-  readonly spot: Spot;
-  readonly calf: Spot;
+  readonly small: number;
+  /** Where the mother's leap starts (her middle, under the water) and how far it carries her along the sea. */
+  readonly leap: Spot;
+  readonly span: number;
+  /** Where the calf's little hop starts, and how far it carries it. */
+  readonly hop: Spot;
+  readonly hopSpan: number;
+  /** Far out, where their one breath is seen before the moment. */
   readonly far: Spot;
-  readonly mid: Spot;
   /** The column the sun's glitter on the sea is gathered round, and how far it spreads. */
   readonly glitter: number;
   readonly glitterSpread: number;
   /** The tip of the headland: the little boat sets off from there. */
   readonly tip: number;
 }
+
+/** How high the leaps go and how deep they start, in lengths of the one leaping. */
+export const SINK = 0.3;
+export const PEAK = 0.45;
+export const CALF_PEAK = 0.5;
+/** The share of a leap at which its middle is back in the water. */
+export const down = (peak: number): number => (1 + Math.sqrt(1 - SINK / (peak + SINK))) / 2;
 
 /** How tall the headland stands `d` columns in from the edge of the view, `wide` columns long. */
 function headlandAt(d: number, wide: number, tall: number): number {
@@ -154,11 +166,19 @@ function build(view: VistaView): Sea {
   const deep = h - horizon;
   const room = dir > 0 ? w - foxX : foxX;
   const whale = clamp(Math.round(h * 0.4), 15, 42);
-  const spotY = horizon + Math.max(4, Math.round(deep * 0.3));
-  const spotX = Math.round(clamp(foxX + dir * clamp(room * 0.48, whale * 1.1 + 12, 170), whale, w - whale));
-  const calfX = Math.round(clamp(spotX + dir * whale * 0.95, 6, w - 7));
-  const farX = Math.round(clamp(spotX + dir * clamp(room * 0.3, 10, 90), 6, w - 7));
-  const midX = Math.round((farX + spotX * 2) / 3 + dir * whale * 0.3);
+  const small = Math.round(whale * 0.56);
+  const span = whale * 1.4;
+  const hopSpan = small * 0.8;
+  const y = horizon + Math.max(4, Math.round(deep * 0.3));
+  // Laid out along the sea from the fox outward, as offsets toward the side it looks: the mother leaps clear of the
+  // fox, lands, and her calf is a little further on, a clear gap between them.
+  const landed = span * down(PEAK);
+  const calfRest = landed + whale * 0.55 + Math.max(5, whale * 0.35) + small * 0.5;
+  const reach = calfRest + small * 0.6;
+  const least = 12 + whale * 0.3;
+  const start = clamp(room * 0.3, least, Math.max(least, room - 3 - reach));
+  const at = (d: number): number => Math.round(foxX + dir * d);
+  const hopStart = calfRest - hopSpan * down(CALF_PEAK);
   const wide = clamp(Math.round(w * 0.2), 22, 90);
   const tall = clamp(Math.round(h * 0.11), 4, 12);
   let tip = 0;
@@ -175,10 +195,12 @@ function build(view: VistaView): Sea {
     image,
     horizon,
     whale,
-    spot: { x: spotX, y: spotY },
-    calf: { x: calfX, y: spotY + 1 },
-    far: { x: farX, y: horizon + 2 },
-    mid: { x: midX, y: horizon + Math.max(3, Math.round((spotY - horizon) * 0.55)) },
+    small,
+    leap: { x: at(start), y },
+    span,
+    hop: { x: at(start + hopStart), y },
+    hopSpan,
+    far: { x: at(start + (landed + calfRest) / 2), y: horizon + Math.max(2, Math.round(deep * 0.07)) },
     glitter: Math.round(foxX + dir * room * 0.62),
     glitterSpread: Math.max(14, room * 0.3),
     tip,

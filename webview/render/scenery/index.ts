@@ -3,6 +3,7 @@ import type { Scenery } from '../../sim/props/scenery';
 import type { Stage } from '../../stage';
 import { balloons } from './balloons';
 import { blossom } from './blossom';
+import { castle } from './castle';
 import { clouds } from './clouds';
 import { dunes } from './dunes';
 import { fireflies } from './fireflies';
@@ -18,7 +19,7 @@ import { whales } from './whales';
 import { wheat } from './wheat';
 
 /** One painter per sky. The compiler asks for an entry here when a `Vista` is added. */
-const VISTAS: Record<Vista, VistaPainter> = { sunrise, dunes, balloons, clouds, blossom, wheat, whales, rain, rainbow, sunset, train, stars, fireflies, lanterns, snow };
+const VISTAS: Record<Vista, VistaPainter> = { sunrise, dunes, balloons, clouds, blossom, wheat, whales, rain, rainbow, sunset, train, castle, stars, fireflies, lanterns, snow };
 
 type Layer = 'back' | 'front';
 

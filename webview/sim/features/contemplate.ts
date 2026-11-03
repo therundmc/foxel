@@ -38,7 +38,7 @@ const SHAKES: Partial<Record<Vista, TouchReaction>> = {
   snow: { anim: 'shakeSnow', then: 'sit' },
 };
 /** On a fine day a bird sometimes comes and sits beside it, a few seconds after it has turned to the sky. */
-const COMPANY: readonly Vista[] = ['sunrise', 'dunes', 'balloons', 'clouds', 'blossom', 'wheat', 'whales', 'sunset', 'train'];
+const COMPANY: readonly Vista[] = ['sunrise', 'dunes', 'balloons', 'clouds', 'blossom', 'wheat', 'whales', 'sunset', 'train', 'castle'];
 const COMPANY_CHANCE = 0.45;
 const COMPANY_AFTER_MS = 5000;
 const COMPANY_ASIDE = 21;
@@ -56,6 +56,7 @@ const DREAMS: Record<Vista, AnimName> = {
   rainbow: 'sleepRainbow',
   sunset: 'sleepSunset',
   train: 'sleepTrain',
+  castle: 'sleepCastle',
   stars: 'sleepStars',
   fireflies: 'sleepFireflies',
   lanterns: 'sleepLanterns',

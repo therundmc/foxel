@@ -224,6 +224,7 @@ export const ANIMATIONS = {
   sleepWhales: sleepAnimation('dreamWhales'),
   sleepLanterns: sleepAnimation('dreamLanterns'),
   sleepRainbow: sleepAnimation('dreamRainbow'),
+  sleepCastle: sleepAnimation('dreamCastle'),
   typing: anim([
     [{ ...SIT, paw: 'tapNear', eye: 'down', mouth: 'flat' }, 180],
     [{ ...SIT, paw: 'tapFar', eye: 'down', mouth: 'flat' }, 180],

@@ -4,7 +4,8 @@ import { ramp, seeded } from './paint';
 // veil of spray that hangs in the air with a small rainbow in it, and rings that spread slowly over the water.
 
 const WHITE = '#ffffff';
-const SPRAY = '#e2f6f8';
+const SPRAY = '#f2fcfd';
+const SPRAY_DEEP = '#cdeef2';
 const MIST = '#f2fbfd';
 const RING = '#e8fbfa';
 /** The rainbow's bands, from the outside in: soft, as seen through the spray. */
@@ -16,59 +17,89 @@ const hash = (a: number, b: number): number => {
 };
 
 /**
- * The crown, `age` seconds after a body of `size` pixels fell in at (`x`, `water`): it shoots up, hangs, and falls
- * back in drops; the foam it leaves on the water fades last.
+ * The crown, `age` seconds after a body of `size` pixels fell in at (`x`, `water`): two white walls of water thrown
+ * up on either side of where it went in, a few beads on their rims, which shoot up, hang and sink back; drops flung
+ * out on clean arcs; and the foam it leaves on the water, which fades last. A `rising` one, where something comes out
+ * of the sea, is only a low skirt of water round it.
  */
-export function paintSplash(ctx: CanvasRenderingContext2D, x: number, water: number, size: number, age: number, seed: number): void {
+export function paintSplash(ctx: CanvasRenderingContext2D, x: number, water: number, size: number, age: number, seed: number, rising: boolean): void {
   if (age < 0 || age > 4) {
     return;
   }
-  const wide = Math.max(4, size);
-  const high = size * 0.75;
-  // The crown: a ragged white dome, shot up in a third of a second and sinking back over the next second.
-  const crown = Math.min(1, age / 0.3) ** 0.5 * (1 - ramp(age, 0.4, 1.5));
+  const cx = Math.round(x);
+  const half = Math.max(3, Math.round(size * (rising ? 0.55 : 0.5)));
+  const high = Math.max(3, size * (rising ? 0.2 : 0.42));
+  // Up in a quarter of a second, sinking back over the next second.
+  const crown = (1 - (1 - Math.min(1, age / 0.25)) ** 2) * (1 - ramp(age, 0.35, 1.4));
   if (crown > 0) {
-    const half = Math.round(wide / 2);
-    for (let dx = -half; dx <= half; dx++) {
-      const shape = Math.max(0, 1 - (dx / (half + 0.5)) ** 2) ** 0.6;
-      const tall = Math.round(high * crown * shape * (0.7 + 0.45 * hash(dx, seed)));
+    const spread = half * (0.75 + 0.35 * ramp(age, 0, 0.8));
+    const reach = Math.round(spread);
+    for (let dx = -reach; dx <= reach; dx++) {
+      const u = Math.abs(dx) / (spread + 0.5);
+      // Low in the middle, highest a little way out on each side, falling away at the ends.
+      const shape = (0.68 + 0.32 * Math.sin(Math.PI * Math.min(1, u * 1.1))) * Math.sqrt(Math.max(0, 1 - u ** 3));
+      // A ragged rim, the same on both sides.
+      const jag = shape > 0.3 ? [0, 1, 0, 2][Math.abs(dx) % 4] * Math.min(1, crown * 1.5) : 0;
+      const tall = Math.round(high * crown * shape + jag);
       if (tall <= 0) {
         continue;
       }
+      const left = cx + dx;
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = SPRAY_DEEP;
+      ctx.fillRect(left, water - Math.ceil(tall / 3), 1, Math.ceil(tall / 3));
       ctx.fillStyle = SPRAY;
-      ctx.fillRect(Math.round(x) + dx, water - tall, 1, tall);
+      ctx.fillRect(left, water - tall, 1, tall - Math.ceil(tall / 3));
+      ctx.globalAlpha = 1;
       ctx.fillStyle = WHITE;
-      ctx.fillRect(Math.round(x) + dx, water - tall, 1, Math.min(tall, 2));
+      ctx.fillRect(left, water - tall, 1, tall >= 6 ? 2 : 1);
+    }
+    // The beads on its rims, at the tops of the two walls, coming off as it falls.
+    if (!rising) {
+      const off = ramp(age, 0.3, 0.9);
+      for (const side of [-1, 1]) {
+        for (const at of [0.45, 0.8]) {
+          const dx = Math.round(side * spread * at);
+          const u = Math.abs(dx) / (spread + 0.5);
+          const shape = (0.68 + 0.32 * Math.sin(Math.PI * Math.min(1, u * 1.1))) * Math.sqrt(Math.max(0, 1 - u ** 3));
+          const lift = 2 + Math.round(off * high * 0.25 + (at > 0.6 ? 0 : 1));
+          ctx.fillStyle = WHITE;
+          ctx.fillRect(cx + dx + side * Math.round(off * 2), water - Math.round(high * crown * shape) - lift, 1, 1);
+        }
+      }
     }
   }
-  // The drops thrown out of it, each on its own arc.
+  // The drops flung out of it, in pairs on either side, each on its own arc.
   const random = seeded(seed);
-  const fall = high * 4.5;
-  const count = Math.round(10 + size * 1.6);
-  for (let k = 0; k < count; k++) {
-    const from = (random() - 0.5) * wide;
-    const flight = 0.9 + 0.9 * random();
-    const out = (from / wide) * (0.4 + random()) * size * 0.6 + (random() - 0.5) * 3;
-    const late = 0.15 * random();
-    const since = age - late;
+  const pairs = rising ? 2 : Math.round(3 + size * 0.12);
+  for (let k = 0; k < pairs; k++) {
+    const out = (0.5 + 0.9 * random()) * half;
+    const up = high * (0.8 + 0.7 * random());
+    const flight = 0.7 + 0.5 * random();
+    const since = age - 0.08 * k;
     if (since < 0 || since > flight) {
       continue;
     }
-    const up = fall * since * (flight - since) * 0.5;
-    ctx.fillStyle = k % 3 ? WHITE : SPRAY;
-    ctx.fillRect(Math.round(x + from + out * since), Math.round(water - up), size >= 24 && since < 0.5 ? 2 : 1, 1);
+    const q = since / flight;
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = WHITE;
+      ctx.fillRect(Math.round(x + side * (half * 0.4 + out * q)), Math.round(water - up * 4 * q * (1 - q)), 1, 1);
+    }
   }
-  // The foam spread on the water, broken, fading.
-  const foam = 1 - ramp(age, 0.8, 4);
-  const across = Math.round(wide * (0.7 + 0.5 * ramp(age, 0, 1.2)));
+  // The foam spread on the water: a white line with a paler one each side, breaking up as it fades.
+  const foam = 1 - ramp(age, 0.6, 4);
+  const across = Math.round(half * (rising ? 1 : 0.9 + 0.5 * ramp(age, 0, 1.2)));
   ctx.fillStyle = WHITE;
   for (let dx = -across; dx <= across; dx++) {
     const near = 1 - Math.abs(dx) / (across + 1);
-    for (let row = -1; row <= 1; row++) {
-      if (hash(dx + row * 31, seed) < near * foam * (row === 0 ? 1.1 : 0.55)) {
-        ctx.globalAlpha = 0.85;
-        ctx.fillRect(Math.round(x) + dx, water + row, 1, 1);
-      }
+    if (hash(dx >> 1, seed) > foam * 1.6 * Math.sqrt(near)) {
+      continue;
+    }
+    ctx.globalAlpha = 0.9 * Math.min(1, foam * 2);
+    ctx.fillRect(cx + dx, water, 1, 1);
+    if (Math.abs(dx) < across * 0.7) {
+      ctx.globalAlpha = 0.45 * foam;
+      ctx.fillRect(cx + dx, water + 1, 1, 1);
     }
   }
   ctx.globalAlpha = 1;
@@ -106,7 +137,7 @@ export function paintSpray(ctx: CanvasRenderingContext2D, x: number, water: numb
   }
   // The spray: fine drops rising slowly and drifting with the breeze.
   const random = seeded(seed + 7);
-  const count = Math.round(14 + size * 2.2);
+  const count = Math.round(8 + size * 1.2);
   ctx.fillStyle = MIST;
   for (let k = 0; k < count; k++) {
     const dx = (random() - 0.5) * size * 1.5;

@@ -1,170 +1,192 @@
 import { ramp } from './paint';
 import { paintRings, paintSplash, paintSpray } from './whales-splash';
-import type { Sea, Spot } from './whales-sea';
+import { CALF_PEAK, down, PEAK, SINK, type Sea, type Spot } from './whales-sea';
 import { paintBreath, paintWhale, type WhalePose } from './whales-whale';
 
-// The whale and its calf: where they are and what they do, second by second. They come in from far out toward the
-// fox, the mother leaps, the calf tries to do the same, and they go back out, the mother lifting her tail to say
-// goodbye. Everything is worked out from the time alone.
+// The mother and her calf, always the same two, and what they do second by second, worked out from the time alone.
+// One thing at a time, with room to breathe between: her leap, its hop, the two of them at the surface, a breath
+// each, a tail each to say goodbye. They keep to their own places on the sea (`whales-sea.ts`), clear of each other.
 
-/** How the leap goes, as shares of the whale's length: how deep its middle is as it starts, how high it goes. */
-const SINK = 0.4;
-const PEAK = 0.5;
-const CALF_PEAK = 0.32;
-/** The calf is this much of its mother. */
-const CALF = 0.56;
-/** When the mother leaps, and for how long; the same for the calf's peek and its own little leap. */
+/** The mother's leap: when it starts after the moment, and how long it lasts. Before it, she rises under the water. */
 const LEAP_AT = 0.8;
-const LEAP_S = 3;
-const PEEK_AT = 6.2;
-const PEEK_S = 1.2;
-const CALF_AT = 8.6;
-const CALF_S = 1.5;
+const LEAP_S = 2.8;
+/** A ring where the calf is about to come up, then its hop. */
+const HINT_AT = 6.4;
+const HOP_AT = 7.2;
+const HOP_S = 1.5;
+/** Both come up to the surface, and each breathes, the mother first. */
+const UP_AT = 11.4;
+const CALF_UP_AT = 11.9;
+const UP_S = 1;
+const BREATH_AT = 12.8;
+const CALF_BREATH_AT = 14;
+/** Each waves its tail and dives, the calf once its mother's tail is nearly gone. */
+const DIVE_AT = 16.2;
+const DIVE_S = 4;
+const CALF_DIVE_AT = 18.8;
+const CALF_DIVE_S = 3.4;
 
-/** The share of a leap at which its middle is back in the water. */
-const down = (peak: number): number => (1 + Math.sqrt(1 - SINK / (peak + SINK))) / 2;
+/** Something done from `from` for `long` seconds, if it is being done now: how far it has got, from 0 to 1. */
+const during = (time: number, from: number, long: number): number | undefined => (time >= from && time <= from + long ? (time - from) / long : undefined);
 
-function leap(at: Spot, len: number, facing: 1 | -1, p: number, peak: number, clumsy: boolean): WhalePose {
-  const rise = (peak + SINK) * 4;
-  const along = Math.atan(rise * (1 - 2 * p));
-  // The calf wobbles, flaps, and comes down flat on its belly.
-  const angle = clumsy ? (0.75 * along + 0.35 * Math.sin(p * 9)) * (1 - ramp(p, 0.55, 0.9)) : along;
+/** Where the middle of a leaper is, `p` of the way through a leap starting at `at`, carrying it `span` along. */
+function arc(at: Spot, len: number, span: number, facing: 1 | -1, p: number, peak: number): [number, number] {
+  return [at.x + facing * span * p, at.y + SINK * len - (peak + SINK) * 4 * len * p * (1 - p)];
+}
+
+/** The mother's leap: she follows her arc nose first, holds a flipper out at the top and waves it, and dives back in. */
+function leap(sea: Sea, facing: 1 | -1, p: number): WhalePose {
+  const len = sea.whale;
+  const [x, y] = arc(sea.leap, len, sea.span, facing, p, PEAK);
+  const slope = ((PEAK + SINK) * 4 * len * (1 - 2 * p)) / sea.span;
+  const top = ramp(p, 0.3, 0.45) * (1 - ramp(p, 0.62, 0.75));
   return {
-    x: at.x - (facing * len) / 2 + facing * len * p,
-    y: at.y + SINK * len - rise * len * p * (1 - p),
+    x,
+    y,
+    // Never quite upright: a leap, not a dive.
+    angle: Math.max(-0.95, Math.min(0.95, Math.atan(slope) * 0.85)),
+    len,
+    facing,
+    water: sea.leap.y,
+    flipper: -0.8 + 1.6 * top + 0.4 * top * Math.sin(p * 40),
+    curl: 0.1 + 0.5 * top,
+  };
+}
+
+/** The calf's hop: a little higher for its size, but wobbling and flapping, and it comes down flat on its belly. */
+function hop(sea: Sea, facing: 1 | -1, p: number): WhalePose {
+  const len = sea.small;
+  const [x, y] = arc(sea.hop, len, sea.hopSpan, facing, p, CALF_PEAK);
+  const slope = ((CALF_PEAK + SINK) * 4 * len * (1 - 2 * p)) / sea.hopSpan;
+  const flat = ramp(p, 0.5, 0.8);
+  return {
+    x,
+    y,
+    angle: (0.55 * Math.atan(slope) + 0.22 * Math.sin(p * 11)) * (1 - flat) + 0.08 * flat,
+    len,
+    facing,
+    water: sea.hop.y,
+    flipper: Math.sin(p * 26),
+    curl: 0.35,
+    calf: true,
+  };
+}
+
+/** Where one lies at the surface after its fall: a little on from where it went in. */
+const restOf = (at: Spot, span: number, peak: number, len: number, facing: 1 | -1): Spot => ({ x: at.x + facing * (span * down(peak) + len * 0.12), y: at.y });
+
+/** Lying at the surface, its back and head out, bobbing; `up` from 0 (under) to 1 (up). */
+function rest(at: Spot, len: number, facing: 1 | -1, up: number, time: number, calf: boolean): WhalePose {
+  const girth = len * (calf ? 0.25 : 0.19);
+  return {
+    x: at.x - facing * len * 0.15 * (1 - up),
+    y: at.y + girth * (2.2 - 2.6 * up) + 0.35 * Math.sin(time * 2.2 + (calf ? 1.5 : 0)),
+    angle: 0.1 + 0.25 * (1 - up),
+    len,
+    facing,
+    water: at.y,
+    flipper: -0.8,
+    curl: 0,
+    calf,
+  };
+}
+
+/**
+ * Diving from the surface: it tips its head down, its tail rises right out of the water and waves goodbye, then
+ * slides under. The tail keeps its place as the body turns under it.
+ */
+function dive(at: Spot, len: number, facing: 1 | -1, p: number, calf: boolean): WhalePose {
+  const tip = ramp(p, 0, 0.3);
+  const angle = 0.1 - 1.47 * tip + 0.22 * Math.sin((p - 0.3) * 22) * ramp(p, 0.3, 0.4) * (1 - ramp(p, 0.68, 0.78));
+  const lift = len * (0.42 * ramp(p, 0.05, 0.35) - 0.75 * ramp(p, 0.7, 1));
+  const girth = len * (calf ? 0.25 : 0.19);
+  // Where its tail is: it stays put while the head goes down, then sinks.
+  const tailX = at.x - facing * len * 0.4 * Math.cos(0.1) + facing * len * 0.15 * ramp(p, 0, 0.4);
+  const tailY = at.y - girth * 0.4 + len * 0.4 * Math.sin(0.1) - lift;
+  return {
+    x: tailX + facing * len * 0.4 * Math.cos(angle),
+    y: tailY - len * 0.4 * Math.sin(angle),
     angle,
     len,
     facing,
     water: at.y,
-    flipper: clumsy ? Math.sin(p * 14) : Math.sin(Math.PI * p),
-    // Straight as it shoots out of the water, its tail curling up over the top.
-    curl: 0.2 + 0.8 * ramp(p, 0.25, 0.45),
+    flipper: -0.9,
+    curl: 0,
+    spread: ramp(p, 0.08, 0.3),
+    calf,
   };
 }
 
-/** Its back rolling out of the water and under again, going forward. */
-function roll(at: Spot, len: number, facing: 1 | -1, p: number): WhalePose {
-  const girth = len * 0.15;
-  return {
-    x: at.x + facing * len * (p - 0.5) * 0.7,
-    y: at.y + girth * (1.4 - 0.9 * Math.sin(Math.PI * p)),
-    angle: 0.6 * (0.5 - p),
-    len,
-    facing,
-    water: at.y,
-    curl: 0.5,
-  };
+/** Before the moment: the sea is calm, and once, far out, a breath goes up where they will come from. */
+function before(ctx: CanvasRenderingContext2D, sea: Sea, t: number, dir: 1 | -1): void {
+  const { far } = sea;
+  const tall = Math.max(4, sea.whale * 0.32);
+  paintBreath(ctx, far.x, far.y, tall, t - 9, dir * 0.4);
+  paintRings(ctx, far.x, far.y, sea.whale * 0.35, t - 9.2, sea.horizon + 1);
 }
 
-/** Its head straight up out of the water for a look round. */
-function peek(at: Spot, len: number, facing: 1 | -1, p: number): WhalePose {
-  return { x: at.x, y: at.y + len * (0.48 - 0.44 * Math.sin(Math.PI * p) ** 0.6), angle: 1.3, len, facing, water: at.y, flipper: Math.sin(p * 12) };
-}
-
-/** Its tail lifted out of the water as it dives, waved from side to side when it means goodbye. */
-function dive(at: Spot, len: number, facing: 1 | -1, p: number, wave: boolean): WhalePose {
-  const lift = len * (0.36 * Math.sin(Math.PI * p) ** 0.7 - 0.08);
-  const angle = -0.95 - 0.45 * p + (wave ? 0.2 * Math.sin(p * 18) * Math.sin(Math.PI * p) : 0);
-  const hx = facing * Math.cos(angle);
-  const hy = -Math.sin(angle);
-  const tail = [at.x + facing * len * 0.2 * p, at.y - lift];
-  return { x: tail[0] + (hx * len) / 2, y: tail[1] + (hy * len) / 2, angle, len, facing, water: at.y };
-}
-
-/** Something it does from `from` for `long` seconds, if it is doing it now: how far it has got, from 0 to 1. */
-const during = (time: number, from: number, long: number): number | undefined => (time >= from && time <= from + long ? (time - from) / long : undefined);
-
-/** A shift of a spot along the sea. */
-const aside = (at: Spot, dx: number): Spot => ({ x: at.x + dx, y: at.y });
-
-/** Before the moment: a breath far out, the back rolling; then nearer, and the tail as it dives. */
-function approach(ctx: CanvasRenderingContext2D, sea: Sea, t: number, dir: 1 | -1): void {
-  const facing = (-dir) as 1 | -1;
-  const far = sea.whale * 0.34;
-  const mid = sea.whale * 0.6;
-  let p = during(t, 3, 2.6);
-  if (p !== undefined) {
-    paintWhale(ctx, roll(sea.far, far, facing, p));
-  }
-  paintBreath(ctx, sea.far.x + facing * far * 0.2, sea.far.y, Math.max(4, far * 0.6), t - 3.4, dir * 0.5, 11);
-  p = during(t, 8.4, 2.8);
-  if (p !== undefined) {
-    paintWhale(ctx, roll(sea.mid, mid, facing, p));
-  }
-  paintBreath(ctx, sea.mid.x + facing * mid * 0.15, sea.mid.y, Math.max(5, mid * 0.6), t - 8.8, dir * 0.5, 12);
-  const deep = aside(sea.mid, facing * mid * 0.5);
-  paintRings(ctx, deep.x, deep.y, mid * 0.6, t - 15.5, sea.horizon + 1);
-  p = during(t, 12.6, 3.2);
-  if (p !== undefined) {
-    paintWhale(ctx, dive(deep, mid, facing, p, false));
-  }
-}
-
-/** The moment: the leap, the splash and its rainbow, the calf's turn, and the two of them going home. */
-function show(ctx: CanvasRenderingContext2D, sea: Sea, m: number, dir: 1 | -1): void {
-  const { spot, horizon } = sea;
-  const len = sea.whale;
-  const small = Math.round(len * CALF);
-  const facing = (-dir) as 1 | -1;
-  const from = aside(spot, (-facing * len) / 2);
+/** The moment: her leap and splash, the calf's hop, the two side by side breathing, their tails, and calm again. */
+function moment(ctx: CanvasRenderingContext2D, sea: Sea, m: number, dir: 1 | -1): void {
+  const { horizon, whale, small } = sea;
+  const above = horizon + 1;
+  const facing = dir;
+  const splash = sea.leap.x + facing * sea.span * down(PEAK);
   const splashAt = LEAP_AT + LEAP_S * down(PEAK);
-  const fell = leap(spot, len, facing, down(PEAK), PEAK, false).x;
-  const calfAt = CALF_AT + CALF_S * down(CALF_PEAK);
-  const calfFell = leap(sea.calf, small, facing, down(CALF_PEAK), CALF_PEAK, true).x;
+  const plop = sea.hop.x + facing * sea.hopSpan * down(CALF_PEAK);
+  const plopAt = HOP_AT + HOP_S * down(CALF_PEAK);
+  const mother = restOf(sea.leap, sea.span, PEAK, whale, facing);
+  const calf = restOf(sea.hop, sea.hopSpan, CALF_PEAK, small, facing);
   // The rings first: they lie on the water, under all the rest.
-  paintRings(ctx, from.x, spot.y, len * 0.5, m - LEAP_AT, horizon + 1);
-  paintRings(ctx, fell, spot.y, len, m - splashAt, horizon + 1);
-  paintRings(ctx, sea.calf.x, sea.calf.y, small * 0.6, m - PEEK_AT - PEEK_S * 0.8, horizon + 1);
-  paintRings(ctx, calfFell, sea.calf.y, small * 1.1, m - calfAt, horizon + 1);
-  paintRings(ctx, spot.x + dir * len * 0.4, spot.y, len * 0.7, m - 25.5, horizon + 1);
-  // Something big rising under the water.
+  const breaks = sea.leap.x + facing * sea.span * (1 - down(PEAK));
+  paintRings(ctx, breaks, sea.leap.y, whale * 0.5, m - LEAP_AT - 0.2, above);
+  paintRings(ctx, splash, sea.leap.y, whale, m - splashAt, above);
+  paintRings(ctx, sea.hop.x + facing * small * 0.2, sea.hop.y, small * 0.6, m - HINT_AT, above);
+  paintRings(ctx, plop, sea.hop.y, small * 1.1, m - plopAt, above);
+  paintRings(ctx, mother.x - facing * whale * 0.25, mother.y, whale * 0.8, m - DIVE_AT - DIVE_S * 0.8, above);
+  paintRings(ctx, calf.x - facing * small * 0.25, calf.y, small * 0.9, m - CALF_DIVE_AT - CALF_DIVE_S * 0.8, above);
+  // Something big rising under the water, just before she breaks out.
   if (m < LEAP_AT) {
-    paintWhale(ctx, { x: from.x - facing * len * 0.2, y: spot.y + len * (0.3 - 0.2 * (m / LEAP_AT)), angle: 0.5, len, facing, water: spot.y });
+    const [x, y] = arc(sea.leap, whale, sea.span, facing, 0, PEAK);
+    const near = m / LEAP_AT;
+    paintWhale(ctx, { x: x - facing * whale * 0.3 * (1 - near), y: y + whale * 0.3 * (1 - near), angle: 0.6, len: whale, facing, water: sea.leap.y, curl: 0 });
   }
   let p = during(m, LEAP_AT, LEAP_S);
   if (p !== undefined) {
-    paintWhale(ctx, leap(spot, len, facing, p, PEAK, false));
+    paintWhale(ctx, leap(sea, facing, p));
   }
-  p = during(m, PEEK_AT, PEEK_S);
+  p = during(m, HOP_AT, HOP_S);
   if (p !== undefined) {
-    paintWhale(ctx, peek(sea.calf, small, facing, p));
+    paintWhale(ctx, hop(sea, facing, p));
   }
-  p = during(m, CALF_AT, CALF_S);
+  // Side by side at the surface; each breathes once, then waves its tail goodbye and dives.
+  if (m >= UP_AT && m < DIVE_AT) {
+    paintWhale(ctx, rest(mother, whale, facing, ramp(m, UP_AT, UP_AT + UP_S), m, false));
+  }
+  if (m >= CALF_UP_AT && m < CALF_DIVE_AT) {
+    paintWhale(ctx, rest(calf, small, facing, ramp(m, CALF_UP_AT, CALF_UP_AT + UP_S), m, true));
+  }
+  p = during(m, DIVE_AT, DIVE_S);
   if (p !== undefined) {
-    paintWhale(ctx, leap(sea.calf, small, facing, p, CALF_PEAK, true));
+    paintWhale(ctx, dive(mother, whale, facing, p, false));
   }
-  // Going home: each breathes once more, then the mother lifts her tail and waves it, and the calf does as she does.
-  const home = dir;
-  p = during(m, 13.5, 3);
+  p = during(m, CALF_DIVE_AT, CALF_DIVE_S);
   if (p !== undefined) {
-    paintWhale(ctx, roll(spot, len, home, p));
+    paintWhale(ctx, dive(calf, small, facing, p, true));
   }
-  paintBreath(ctx, spot.x + home * len * 0.1, spot.y, len * 0.6, m - 13.9, dir * 0.5, 21);
-  p = during(m, 15.6, 2.4);
-  if (p !== undefined) {
-    paintWhale(ctx, roll(sea.calf, small, home, p));
-  }
-  paintBreath(ctx, sea.calf.x + home * small * 0.1, sea.calf.y, small * 0.6, m - 16, dir * 0.5, 22);
-  p = during(m, 20, 5.5);
-  if (p !== undefined) {
-    paintWhale(ctx, dive(aside(spot, dir * len * 0.4), len, home, p, true));
-  }
-  p = during(m, 22.5, 3);
-  if (p !== undefined) {
-    paintWhale(ctx, dive(aside(sea.calf, dir * small * 0.6), small, home, p, true));
-  }
-  // The splashes over them, and the spray that hangs on.
-  paintSplash(ctx, from.x, spot.y, len * 0.45, m - LEAP_AT - 0.1, 31);
-  paintSplash(ctx, fell, spot.y, len, m - splashAt, 32);
-  paintSpray(ctx, fell, spot.y, len, m - splashAt, 33, dir * 0.6, 1);
-  paintSplash(ctx, calfFell, sea.calf.y, small * 0.9, m - calfAt, 34);
-  paintSpray(ctx, calfFell, sea.calf.y, small * 0.7, m - calfAt, 35, dir * 0.6, 0);
+  const blow = (at: Spot, len: number, calf: boolean): number => at.y - len * (calf ? 0.25 : 0.19) * 1.3;
+  paintBreath(ctx, mother.x + facing * whale * 0.2, blow(mother, whale, false), whale * 0.42, m - BREATH_AT, dir * 0.4);
+  paintBreath(ctx, calf.x + facing * small * 0.15, blow(calf, small, true), small * 0.5, m - CALF_BREATH_AT, dir * 0.4);
+  // The splashes over them, and the spray that hangs on with its rainbow.
+  paintSplash(ctx, breaks, sea.leap.y, whale * 0.4, m - LEAP_AT - 0.15, 31, true);
+  paintSplash(ctx, splash, sea.leap.y, whale, m - splashAt, 32, false);
+  paintSpray(ctx, splash, sea.leap.y, whale, m - splashAt, 33, -dir * 0.3, 1);
+  paintSplash(ctx, plop, sea.hop.y, small, m - plopAt, 34, false);
 }
 
-export function paintPod(ctx: CanvasRenderingContext2D, sea: Sea, t: number, moment: number | undefined, dir: 1 | -1): void {
-  if (moment === undefined) {
-    approach(ctx, sea, t, dir);
+export function paintPod(ctx: CanvasRenderingContext2D, sea: Sea, t: number, m: number | undefined, dir: 1 | -1): void {
+  if (m === undefined) {
+    before(ctx, sea, t, dir);
   } else {
-    show(ctx, sea, moment, dir);
+    moment(ctx, sea, m, dir);
   }
 }
