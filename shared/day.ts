@@ -54,6 +54,7 @@ export type Vista =
   | 'rainbow'
   | 'sunset'
   | 'train'
+  | 'castle'
   | 'stars'
   | 'fireflies'
   | 'lanterns'
@@ -65,7 +66,7 @@ const NIGHT_SKIES: VistaOdds = [['stars', 1], ['fireflies', 1], ['lanterns', 1],
 const VISTAS: readonly (readonly [number, VistaOdds])[] = [
   [at(6), NIGHT_SKIES],
   [at(9), [['sunrise', 1], ['dunes', 1], ['balloons', 1]]],
-  [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['whales', 1], ['rain', 0.6], ['rainbow', 0.6]]],
+  [at(17, 30), [['clouds', 1], ['blossom', 1], ['wheat', 1], ['whales', 1], ['castle', 1], ['rain', 0.6], ['rainbow', 0.6]]],
   [at(21), [['sunset', 1], ['train', 1]]],
 ];
 

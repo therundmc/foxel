@@ -140,6 +140,7 @@ export const SCENES = [
   'whales',
   'sunset',
   'train',
+  'castle',
   'stargaze',
   'fireflies',
   'lanterns',

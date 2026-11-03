@@ -5,20 +5,18 @@ import { paintPod } from './whales-pod';
 import { seaOf, type Sea } from './whales-sea';
 
 // A summer afternoon on a cliff-top meadow over a calm turquoise sea. The sun glints on the water, big soft clouds
-// drift by, gulls loop in the breeze, a little boat creeps out from behind a headland with its lighthouse. Someone
-// is coming in from far out: a breath, a back, nearer, a tail. At the great moment a big gentle whale leaps right
-// out of the sea, waves a flipper at the top, and falls back in a great white splash; the spray hangs on with a small
-// rainbow in it, and then her calf has a go.
-//   0 s   the sea, the glints, the clouds, the gulls; the boat sets off
-//   3 s   far out, a back rolls and a breath goes up
-//   8 s   the same, nearer
-//  13 s   its tail, lifted as it dives
-//  moment something big rises under the water (0 to 0.8 s); the whale leaps (to 3.8 s) and splashes down (3.4 s);
-//         spray and a little rainbow (4 to 13 s); rings spread on the water
-//  +6 s   the calf peeks out, looks round; at 8.6 s it leaps too, wobbling, and flops down on its belly
-//  +13 s  each breathes once more; at 20 s the mother lifts her tail and waves goodbye, the calf the same at 22.5 s
-//  +26 s  calm again
-
+// drift by, gulls loop in the breeze, a little boat creeps out from behind a headland with its lighthouse. Out there
+// live a whale and her calf, always the same two, she long and deep blue, it small, round and pale. One little story,
+// a beat at a time, all of it on the side the fox looks and never behind it:
+//   0 s    the sea, the glints, the clouds, the gulls; the boat sets off
+//   9 s    once, far out, a breath goes up and a ring spreads: someone is there
+//  moment  a shadow rises under the water (0 to 0.8 s); the mother leaps out in a long arc away from the fox, waves
+//          a flipper at the top (2 s) and falls back in a white crown of water (3.3 s); the spray hangs on with a
+//          small rainbow in it (to 13 s); rings spread
+//  +6.4 s  a ring further on; at 7.2 s the calf hops out, wobbling and flapping, and plops down flat (8.5 s)
+//  +11.4 s both come up side by side, a clear gap between them; the mother breathes (12.8 s), then the calf (14 s)
+//  +16.2 s the mother lifts her tail, waves it and dives; the calf does the same at 18.8 s; rings
+//  +23 s   calm again
 const GLINT = '#ffffff';
 const GLINT_WARM = '#fffbe0';
 const RIPPLE = '#c4f0ec';

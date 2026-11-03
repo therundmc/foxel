@@ -18,8 +18,8 @@ describe('day', () => {
     const skies = (hours: number, minutes = 0): string[] => vistasAt(at(hours, minutes)).map(([vista]) => vista);
     expect(skies(3)).toEqual(['stars', 'fireflies', 'lanterns', 'snow']);
     expect(skies(6, 30)).toEqual(['sunrise', 'dunes', 'balloons']);
-    expect(skies(9)).toEqual(['clouds', 'blossom', 'wheat', 'whales', 'rain', 'rainbow']);
-    expect(skies(17)).toEqual(['clouds', 'blossom', 'wheat', 'whales', 'rain', 'rainbow']);
+    expect(skies(9)).toEqual(['clouds', 'blossom', 'wheat', 'whales', 'castle', 'rain', 'rainbow']);
+    expect(skies(17)).toEqual(['clouds', 'blossom', 'wheat', 'whales', 'castle', 'rain', 'rainbow']);
     expect(skies(19)).toEqual(['sunset', 'train']);
     expect(skies(21)).toEqual(['stars', 'fireflies', 'lanterns', 'snow']);
     for (const [vista, odds] of [...vistasAt(at(12)), ...vistasAt(at(23))]) {

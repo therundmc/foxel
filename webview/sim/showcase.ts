@@ -39,6 +39,7 @@ type Act =
   | 'balloons'
   | 'whales'
   | 'rainbow'
+  | 'castle'
   | 'lanterns'
   | 'mouse';
 
@@ -102,6 +103,7 @@ export function act(b: Buddy, name: Act): void {
     case 'balloons':
     case 'whales':
     case 'rainbow':
+    case 'castle':
     case 'lanterns':
       startContemplate(b, name);
       return;
@@ -185,6 +187,7 @@ const SCRIPTS: Record<Scene, Script> = {
   lanterns: { hour: 22.93, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'lanterns')]] },
   balloons: { hour: 7.1, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'balloons')]] },
   rainbow: { hour: 11.1, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'rainbow')]] },
+  castle: { hour: 14, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'castle')]] },
   whales: { hour: 13.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'whales')]] },
   snow: { hour: 22.95, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'snow')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },

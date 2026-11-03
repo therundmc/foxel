@@ -235,7 +235,7 @@ describe('when it contemplates', () => {
 
   it('waits a good while after its view opens, then stops for one of the skies of the hour', () => {
     expect(skyAfter(at(14), 40 * MINUTE)).toBeUndefined();
-    expect(['clouds', 'blossom', 'wheat', 'whales', 'rain', 'rainbow']).toContain(skyAfter(at(14), 50 * MINUTE));
+    expect(['clouds', 'blossom', 'wheat', 'whales', 'castle', 'rain', 'rainbow']).toContain(skyAfter(at(14), 50 * MINUTE));
     expect(['sunrise', 'dunes', 'balloons']).toContain(skyAfter(at(6, 30), 50 * MINUTE));
     expect(['sunset', 'train']).toContain(skyAfter(at(19, 30), 50 * MINUTE));
     expect(['stars', 'fireflies', 'lanterns', 'snow']).toContain(skyAfter(at(23), 50 * MINUTE));
