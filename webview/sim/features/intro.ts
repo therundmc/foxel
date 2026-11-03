@@ -2,8 +2,6 @@ import type { Greeting } from '../../../shared/protocol';
 import { PEEK_DUCK_MS, PEEK_HAPPY_MS, PEEK_LOOK_MS, PEEK_RETURN_MS } from '../../sprites/fox/animations';
 import type { Buddy } from '../buddy';
 import { welcome as welcomeAfterAbsence } from './bond';
-import { carrying } from './fetch';
-import { startMilestone } from './growth';
 import type { Feature, Gaze } from '../state';
 import { REACTION_MS } from './reactions';
 import { GOOD_NIGHT, MORNING, perform } from './touch';
@@ -30,7 +28,7 @@ export class IntroMemory {
   greeted: Partial<Record<Greeting, number>> = {};
 }
 
-/** First appearance: pokes its head in from the left edge (its chest and its shelf are on the right), looks around, then trots in to say hello. */
+/** First appearance: pokes its head in from the left edge, looks around, then trots in to say hello. */
 export function startIntro(b: Buddy): void {
   b.dir = 1;
   b.intro.peekX = -PEEK_HIDDEN;
@@ -39,10 +37,6 @@ export function startIntro(b: Buddy): void {
   b.placed = true;
   b.intro.phase = 'peek';
   b.enter('intro', Infinity);
-  // The very first time, it has its ball with it.
-  if (b.world.stage < 0) {
-    b.world.ball.state = 'mouth';
-  }
 }
 
 function updateIntro(b: Buddy, dt: number): void {
@@ -73,11 +67,6 @@ function updateIntro(b: Buddy, dt: number): void {
 // Says hello the way the moment calls for: party, good morning, good night, or a plain wave.
 function greet(b: Buddy): void {
   // After days away, what it feels about that comes first.
-  // The first meeting: it puts its ball down in front of you, and that is where your life together starts.
-  if (b.world.stage < 0) {
-    startMilestone(b, 0, 'bring');
-    return;
-  }
   if (welcomeAfterAbsence(b)) {
     return;
   }
@@ -130,7 +119,7 @@ export const introFeature = {
         updateIntro(b, dt);
         return true;
       },
-      anim: (b) => (b.intro.phase === 'peek' ? { anim: 'peek', elapsed: b.elapsed } : b.world.ball.state === 'mouth' ? carrying(b) : { anim: 'run', elapsed: b.elapsed }),
+      anim: (b) => ({ anim: b.intro.phase === 'peek' ? 'peek' : 'run', elapsed: b.elapsed }),
       scriptedGaze: (b) =>
         b.intro.phase === 'peek' ? PEEK_GLANCES.find(([until]) => b.elapsed < until)?.[1] : undefined,
     },

@@ -34,10 +34,11 @@ const CLOTH_FLAPS_MS = 500;
 /** What it does when it gets up from under the rain or the snow. */
 const SHAKES: Partial<Record<Vista, TouchReaction>> = {
   rain: { anim: 'shakeDry', then: 'sit' },
+  rainbow: { anim: 'shakeDry', then: 'sit' },
   snow: { anim: 'shakeSnow', then: 'sit' },
 };
 /** On a fine day a bird sometimes comes and sits beside it, a few seconds after it has turned to the sky. */
-const COMPANY: readonly Vista[] = ['sunrise', 'dunes', 'clouds', 'blossom', 'wheat', 'sunset', 'train'];
+const COMPANY: readonly Vista[] = ['sunrise', 'dunes', 'balloons', 'clouds', 'blossom', 'wheat', 'whales', 'sunset', 'train'];
 const COMPANY_CHANCE = 0.45;
 const COMPANY_AFTER_MS = 5000;
 const COMPANY_ASIDE = 21;
@@ -46,14 +47,18 @@ const COMPANY_MIN_WIDTH = 100;
 const DREAMS: Record<Vista, AnimName> = {
   sunrise: 'sleepSunrise',
   dunes: 'sleepDunes',
+  balloons: 'sleepBalloons',
   clouds: 'sleepClouds',
   blossom: 'sleepBlossom',
   wheat: 'sleepWheat',
+  whales: 'sleepWhales',
   rain: 'sleepRain',
+  rainbow: 'sleepRainbow',
   sunset: 'sleepSunset',
   train: 'sleepTrain',
   stars: 'sleepStars',
   fireflies: 'sleepFireflies',
+  lanterns: 'sleepLanterns',
   snow: 'sleepSnow',
 };
 const DREAMT_MS = 20_000;

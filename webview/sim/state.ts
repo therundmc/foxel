@@ -19,18 +19,11 @@ export type BuddyState =
   | 'sniff'
   | 'chaseTail'
   | 'lookAround'
+  | 'leave'
+  | 'away'
+  | 'arrive'
   | 'dizzy'
   | 'hunt'
-  | 'rummage'
-  | 'plush'
-  | 'sulk'
-  | 'gift'
-  | 'doodle'
-  | 'milestone'
-  | 'wary'
-  | 'makeUp'
-  | 'shun'
-  | 'mope'
   | 'overjoyed'
   | 'play'
   | 'sleep'
@@ -71,7 +64,15 @@ export type BuddyState =
   | 'nudge'
   | 'mousing'
   | 'mouseHello'
-  | 'panic';
+  | 'panic'
+  | 'circleDown'
+  | 'loaf'
+  | 'knead'
+  | 'bellyUp'
+  | 'pronk'
+  | 'earScratch'
+  | 'petalSneeze'
+  | 'hiccups';
 
 /** Likely next states, each with its odds. */
 export type Weights = readonly (readonly [BuddyState, number])[];

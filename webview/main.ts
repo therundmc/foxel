@@ -2,7 +2,6 @@ import { clockAt, lightTint, partyKind } from '../shared/day';
 import type { HostMessage, WebviewMessage } from '../shared/protocol';
 import { Input } from './input';
 import { Bitmaps } from './render/bitmaps';
-import { drawDebug } from './render/debug';
 import { Renderer } from './render/renderer';
 import { Sky } from './render/sky';
 import type { Session } from './session';
@@ -29,8 +28,6 @@ declare function acquireVsCodeApi(): {
 
 const MAX_FRAME_DT_MS = 100;
 const RESTFUL_FRAME_MS = 80;
-/** In debug, how much a care lifts a forced mood. */
-const CARE_LIFTS = 0.15;
 /** Hidden for longer than this, the fox has been away: it comes back in from the edge. */
 const AWAY_LONG_MS = 10 * 60_000;
 const SPAWN_SPEED = 40;
@@ -40,8 +37,6 @@ const vscode = acquireVsCodeApi();
 const stage = new Stage(document.getElementById('stage') as HTMLCanvasElement);
 const world = new World();
 const buddy = new Buddy(world);
-// Nothing has come into its life yet, until its memory says otherwise.
-world.stage = -1;
 const sky = new Sky();
 const showcase = new Showcase();
 const bitmaps = new Bitmaps();
@@ -52,10 +47,6 @@ const session: Session = {
   clock: new Date(),
   introPending: true,
   light: false,
-  felt: { mood: 0, attachment: 0 },
-  forced: {},
-  debugOpen: true,
-  startOver: () => vscode.postMessage({ type: 'newLife' }),
 };
 const renderer = new Renderer(stage, bitmaps, sky, session);
 const input = new Input(stage, session, onInteraction);
@@ -94,11 +85,6 @@ function updateClock(): void {
 }
 
 function onEffect(effect: Effect): void {
-  // With its mood forced from the debug corner, the extension's answer would be ignored: a care lifts the forced mood here instead.
-  if (session.forced.mood !== undefined && (effect === 'fed' || effect === 'played' || effect === 'treated' || effect === 'petted')) {
-    session.forced.mood = Math.min(1, session.forced.mood + CARE_LIFTS);
-    world.mood = session.forced.mood;
-  }
   switch (effect) {
     case 'fed':
       vscode.postMessage({ type: 'fed' });
@@ -108,9 +94,6 @@ function onEffect(effect: Effect): void {
       break;
     case 'confetti':
       sky.burst(stage, buddy.x + SPRITE_SIZE / 2);
-      break;
-    case 'snap':
-      session.snappedAt = performance.now();
       break;
     case 'petted':
     case 'treated':
@@ -153,9 +136,6 @@ function tick(now: number): void {
   saveMemory();
   renderer.blink(now);
   renderer.draw(now, dt);
-  if (session.settings.debug) {
-    drawDebug(stage, session);
-  }
 }
 
 function onMessage(msg: HostMessage): void {
@@ -171,12 +151,8 @@ function onMessage(msg: HostMessage): void {
       break;
     case 'feelings':
       told = true;
-      session.felt = { mood: msg.mood, attachment: msg.attachment };
-      // While its attachment is forced from the debug corner, so is the most it ever was.
-      world.peak = session.forced.attachment === undefined ? msg.peak : world.peak;
-      world.mood = session.forced.mood ?? msg.mood;
-      world.attachment = session.forced.attachment ?? msg.attachment;
-      session.facts = msg.facts;
+      world.mood = msg.mood;
+      world.attachment = msg.attachment;
       break;
     case 'welcome':
       welcomeBack(buddy, msg.daysAway);

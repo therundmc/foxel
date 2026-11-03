@@ -4,8 +4,7 @@ import type { Buddy } from '../buddy';
 import { urge, type Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, FETCH_MAX_MS, WALK_SPEED } from '../tuning';
 import { sleepOf } from './contemplate';
-import { cared, slighted } from './bond';
-import { startRummage } from './rummage';
+import { startLeave } from './play';
 import { SIGH, perform } from './touch';
 
 /** Where it stands to pull its basket in or push it out: this far from the basket's place, toward the middle. */
@@ -47,7 +46,6 @@ export function startBreak(b: Buddy): void {
   b.rest.breakAsks++;
   if (b.rest.breakAsks > 1) {
     b.world.effects.push('unheard');
-    slighted(b);
     perform(b, SIGH);
     return;
   }
@@ -56,7 +54,7 @@ export function startBreak(b: Buddy): void {
     b.fetch.playerX = undefined;
     b.tryEnter('fetch', FETCH_MAX_MS);
   } else if (b.world.ball.state === 'none') {
-    startRummage(b, 'fetch');
+    startLeave(b, 'fetch');
   } else {
     b.rest.askingBreak = false;
     b.tryEnter('askBreak', ASK_BREAK_MS);
@@ -68,7 +66,6 @@ export function tookBreak(b: Buddy): void {
   b.rest.breakWanted = false;
   b.rest.breakAsks = 0;
   b.world.effects.push('played');
-  cared(b);
 }
 
 /** Naps where it is by day; at night it goes to its basket first. */
@@ -84,7 +81,7 @@ export function goToSleep(b: Buddy): void {
 export function startBedtime(b: Buddy): void {
   const { basket } = b.world;
   if (!basket.staying) {
-    // Always on the left, where its corner is: the right is for its chest and its shelf.
+    // Always on the left, where its corner is.
     basket.bring(0, -1);
   }
   b.rest.basketStep = basket.x === basket.home ? 'settle' : 'reach';

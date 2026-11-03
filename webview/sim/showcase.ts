@@ -36,6 +36,10 @@ type Act =
   | 'wheat'
   | 'train'
   | 'fireflies'
+  | 'balloons'
+  | 'whales'
+  | 'rainbow'
+  | 'lanterns'
   | 'mouse';
 
 /** Jumps straight into one of its daily moments, whatever it was doing: for the showcase. */
@@ -95,6 +99,10 @@ export function act(b: Buddy, name: Act): void {
     case 'wheat':
     case 'train':
     case 'fireflies':
+    case 'balloons':
+    case 'whales':
+    case 'rainbow':
+    case 'lanterns':
       startContemplate(b, name);
       return;
     case 'bedtime':
@@ -174,9 +182,13 @@ const SCRIPTS: Record<Scene, Script> = {
   wheat: { hour: 16.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'wheat')]] },
   train: { hour: 20, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'train')]] },
   fireflies: { hour: 22.92, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'fireflies')]] },
+  lanterns: { hour: 22.93, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'lanterns')]] },
+  balloons: { hour: 7.1, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'balloons')]] },
+  rainbow: { hour: 11.1, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'rainbow')]] },
+  whales: { hour: 13.5, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'whales')]] },
   snow: { hour: 22.95, ms: CONTEMPLATE_MS, cues: [[0, (b) => act(b, 'snow')]] },
   goodNight: { hour: 23, ms: 5000, cues: [[0, (b) => act(b, 'goodNight')]] },
-  bedtime: { hour: 23.5, ms: 22_000, cues: [[0, (b) => act(b, 'bedtime')], [15_000, (b) => react(b, 'wake')]] },
+  bedtime: { hour: 23.5, ms: 42_000, cues: [[0, (b) => act(b, 'bedtime')], [35_000, (b) => react(b, 'wake')]] },
 };
 
 /** Plays daily moments back to back, each at its own pretend time of day. */

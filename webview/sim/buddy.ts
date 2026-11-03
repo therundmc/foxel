@@ -11,11 +11,7 @@ import { IntroMemory } from './features/intro';
 import { MealsMemory } from './features/meals';
 import { MousingMemory } from './features/mousing';
 import { BondMemory } from './features/bond';
-import { GiftMemory } from './features/gifts';
-import { GrowthMemory } from './features/growth';
 import { PlayMemory } from './features/play';
-import { PlushMemory } from './features/plush';
-import { RummageMemory } from './features/rummage';
 import { PointerMemory } from './features/pointer';
 import { RestMemory } from './features/rest';
 import { TouchMemory } from './features/touch';
@@ -66,10 +62,6 @@ export class Buddy {
   readonly tricks = new TricksMemory();
   readonly play = new PlayMemory();
   readonly bond = new BondMemory();
-  readonly gift = new GiftMemory();
-  readonly growth = new GrowthMemory();
-  readonly plush = new PlushMemory();
-  readonly rummage = new RummageMemory();
   readonly touch = new TouchMemory();
   readonly pointer = new PointerMemory();
   readonly snack = new SnackMemory();
@@ -159,11 +151,6 @@ export class Buddy {
     // Settled, with nothing else to watch, its eyes go with your scrolling.
     if (def.calm && this.world.scroll !== 0 && !this.world.pointer) {
       return { x: 0, y: this.world.scroll };
-    }
-    // In no mood for you: its eyes go down, and away from your pointer.
-    const shunned = this.world.shunned;
-    if (shunned && (def.calm || def.gazes || def.facesTarget)) {
-      return { x: (shunned.x - eye.x) * this.dir >= 0 ? -1 : 0, y: 1 };
     }
     const target = def.gazes || def.facesTarget ? this.focusTarget() : undefined;
     if (!target) {

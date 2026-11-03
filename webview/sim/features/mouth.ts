@@ -1,31 +1,12 @@
 import { NOSE_X } from '../../sprites/fox/anchors';
-import { ANIMATIONS } from '../../sprites/fox/animations';
-import { SPRITE_SIZE, frameAt } from '../../sprites/frames';
+import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
-import type { Plush } from '../props/plush';
 import { FETCH_FAR, FETCH_RUN_SPEED, FETCH_WALK_SPEED } from '../tuning';
-import type { WorldPoint } from '../world';
 
-/** Where its mouth is from the middle of its head, in a frame; what it carries hangs a little under it. */
-const MOUTH = 5.5;
-const HANGS = 1;
 /** How far ahead of its middle its nose is; how far short of its nose a thing may lie and still be taken; and how far behind its middle a thing is behind it. */
 const NOSE_AHEAD = NOSE_X - SPRITE_SIZE / 2;
 const SHORT = 9;
 const BEHIND = 12;
-
-/** Where what it carries in its mouth hangs, wherever its head is in the frame it shows. */
-export function mouthPoint(b: Buddy): WorldPoint {
-  const { anim, elapsed } = b.current();
-  const [hx, hy] = frameAt(ANIMATIONS[anim], elapsed).head;
-  return { x: b.x + b.offsetFor(hx + MOUTH), y: b.y + SPRITE_SIZE - (hy + MOUTH) - HANGS };
-}
-
-/** The toy hangs from its mouth. */
-export function carryInMouth(b: Buddy, toy: Plush): void {
-  const at = mouthPoint(b);
-  toy.carry(at.x, at.y);
-}
 
 /** Whether its nose is on the thing, it is on its way, or the thing is under it, too close to its paws for its nose. */
 export type Reach = 'there' | 'going' | 'under';

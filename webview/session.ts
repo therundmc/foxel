@@ -1,4 +1,4 @@
-import type { BuddySettings, LifeFacts } from '../shared/protocol';
+import type { BuddySettings } from '../shared/protocol';
 import type { Buddy } from './sim/buddy';
 import type { World } from './sim/world';
 
@@ -13,17 +13,6 @@ export interface Session {
   introPending: boolean;
   /** Whether the editor's theme is a light one: pale things are drawn darker on it. */
   light: boolean;
-  /** What the extension sends for the debug corner, with the hidden `foxel.debug` setting. */
-  facts?: LifeFacts;
-  /** What the extension says it feels, and what the debug corner makes it feel instead while you try things out. */
-  felt: { mood: number; attachment: number };
-  forced: { mood?: number; attachment?: number };
-  /** Whether the debug corner is unfolded, or only its button shows. */
-  debugOpen: boolean;
-  /** When a photograph was last taken (by the renderer's clock): the view flashes for a moment. */
-  snappedAt?: number;
-  /** Asks the extension to forget everything and start a new life: the `new game` button of the debug corner. */
-  startOver(): void;
 }
 
 /** The fox is not on stage while it is away or still waiting for its entrance. */

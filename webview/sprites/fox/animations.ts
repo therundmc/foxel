@@ -1,4 +1,5 @@
 import { WORK_ANIMATIONS } from './anims';
+import { ANTICS } from './antics';
 import type { Animation } from '../frames';
 import {
   GALLOP_GATHER,
@@ -21,7 +22,6 @@ import {
 import { eatAnimation, nudgeAnimation, nuzzleAnimation, patAnimation, shakeAnimation, sleepAnimation } from './sequences';
 
 type Steps = readonly (readonly [Pose, number])[];
-const withBall = (steps: Steps): Steps => steps.map(([pose, ms]) => [{ ...pose, ball: true }, ms]);
 const SHOVE: Steps = [
   [{ head: [-1, 0], eye: 'closed', ears: 'back' }, 200],
   [{ legs: STEP_A, head: [2, 2], eye: 'closed', ears: 'back', tail: 'up' }, 240],
@@ -31,20 +31,9 @@ const SHOVE: Steps = [
   [{ eye: 'happy', tail: 'wagL' }, 280],
   [{ eye: 'happy', tail: 'wagR' }, 280],
 ];
-const HAUL: Steps = [
-  [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
-  [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highL' }, 240],
-  [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
-  [{ body: 'bow', bob: 1, head: [-1, 2], eye: 'closed', tail: 'highR' }, 240],
-  [{ eye: 'happy', tail: 'wagL' }, 240],
-];
-// Standing at the chest, its muzzle over the rim and down in it: the chest hides what is inside.
-const RUMMAGE: Steps = [
-  [{ head: [3, 3], eye: 'closed', ears: 'back', tail: 'wagL' }, 160],
-  [{ legs: STEP_A, head: [3, 4], eye: 'closed', ears: 'back', tail: 'wagR' }, 160],
-];
 
 // Timings the simulation needs to line its movement up with the frames below.
+export { CIRCLE_FLIPS_MS, PRONK_HOPS } from './antics';
 export const TWIRL_CROUCH_MS = 120;
 export const TWIRL_AIR_MS = 600;
 export const STARTLE_CROUCH_MS = 120;
@@ -107,58 +96,24 @@ export const ANIMATIONS = {
     [{ ...SIT, paw: 'lick', eye: 'closed', mouth: 'tongue', head: [0, 1] }, 260],
     [{ ...SIT, paw: 'lick', eye: 'closed', mouth: 'smile', head: [0, 2] }, 260],
   ]),
+  // Front end down, rump up, with a yawn in the middle of it; then the hind legs stretched out behind, and a wag.
   stretch: anim([
-    [{ body: 'bow', eye: 'closed', mouth: 'open' }, 700],
-    [{ body: 'bow', eye: 'closed', mouth: 'open', head: [0, -1] }, 700],
-    [{ eye: 'happy' }, 300],
+    [{ bob: 1, head: [0, 1], eye: 'sleepy', tail: 'up' }, 180],
+    [{ body: 'bow', eye: 'closed', tail: 'high' }, 280],
+    [{ body: 'bow', bob: 1, eye: 'closed', mouth: 'open', ears: 'back', head: [0, -1], tail: 'highL' }, 650],
+    [{ body: 'bow', bob: 1, eye: 'closed', mouth: 'tongue', head: [0, -1], tail: 'highR' }, 220],
+    [{ body: 'bow', eye: 'sleepy', tail: 'high' }, 200],
+    [{ legs: [[-3, 0], [-2, 0], [1, 0], [0, 0]], pitch: -1, head: [1, -1], eye: 'closed', ears: 'back', tail: 'flat' }, 600],
+    [{ legs: [[-1, 0], [-1, 0], [0, 0], [0, 0]], bob: 1, eye: 'closed', tail: 'up' }, 140],
+    [{ eye: 'happy', tail: 'wagL' }, 180],
+    [{ eye: 'happy', tail: 'wagR' }, 180],
+    [{ eye: 'happy', tail: 'up' }, 200],
   ]),
-  // Its toy chest: hauled in like the basket, then its head goes in and its tail wags over it. Each with its ball too.
-  haul: anim(HAUL),
-  haulCarry: anim(withBall(HAUL)),
-  shoveCarry: anim(withBall(SHOVE)),
-  rummage: anim(RUMMAGE),
-  rummageCarry: anim(withBall(RUMMAGE)),
-  // Sulking: sat with its back to you, ears flat, nose up, with a glance over its shoulder to see if you are looking.
-  sulk: anim([
-    [{ ...SIT, ears: 'back', eye: 'closed', mouth: 'flat', head: [-1, 1], tail: 'sitA' }, 1700],
-    [{ ...SIT, ears: 'back', eye: 'open', mouth: 'flat', head: [-2, 0], tail: 'sitA' }, 380],
-    [{ ...SIT, ears: 'back', eye: 'closed', mouth: 'flat', head: [-1, 1], tail: 'sitB' }, 1400],
-  ]),
-  // Making up: a look, wide eyes, and it melts.
-  makeUp: anim([
-    [{ ...SIT, ears: 'back', eye: 'open', mouth: 'flat', head: [-1, 0], tail: 'sitA' }, 340],
-    [{ ...SIT, eye: 'wide', tail: 'sitB' }, 280],
-    ...Array.from({ length: 4 }, (): [Pose, number][] => [
-      [{ eye: 'happy', mouth: 'open', tail: 'wagL', bob: 1, extras: ['heartsA'] }, 190],
-      [{ eye: 'happy', mouth: 'open', tail: 'wagR', extras: ['heartsB'] }, 190],
-    ]).flat(),
-  ]),
-  // A soft toy in its mouth: shaking it from side to side, then crouching and flinging it up, and watching it go.
+  // Shaking its head from side to side: no, thank you.
   toyShake: anim([
     [{ head: [-2, 0], eye: 'closed', ears: 'back', tail: 'wagL' }, 80],
     [{ head: [2, 1], eye: 'closed', ears: 'back', tail: 'wagR' }, 80],
   ]),
-  toyToss: anim([
-    [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 180],
-    [{ head: [0, -3], eye: 'up', mouth: 'open', tail: 'up' }, 140],
-    [{ head: [0, -2], eye: 'up', mouth: 'open', tail: 'wagL' }, 180],
-  ]),
-  // Landing flat on its belly and sliding along, dust flying; a paw that pulls out a toy lying under it; and a nudge of
-  // the nose that sends a toy back up.
-  bellySlide: anim([
-    [{ body: 'lie', head: [1, 2], eye: 'closed', ears: 'back', mouth: 'flat', tail: 'sitA', extras: ['dirtA'] }, 130],
-    [{ body: 'lie', head: [1, 1], eye: 'closed', ears: 'back', mouth: 'open', tail: 'sitB', extras: ['dirtB'] }, 110],
-    [{ body: 'lie', eye: 'happy', ears: 'back', mouth: 'open', tail: 'sitA', extras: ['dirtA'] }, 110],
-    [{ body: 'lie', eye: 'happy', mouth: 'open', tail: 'sitB', extras: ['dirtB'] }, 110],
-    [{ body: 'lie', bob: 1, eye: 'happy', mouth: 'tongue', tail: 'sitA' }, 400],
-  ]),
-  toyPaw: anim([
-    [{ head: [0, 2], eye: 'down', tail: 'wagL' }, 150],
-    [{ head: [0, 3], eye: 'down', paw: 'wave2', tail: 'wagR' }, 120],
-    [{ head: [1, 3], eye: 'down', paw: 'wave1', tail: 'wagL' }, 130],
-    [{ head: [0, 1], eye: 'happy', tail: 'wagR' }, 120],
-  ]),
-  toyBoop: anim([[{ head: [0, -2], eye: 'closed', ears: 'back', tail: 'up' }, 200]]),
   // Pulling its basket in by the rim, backing up as it comes; and pushing it away with its head, twice.
   tug: anim([
     [{ body: 'bow', head: [1, 3], eye: 'closed', tail: 'high' }, 260],
@@ -229,10 +184,15 @@ export const ANIMATIONS = {
     [{ ...SIT, eye: 'happy', tail: 'sitB' }, 280],
     [{ ...SIT, eye: 'happy', tail: 'sitA' }, 280],
   ]),
+  // A breath in, a great yawn with its nose in the air and its ears back, a little smack of the lips, a slow blink.
   yawn: anim([
-    [SIT, 300],
-    [{ ...SIT, eye: 'closed', mouth: 'open', head: [0, -1] }, 900],
-    [{ ...SIT, eye: 'closed' }, 300],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitA' }, 300],
+    [{ ...SIT, head: [0, 1], eye: 'sleepy', tail: 'sitA' }, 180],
+    [{ ...SIT, head: [0, -1], snoutUp: 1, eye: 'closed', mouth: 'open', ears: 'back', tail: 'sitB' }, 650],
+    [{ ...SIT, head: [0, -1], snoutUp: 1, bob: 1, eye: 'closed', mouth: 'open', ears: 'back', tail: 'sitB' }, 350],
+    [{ ...SIT, eye: 'closed', mouth: 'tongue', tail: 'sitA' }, 180],
+    [{ ...SIT, eye: 'closed', tail: 'sitA' }, 220],
+    [{ ...SIT, eye: 'sleepy', tail: 'sitB' }, 300],
   ]),
   sniff: anim([
     [{ legs: STEP_A, head: [1, 4], eye: 'down', extras: ['sniffA'] }, 300],
@@ -260,6 +220,10 @@ export const ANIMATIONS = {
   sleepWheat: sleepAnimation('dreamWheat'),
   sleepTrain: sleepAnimation('dreamTrain'),
   sleepFireflies: sleepAnimation('dreamFirefly'),
+  sleepBalloons: sleepAnimation('dreamBalloons'),
+  sleepWhales: sleepAnimation('dreamWhales'),
+  sleepLanterns: sleepAnimation('dreamLanterns'),
+  sleepRainbow: sleepAnimation('dreamRainbow'),
   typing: anim([
     [{ ...SIT, paw: 'tapNear', eye: 'down', mouth: 'flat' }, 180],
     [{ ...SIT, paw: 'tapFar', eye: 'down', mouth: 'flat' }, 180],
@@ -697,6 +661,7 @@ export const ANIMATIONS = {
     [{ body: 'lie', eye: 'closed', mouth: 'flat', bob: 1, tail: 'sitA', extras: ['sniffB'] }, 700],
     [{ body: 'lie', eye: 'down', mouth: 'flat', tail: 'sitB' }, 1500],
   ]),
+  ...ANTICS,
   ...WORK_ANIMATIONS,
 } satisfies Record<string, Animation>;
 

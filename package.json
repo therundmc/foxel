@@ -2,7 +2,7 @@
   "name": "foxel",
   "displayName": "Foxel",
   "description": "A little fox to look after while your AI agent writes the code. It gets hungry, sleepy and needs you. Cute, and deeper than it looks.",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "publisher": "anca",
   "author": "anca",
   "license": "MIT",
@@ -95,22 +95,26 @@
       {
         "command": "foxel.wave",
         "title": "Say Hello",
-        "category": "Foxel"
+        "category": "Foxel",
+        "icon": "$(smiley)"
       },
       {
         "command": "foxel.throwBall",
         "title": "Throw a Ball",
-        "category": "Foxel"
+        "category": "Foxel",
+        "icon": "$(circle-filled)"
       },
       {
         "command": "foxel.blowBubbles",
         "title": "Blow Bubbles",
-        "category": "Foxel"
+        "category": "Foxel",
+        "icon": "$(circle-large-outline)"
       },
       {
         "command": "foxel.giveTreat",
         "title": "Give a Treat",
-        "category": "Foxel"
+        "category": "Foxel",
+        "icon": "$(heart)"
       },
       {
         "command": "foxel.fillBowl",
@@ -128,6 +132,50 @@
         {
           "command": "foxel.playScene",
           "when": "foxel.debug"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "foxel.throwBall",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "foxel.blowBubbles",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "foxel.giveTreat",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@3"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "activeWebviewPanelId == 'foxel.editor'",
+          "group": "navigation@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "foxel.throwBall",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "foxel.blowBubbles",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "foxel.giveTreat",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "foxel.wave",
+          "when": "view == foxel.panelView || view == foxel.explorerView",
+          "group": "navigation@4"
         }
       ]
     },

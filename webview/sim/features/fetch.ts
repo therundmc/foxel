@@ -8,7 +8,6 @@ import type { AnimRef, Feature } from '../state';
 import { ASK_BREAK_MS, AWAIT_MS, CATCH_RADIUS, FETCH_FAR, FETCH_MAX_MS, FETCH_RUN_SPEED, FETCH_WALK_SPEED, NOSE_REACH } from '../tuning';
 import { goTo, noseTo } from './mouth';
 import { tookBreak } from './rest';
-import { wantBack } from './rummage';
 import { showOff } from './tricks';
 
 const BRING_SPEED = 14;
@@ -54,18 +53,6 @@ export function grabBall(b: Buddy, x: number, y: number): void {
   b.world.ball.state = 'held';
   moveHeldBall(b, x, y);
   b.tryEnter('watch', Infinity);
-}
-
-/** You put the ball in your hand back in the chest: nothing left to watch. */
-export function stowBall(b: Buddy): void {
-  if (b.world.ball.state !== 'held') {
-    return;
-  }
-  b.world.ball.state = 'none';
-  if (b.state === 'watch') {
-    b.enterNext('sit');
-  }
-  wantBack(b, 'ball');
 }
 
 export function moveHeldBall(b: Buddy, x: number, y: number): void {

@@ -16,6 +16,8 @@ export interface HeadPose {
   tilt?: number;
   /** Head turned away from us: we see the back of it, whichever way the body is. */
   away?: boolean;
+  /** Shy: its cheek glows pink, wider than usual. */
+  blush?: boolean;
 }
 
 const EARS_BACK_RAD = -0.55;
@@ -127,6 +129,11 @@ export function drawHead(g: Grid, hx: number, hy: number, p: HeadPose): Point {
 
   const [bsx, bsy] = moved(-0.5, 2);
   rect(g, hx - 1 + bsx, hy + 2 + bsy, hx + bsx, hy + 2 + bsy, 'r');
+  if (p.blush) {
+    rect(g, hx - 2 + bsx, hy + 1 + bsy, hx + 1 + bsx, hy + 1 + bsy, 'p');
+    rect(g, hx - 2 + bsx, hy + 2 + bsy, hx + 1 + bsx, hy + 2 + bsy, 'r');
+    rect(g, hx - 1 + bsx, hy + 3 + bsy, hx + bsx, hy + 3 + bsy, 'p');
+  }
   for (const [dx, dy, c] of [[7, 1, 'E'], ...MOUTHS[p.mouth ?? 'smile']] as const) {
     const [x, y] = tipped(dx + 0.5, dy + 0.5 - up);
     set(g, Math.floor(hx + x), Math.floor(hy + y), c);

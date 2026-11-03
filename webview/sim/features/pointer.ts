@@ -2,10 +2,8 @@ import { HEAD_X } from '../../sprites/fox/anchors';
 import { SPRITE_SIZE } from '../../sprites/frames';
 import type { Buddy } from '../buddy';
 import { clamp } from '../math';
+import { devoted } from '../affection';
 import type { Feature } from '../state';
-import { SHUNS_UNDER } from '../tuning';
-import { has } from '../unlocks';
-import { approachWarily } from './growth';
 import type { WorldPoint } from '../world';
 
 /** It first looks at the pointer, and turns to it; only if it is still around after this long does it set off. */
@@ -60,8 +58,8 @@ function standingUnder(b: Buddy, x: number): { at: number; dir: 1 | -1 } {
   return { at: clamp(x - b.offsetFor(HEAD_X, dir), 0, b.maxX), dir };
 }
 
-/** How long it takes its time before coming, for its mood: half as long on its best days, half as long again on its worst. */
-const keen = (b: Buddy): number => 1 - 0.5 * clamp(b.world.mood, -1, 1);
+/** How long it takes its time before coming: less on a good day, and less once it is devoted to you. */
+const keen = (b: Buddy): number => (1 - 0.3 * clamp(b.world.mood, -1, 1)) * (devoted(b.world) ? 0.6 : 1);
 
 /** Nothing better to do: it may go to the pointer or ask for a stroke. */
 function atLeisure(b: Buddy): boolean {
@@ -84,7 +82,7 @@ export function callOver(b: Buddy, x: number): boolean {
     b.pointer.called = true;
     return true;
   }
-  if (!has(b.world, 'trusts') || b.world.mood <= SHUNS_UNDER || !atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
+  if (!atLeisure(b) || Math.abs(standingUnder(b, x).at - b.x) <= COME_MIN / 2) {
     return false;
   }
   startCome(b, x);
@@ -110,8 +108,8 @@ function updateCome(b: Buddy, dt: number, dtMs: number): boolean {
     if (m.arrivedMs < ARRIVED_MS) {
       return false;
     }
-    // Inseparable, it settles down right there, by you.
-    b.enterNext(has(b.world, 'staysClose') ? 'lie' : 'sit');
+    // Devoted to you, it settles down right there, by you.
+    b.enterNext(devoted(b.world) ? 'lie' : 'sit');
     return true;
   }
   // A pointer that went still, or left, is still where it last saw it.
@@ -191,12 +189,7 @@ export const pointerFeature = {
     if (!pointer || !atLeisure(b)) {
       return;
     }
-    if (!has(b.world, 'trusts')) {
-      // Wary of you still: it does not come, nor ask for anything. It dares a sniff toward your pointer, from a distance.
-      if (m.hereMs >= NOTICE_MS && !over(b, pointer) && b.state !== 'lie') {
-        approachWarily(b, pointer.x);
-      }
-    } else if (m.hoverMs >= HOVER_MS) {
+    if (m.hoverMs >= HOVER_MS) {
       if (m.sinceNudgeMs >= NUDGE_REST_MS) {
         startNudge(b);
       }

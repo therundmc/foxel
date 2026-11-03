@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0
+
+- Back to simple: just the fox, living its little life in its view. The toy chest, the shelf, the box of keepsakes, the stages and everything they brought (the soft toys, the finds, the hearts in the earth, the neckerchief) are gone.
+- Its buttons are back in the title bar of its view: throw a ball, blow bubbles, give a treat, say hello.
+- More to do with the mouse, right on it: a click and it reacts to where it was touched, a double click and it twirls for joy, a triple click and it gets the zoomies. A double click on an empty spot still drops its ball there.
+- Its ball lives out of the view again: it trots out to get it, comes back in with it, and sometimes takes it away when it has played enough.
+- Its affection is still there, and never shown: it is kept as before, and only changes, little by little, how it is with you. Fond of you, it shows hearts and is beside itself when you come back after days away; devoted, it comes to your pointer readily and lies down by it. A bad day makes it quieter, and that is all: it no longer sulks, keeps away from your pointer or walks off when touched, and it is never wary of you.
+- Nothing it has lived with you is lost: the life kept by 1.4 carries on.
+- New skies to stop for: hot-air balloons rising out of a misty valley at dawn (one of them looks a lot like a fox), whales leaping off a cliff-top meadow in the afternoon, a rainbow drawn across the sky by a little star after a sunshower, and sky lanterns let go over a lake at night, the first of them from right beside the fox. And it dreams of them afterwards.
+- More little things it does on its own: it turns round twice before lying down, tucks itself up like a loaf, makes biscuits, scratches behind its ear, bounces for joy on all fours, gets the hiccups, and goes cross-eyed at a petal that lands on its nose before sneezing it off. Touch its head and it may go shy; once it is fond of you, it rolls over on its back for a belly rub. Its stretch and its yawn are bigger and softer too.
+
 ## 1.4.1
 
 - Only the fox and the sky: while it stops to contemplate one, its chest, its shelf and its box of keepsakes draw right out of sight and wait until the sky has gone. There is nothing to do with them in the meantime.

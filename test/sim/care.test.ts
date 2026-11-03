@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fillBowl } from '../../webview/sim/features/meals';
 import { react } from '../../webview/sim/features/reactions';
-import { recall, remember } from '../../webview/sim/memory';
 import type { AnimName } from '../../webview/sprites/fox/animations';
 import { fixed, simulate, spawn } from './helpers';
 
@@ -59,7 +58,6 @@ describe('looking after it without being caught out', () => {
     simulate(b, 200);
     expect(b.meals.hungry).toBe(false);
     expect(b.world.effects).not.toContain('unfed');
-    expect(b.bond.slighted).toBe(false);
 
     const there = fox(at(13, 59));
     react(there, 'hungry');
@@ -67,7 +65,6 @@ describe('looking after it without being caught out', () => {
     there.world.setClock(at(14, 1), true);
     simulate(there, 200);
     expect(there.world.effects).toContain('unfed');
-    expect(there.bond.slighted).toBe(true);
   });
 
   it('always pulls its basket in on the left, where its corner is', () => {
@@ -78,24 +75,4 @@ describe('looking after it without being caught out', () => {
     expect(b.world.basket.outward).toBe(-1);
   });
 
-  it('finds a treat left half eaten where it lay when the view is opened again', () => {
-    const before = fox(at(15));
-    before.enter('sleep', 3_600_000);
-    before.world.treat.rest(200, 2, -1, 300);
-    simulate(before, 100);
-    const noon = at(15).getTime();
-    const memory = remember(before, noon);
-    expect(memory.treat).toEqual({ x: 200, stage: 2, facing: -1 });
-
-    const after = fox(at(15));
-    after.enter('sleep', 3_600_000);
-    recall(after, memory, noon + 60_000);
-    expect(after.world.treat.landed).toBe(true);
-    expect(Math.round(after.world.treat.centerX)).toBe(200);
-    expect(after.world.treat.stage).toBe(2);
-    expect(after.world.treat.facing).toBe(-1);
-    const tomorrow = fox(at(15));
-    recall(tomorrow, memory, noon + 24 * 3_600_000);
-    expect(tomorrow.world.treat.active).toBe(false);
-  });
 });

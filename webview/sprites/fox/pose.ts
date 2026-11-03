@@ -1,11 +1,12 @@
 import type { Animation, Frame, Overlay, Point } from '../frames';
-import { ellipse, filledAt, limb, newGrid, outline, rect, type Grid } from '../grid';
+import { ellipse, filledAt, inEllipse, limb, newGrid, outline, rect, type Grid } from '../grid';
 import { GROUND_ROW } from './anchors';
+import { drawBelly, drawLoaf, drawScratchFoot } from './bodies';
 import { drawFront, type FrontPose } from './front';
 import { drawHead, drawHeadBehind, type HeadPose } from './head';
 import { EXTRAS, type Extra } from './overlays';
 
-type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'behind' | 'front';
+type Body = 'stand' | 'sit' | 'curl' | 'bow' | 'lie' | 'behind' | 'front' | 'loaf' | 'belly';
 type Tail =
   | 'up'
   | 'wagL'
@@ -26,7 +27,11 @@ type Tail =
   | 'behindMidR'
   | 'behindR'
   | 'frontA'
-  | 'frontB';
+  | 'frontB'
+  | 'groundA'
+  | 'groundB'
+  | 'wrap'
+  | 'wrapFlick';
 type Paw = 'none' | 'wave1' | 'wave2' | 'lick' | 'tapNear' | 'tapFar' | 'beg';
 
 // [foot x offset, foot lift] for back-far, back-near, front-far, front-near legs.
@@ -41,6 +46,10 @@ export interface Pose extends HeadPose, FrontPose {
   legs?: Legs;
   /** Front half of a standing body shifted down (+) or up (-) relative to the back. */
   pitch?: number;
+  /** Lying tucked up (`loaf`): its front paws come out and press the ground, each lifted this many pixels. */
+  knead?: readonly [number, number];
+  /** Sitting: its hind foot scratches behind its ear, high (0) or a little lower (1). */
+  scratch?: 0 | 1;
   ball?: boolean;
   /** Ball centre relative to the head centre, for tricks; `ball` means in the mouth. */
   ballAt?: Point;
@@ -110,6 +119,12 @@ const TAILS: Record<Tail, readonly (readonly [number, number, number])[]> = {
   behindR: [[18, 27.4, 2.2], [21, 27.9, 2.3], [24, 27.6, 2.2], [25.8, 27, 1.7]],
   frontA: [[21, 26.5, 2.2], [23.8, 25.2, 2.3], [25.6, 23, 2.1], [26, 21.8, 1.6]],
   frontB: [[21, 26.5, 2.2], [24, 26, 2.3], [26.4, 24.6, 2.1], [27.2, 23.6, 1.6]],
+  // Lying on its back: its tail on the ground behind it, sweeping a little.
+  groundA: [[6, 26.5, 2.2], [3.5, 27.3, 2.4], [1.6, 27, 2.1], [1, 26.2, 1.6]],
+  groundB: [[6, 26.5, 2.2], [3.6, 26.6, 2.4], [2, 25, 2.1], [1.6, 23.8, 1.6]],
+  // Tucked up in a loaf: wrapped round its side, the tip under its chin; and the tip flicking up.
+  wrap: [[6, 25.5, 2.3], [7.2, 26.9, 2.2], [9, 27.7, 2.1], [11, 28.1, 2], [13, 28.2, 2], [15, 28.1, 2], [17, 27.9, 1.9], [18.6, 27.7, 1.6]],
+  wrapFlick: [[6, 25.5, 2.3], [7.2, 26.9, 2.2], [9, 27.7, 2.1], [11, 28.1, 2], [13, 28.2, 2], [15, 28, 2], [16.8, 27.2, 1.9], [18, 25.8, 1.6]],
 };
 
 const DEFAULT_TAIL: Record<Body, Tail> = {
@@ -120,6 +135,8 @@ const DEFAULT_TAIL: Record<Body, Tail> = {
   lie: 'sitA',
   behind: 'behindR',
   front: 'frontA',
+  loaf: 'wrap',
+  belly: 'groundA',
 };
 
 function leg(g: Grid, top: Point, foot: Point, c: string): void {
@@ -132,11 +149,13 @@ function raisedPaw(g: Grid, from: Point, to: Point): void {
   rect(g, Math.floor(to[0]), Math.floor(to[1]), Math.floor(to[0]) + 1, Math.floor(to[1]) + 1, 'c');
 }
 
-function drawTail(g: Grid, tail: Tail, b: number, outlined = false): void {
+// Outlined, where it lies over the body: in tufts (`tufts`), or as one smooth brush, outlined all round only.
+function drawTail(g: Grid, tail: Tail, b: number, outlined: false | 'tufts' | 'smooth' = false): void {
   const parts = TAILS[tail];
   if (outlined) {
-    const overBody = (x: number, y: number): boolean => filledAt(g, x, y);
-    parts.forEach(([cx, cy, r]) => ellipse(g, cx, cy + b, r + 1, r + 1, 'K', overBody));
+    const inTail = (x: number, y: number): boolean => parts.some(([cx, cy, r]) => inEllipse(x, y, cx, cy + b, r, r));
+    const edge = (x: number, y: number): boolean => filledAt(g, x, y) && (outlined === 'tufts' || !inTail(x, y));
+    parts.forEach(([cx, cy, r]) => ellipse(g, cx, cy + b, r + 1, r + 1, 'K', edge));
   }
   parts.forEach(([cx, cy, r], i) => ellipse(g, cx, cy + b, r, r, i === parts.length - 1 ? 'c' : 'O'));
 }
@@ -157,14 +176,16 @@ function drawStand(g: Grid, b: number, legs: Legs, pitch: number): Point {
   return [22, 13 + b + pitch];
 }
 
-function drawSit(g: Grid, b: number, paw: Paw): Point {
+function drawSit(g: Grid, b: number, paw: Paw, footUp: boolean): Point {
   const farLift = paw === 'tapFar' ? 2 : 0;
   leg(g, [16, 22 + b], [16, FOOT_Y - farLift], 'o');
   ellipse(g, 13.5, 22 + b, 6.5, 6.5, 'O');
   ellipse(g, 10.5, 25.5 + b, 4.5, 3.5, 'o');
   ellipse(g, 10, 25 + b, 3.7, 2.9, 'O');
-  rect(g, 11, 28, 13, 28, 'O');
-  rect(g, 11, 29, 14, 29, 'c');
+  if (!footUp) {
+    rect(g, 11, 28, 13, 28, 'O');
+    rect(g, 11, 29, 14, 29, 'c');
+  }
   ellipse(g, 17.5, 21 + b, 3, 3.5, 'c');
   if (paw === 'none' || paw === 'tapFar') {
     leg(g, [19, 22 + b], [19, FOOT_Y], 'O');
@@ -176,7 +197,7 @@ function drawSit(g: Grid, b: number, paw: Paw): Point {
 
 function drawCurl(g: Grid, b: number, tail: Tail): Point {
   ellipse(g, 14, 25 + b, 9, 4.8, 'O');
-  drawTail(g, tail, b, true);
+  drawTail(g, tail, b, 'tufts');
   return [21, 21 + b];
 }
 
@@ -207,7 +228,7 @@ function drawBehind(g: Grid, b: number, tail: Tail): Point {
   ellipse(g, 16, 22.5 + b, 6, 6, 'O');
   ellipse(g, 16, 26, 7.5, 3.6, 'O');
   ellipse(g, 16, 18.6 + b, 4.4, 1.2, 'o');
-  drawTail(g, tail, 0, true);
+  drawTail(g, tail, 0, 'tufts');
   return [16, 12 + b];
 }
 
@@ -218,13 +239,13 @@ export function frame(p: Pose): Frame {
   const tail = p.tail ?? DEFAULT_TAIL[body];
   const paw = p.paw ?? 'none';
 
-  if (body !== 'curl' && body !== 'behind') {
+  if (body !== 'curl' && body !== 'behind' && body !== 'loaf') {
     drawTail(g, tail, b);
   }
   let head: Point;
   switch (body) {
     case 'sit':
-      head = drawSit(g, b, paw);
+      head = drawSit(g, b, paw, p.scratch !== undefined);
       break;
     case 'curl':
       head = drawCurl(g, b, tail);
@@ -237,6 +258,13 @@ export function frame(p: Pose): Frame {
       break;
     case 'behind':
       head = drawBehind(g, b, tail);
+      break;
+    case 'loaf':
+      head = drawLoaf(g, b, p.knead);
+      drawTail(g, tail, 0, 'smooth');
+      break;
+    case 'belly':
+      head = drawBelly(g, b, p.legs ?? STILL);
       break;
     case 'front':
       head = [16, 12 + b];
@@ -253,6 +281,9 @@ export function frame(p: Pose): Frame {
     drawHeadBehind(g, hx, hy, p.ears ?? 'up');
   }
   const eye = away || body === 'front' ? undefined : drawHead(g, hx, hy, p);
+  if (p.scratch !== undefined) {
+    drawScratchFoot(g, [hx, hy], p.scratch);
+  }
 
   if (paw === 'wave1') {
     raisedPaw(g, [19, 21 + b], [25.5, 21]);
